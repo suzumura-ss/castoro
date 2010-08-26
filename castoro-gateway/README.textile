@@ -1,0 +1,205 @@
+h1. castoro-gateway
+
+h2. Install
+
+<pre>
+gem install castoro-gateway-X.X.X.gem
+</pre>
+
+h2. Command (related to gateway)
+
+It is a subcommand of castoro-gateway as follows.
+
+h3. castoro-gateway setup
+
+Create necessary configuration file by command for the gateway.
+See below Usage.
+
+<pre>
+$ castoro-gateway setup --help
+Usage: castoro-gateway setup [options]
+    -v, --verbose                    verbose
+    -f, --force                      Override config file
+    -c, --conf <configfile>          Config file
+</pre>
+
+h3. castoro-gateway start
+
+Command for starting up the castoro-gateway program.
+See below Usage.
+
+<pre>
+$ castoro-gateway start --help
+Usage: castoro-gateway start [options]
+    -v, --verbose                    verbose
+    -d, --daemon                     daemon mode
+    -p, --pid <pidfile>              PID file (only for the daemon mode)
+    -l, --log <logfile>              Log file (only for the daemon mode)
+    -c, --conf <configfile>          Config file
+    -e, --env <environment>          Execution environment
+</pre>
+
+h3. castoro-gateway stop
+
+Command for stopping the castoro-gateway daemon program.
+See below Usage.
+
+<pre>
+$ castoro-gateway stop --help
+Usage: castoro-gateway stop [options]
+    -v, --verbose                    verbose
+    -f, --force                      force shutdown
+    -p, --pid <pidfile>              PID file
+</pre>
+
+h3. castoro-gateway status
+
+Command for displays the status of running gateway program.
+See below Usage.
+
+<pre>
+$ castoro-gateway status
+CACHE_EXPIRE            : 15
+CACHE_REQUESTS          : 0
+CACHE_HITS              : 0
+CACHE_COUNT_CLEAR       : 0
+CACHE_ALLOCATE_PAGES    : 15
+CACHE_FREE_PAGES        : 15
+CACHE_ACTIVE_PAGES      : 0
+CACHE_HAVE_STATUS_PEERS : 0
+CACHE_ACTIVE_PEERS      : 0
+CACHE_READABLE_PEERS    : 0
+</pre>
+
+h2. init.d script sample.
+
+/etc/init.d/castoro-gatewayd
+
+<pre>
+#!/bin/sh
+# castoro-gateway start/stop script.
+# chkconfig: - 85 15
+# description: castoro-gateway start/stop script.
+. /etc/rc.d/init.d/functions
+
+prog=castoro-gatewayd
+
+base=/usr/local/bin/castoro-gateway
+cnf=/etc/castoro/gateway.conf
+pid=/var/castoro/gateway.pid
+log=/var/castoro/gateway.log
+env=default
+
+start() {
+  echo $"Start Castoro-Gateway ..."
+  $base start -c $cnf -p $pid -l $log -e $env -d
+}
+
+stop() {
+  echo $"Stop Castoro-Gateway ..."
+  $base stop -p $pid
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart)
+    stop
+    start
+    ;;
+  status)
+    status -p $pid $prog
+    ;;
+  *)
+    echo $"Usage: $prog {start|stop|restart|status}"
+esac
+</pre>
+
+h2. gateway config file details.
+
+Config file is based on the YAML format.
+
+h3. example
+
+<pre>
+---
+default:
+  user: castoro
+  workers: 5
+  loglevel: 1
+  multicast_addr: 239.192.1.1
+  multicast_device_addr: 192.168.1.1
+  cache:
+    watchdog_limit: 15
+    return_peer_number: 5
+    cache_size: 500000
+  gateway:
+    console_port: 30110
+    unicast_port: 30111
+    multicast_port: 30109
+    watchdog_port: 30113
+    watchdog_logging: false
+  peer:
+    multicast_port: 30112
+</pre>
+
+h3. user
+
+Effective user for gateway program.
+
+h3. workers
+
+count of worker processes.
+
+h3. loglevel
+
+logger level. must set to be between 0 and 5.
+It conforms to the enumeration value of Logger::Severity.
+
+h3. multicast_addr
+
+Address for multicast.
+
+h3. multicast_device_addr
+
+Network interface address for multicast.
+
+h3. cache => watchdog_limit
+
+Timeout second for watchdog.
+
+h3. cache => return_peer_number
+
+Count of peer hostname per return.
+
+h3. cache => cache_size
+
+Cache size (Bytes)
+
+h3. gateway => console_port
+
+TCP Port number for console.
+
+h3. gateway => unicast_port
+
+UDP Port number for unicast. (Client to Gateway)
+
+h3. gateway => multicast_port
+
+UDP Port number for multicast. (Peer to Gateway)
+
+h3. gateway => watchdog_port
+
+UDP Port number for watchdog. (Peer to Gateway)
+
+h3. gateway => watchdog_logging
+
+When true, watchdog packet logging.
+
+h3. peer => multicast_port
+
+UDP Port number for multicast. (Gateway to Peer)

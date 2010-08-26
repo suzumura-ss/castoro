@@ -1,0 +1,194 @@
+#!/usr/local/bin/ruby
+
+#
+#   Copyright 2010 Ricoh Company, Ltd.
+#
+#   This file is part of Castoro.
+#
+#   Castoro is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU Lesser General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   Castoro is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU Lesser General Public License for more details.
+#
+#   You should have received a copy of the GNU Lesser General Public License
+#   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+require 'getoptlong'
+require 'socket'
+require 'timeout'
+
+PROGRAM_VERSION = '0.0.5'
+
+class CommandLineOptions < GetoptLong
+  def initialize
+    $VERBOSE = false
+    $SINGLE_LINE = false
+    @program_name = $0.sub(/.*\//, '')
+    super(
+          [ '--help',                '-h', NO_ARGUMENT ],
+          [ '--version',             '-V', NO_ARGUMENT ],
+          [ '--verbose',             '-v', NO_ARGUMENT ],
+          [ '--single-line',         '-s', NO_ARGUMENT ],
+          )
+
+    each do |opt, arg|
+      case opt
+      when '--help'
+        usage
+        exit 0
+      when '--version'
+        puts "#{@program_name} - Version #{PROGRAM_VERSION}"
+        exit 0
+      when '--verbose'
+        $VERBOSE = true
+      when '--single-line'
+        $SINGLE_LINE = true
+      end
+    end
+  end
+
+  def usage
+    puts "#{@program_name} - Version #{PROGRAM_VERSION}"
+    puts ""
+    puts " Usage: #{@program_name} [options] target command hosts..."
+    puts ""
+    puts "  options:"
+    puts "   -h, --help"
+    puts "   -V, --version"
+    puts "   -v, --verbose"
+    puts ""
+  end
+end
+
+options = CommandLineOptions.new
+
+unless ( 2 <= ARGV.size )
+  options.usage
+  exit 1
+end
+
+target = ARGV.shift
+
+case target
+when 'cmond', 'mon', 'm'
+  port = 30100
+when 'cpeerd', 'peer', 'p'
+  port = 30102
+when 'crepd', 'rep', 'r'
+  port = 30103
+else
+  puts "Unknown target: #{target}"
+  exit 1
+end
+
+c = ARGV.shift
+
+args = []
+period = nil
+count = 1
+duration = 0.7
+tolerance = 3
+
+case c
+when 'help', 'shutdown', 'dump', 'quit'
+  command = c
+when 'status'
+  command = c
+  if ( $SINGLE_LINE )
+    args << '-s'
+  end
+when 'mode'
+  command = c
+  case ARGV[0]
+  when 'unknown', '0', 'offline', '10', 'readonly', '20', 'rep', '23', 'fin_rep', '25', 'del_rep', '27', 'online', '30'
+    args << ARGV.shift
+  end
+when 'auto', 'debug'
+  command = c
+  case ARGV[0]
+  when 'on', 'off', 'auto'
+    args << ARGV.shift
+  end
+when 'stat'
+  command = c
+  case ARGV[0]
+  when '-s'
+    args << ARGV.shift
+  end
+  if ( $SINGLE_LINE )
+    args << '-s'
+  end
+  if ARGV[0] and ARGV[0].match( /\A[0-9]+\Z/ )
+    period = ARGV.shift
+    args << period
+  end
+  if ARGV[0] and ARGV[0].match( /\A[0-9]+\Z/ )
+    count = ARGV.shift
+    args << count
+  end
+else
+  puts "Unknown command: #{c}"
+  exit 1
+end
+
+hosts = ARGV
+
+if ( hosts.size == 0 )
+  hosts.unshift 'localhost'
+end
+
+def connect( host, port )
+  s = nil
+  begin
+    Timeout.timeout( tolerance ) do
+      s = TCPSocket.new host, port
+    end
+  rescue Errno::ETIMEDOUT, Timeout::Error => e
+    puts "#{e.class} #{e.message}: #{host}:#{port}"
+  rescue Errno::ECONNREFUSED => e
+    puts "#{e.class} #{e.message}: #{host}:#{port}"
+  rescue SocketError => e
+    puts "#{e.class} #{e.message}: #{host}:#{port}"
+  rescue => e
+    puts "#{e.class} #{e.message}: #{host}:#{port}"
+  end
+  s
+end
+
+hosts.each { |host|
+  begin
+    s = nil
+    puts "#{command} #{args.join(' ')}" if $VERBOSE
+    Timeout.timeout( tolerance ) do
+      s = TCPSocket.new host, port
+    end
+    s.puts "#{command} #{args.join(' ')}"
+    Thread.new {
+      while ( x = s.gets )
+        puts x
+      end
+    }
+    if ( period )
+      duration = period.to_i * count.to_i + 0.7
+    end
+    sleep duration
+  rescue Errno::ETIMEDOUT, Timeout::Error => e
+    puts "#{e.class} #{e.message}: #{host}:#{port}"
+  rescue Errno::ECONNREFUSED => e
+    puts "#{e.class} #{e.message}: #{host}:#{port}"
+  rescue SocketError => e
+    puts "#{e.class} #{e.message}: #{host}:#{port}"
+  rescue => e
+    puts "#{e.class} #{e.message}: #{host}:#{port}"
+  ensure
+    unless s.nil?
+      s.close unless s.closed?
+    end
+  end
+}

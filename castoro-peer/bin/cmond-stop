@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+
+#
+#   Copyright 2010 Ricoh Company, Ltd.
+#
+#   This file is part of Castoro.
+#
+#   Castoro is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU Lesser General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   Castoro is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU Lesser General Public License for more details.
+#
+#   You should have received a copy of the GNU Lesser General Public License
+#   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+require "socket"
+
+require "rubygems"
+require "castoro-peer/configurations"
+
+puts "#{File.basename($0)} is going to shutdown ... "
+port = Castoro::Peer::Configurations.instance.CmondMaintenancePort
+
+s = nil
+begin
+  s = TCPSocket.new 'localhost', port
+  s.puts 'shutdown'
+  s.gets
+
+rescue => e
+  puts e.message
+  exit 1
+
+ensure
+  s.close if s rescue nil
+  s = nil
+end
+

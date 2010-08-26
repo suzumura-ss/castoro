@@ -1,0 +1,30 @@
+
+=== 0.0.6 2010-08-25
+
+* Correction of license sentence
+
+=== 0.0.5 2010-08-23
+
+* Bugfix: Changet rescue => ensure in Castoro::Client::TimeslideSender.
+* Added log messages in Castoro::Client.
+* Added license.
+
+=== 0.0.4 2010-08-06
+
+* Added Castoro::ClientAlreadyExistsError.
+** Raise when Castoro::Peer::AlreadyExistsError returned from peer.
+* Added Castoro::Client::TimeslideSender.
+* Attached Castoro::Client and Castoro::Client::TimeslideSender.
+* Added Client specs.
+* refactoring #to_basket is used.
+
+=== 0.0.3 2010-06-23
+
+* Raketask spec is defined.
+* The default of "tcp_request_expire" is changed to 5.0(sec)
+* The gateway port number default specified by "gateways" is defined (30101>30111)
+* Loading by "require 'castor-client'" is prohibited.
+* When the DELETE command fails, it retries to another Peer.
+
+=== 0.0.2 2010-06-21
+

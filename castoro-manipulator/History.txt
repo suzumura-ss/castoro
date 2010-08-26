@@ -1,0 +1,30 @@
+
+=== 0.0.6 2010-08-25
+
+* Correction of license sentence
+
+=== 0.0.5 2010-08-23
+
+* Supported multi environment.
+** Added command line option (-e, --environment)
+** Changed configurations file structure.
+* Implemented specify effective user function.
+* Changed README.textile
+* The help message is made appropriate.
+* Added license.
+
+=== 0.0.4 2010-08-10
+
+* changed UNIX Socket permission 0777->0666.
+
+=== 0.0.3 2010-08-06
+
+* bugfix: Response::Mkdir was returned to Command::Mv.
+
+=== 0.0.2 2010-08-02
+
+* refactoring.
+
+=== 0.0.1 2010-07-26
+
+* first release.

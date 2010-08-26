@@ -1,0 +1,17 @@
+h1. castoro-peer
+
+h2. Install
+
+<pre>
+gem install castoro-peer-0.0.7.gem
+</pre>
+
+h3. Setup
+
+cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-peer-0.0.1/config/
+cd etc/
+make install # => copy to /etc/castoro/*, /var/castoro/*
+cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-peer-0.0.1/config/
+cd init.d/
+make install # => copy to /etc/init.d/*
+

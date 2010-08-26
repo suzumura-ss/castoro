@@ -1,0 +1,83 @@
+
+=== 0.0.12 2010-08-26
+
+* Slightly revised a legal notice
+* Commented out s.extensions = ["ext/extconf.rb.linux"] in Rakefile
+* Changed TIMED_OUT_DURATION = 10 to 600
+* Add dependency castoro-manipulator.
+* Removed MySQL database access code.
+
+=== 0.0.11 2010-08-24
+
+* Tweaked a depth of directory path for csm
+* Substituted localhost with 127.0.0.1
+* Reimplemented dump() in Pipeline
+* Eliminated a class Timeout
+* Ensured closing a socket
+* Reduced the size of buffer for UDP from MTU to Minimum reassembly buffer size
+* Added validation of the number of parameters and type of forth parameter
+* Fixed a bug removing a word instance from @config.instance.HostnameForClient
+* Inserted copyright notice and copying permission statement following http://www.gnu.org/licenses/gpl-howto.html
+* Name a class XXX RemoteControl
+* Removed Tracer relevant lines
+* Tweaked a path in require clauses from castoro/peer/ to castoro-peer/
+* Restructured lib/castoro/peer/ into lib/castoro-peer/
+
+=== 0.0.10 2010-08-17
+
+* Fixed a bug on hostname for data transmission
+* Use of CustomConditionVariable in place of ConditionVariable
+* Use of scheduler and implementation of buffered I/O with Non-blocking I/O
+* Use of write("\n") in place of puts("")
+* Implementation of MaintenaceServerScheduler
+* Made Pipeline robuster
+* Made cXXXd.rb be able to start as a daemon process by itself
+* Made lib/castoro/peer/ flat
+
+=== 0.0.9 2010-08-
+
+* Refactored scripts.
+** removed unused scripts, methods.
+** removed code that depends on fact "Configurations is singleton".
+* Refactored directory structure.
+
+=== 0.0.8 2010-08-09
+
+* Changed how often df command is executed from 10s to 60s
+* Moved an action code fragment from lib/castoro/peer/ into bin/
+* Fixed a bug on remote control
+
+=== 0.0.7 2010-08-02
+
+* Substituted a RDBMS-based replication system with a file-system-based one
+* Made a monitoring system robuster
+
+=== 0.0.6 2010-07-30
+
+* Added manipulator daemon settings and implementation.
+
+=== 0.0.5 2010-07-29
+
+* fixed priority of tcp maintenance servers
+* merged castoro-peer-20100706-again.
+
+=== 0.0.4 2010-07-22
+
+* "available" is set to ALIVE packet.
+* Added StorageSpaceMonotor and specs.
+
+=== 0.0.3 2010-07-20
+
+* 
+
+=== 0.0.2 2010-07-16
+
+* removed csm wrapper script.
+* Adjustment of directory composition.
+* updated peerctl utility.
+* Added castoro-peer-setup script.
+* Added c{rep|peer|mon}d-stop script.
+
+=== 0.0.1 2010-07-06
+
+* first release.

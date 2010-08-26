@@ -1,0 +1,139 @@
+h1. castoro-manipulator
+
+h2. Install
+
+<pre>
+gem install castoro-manipulator-X-X-X.gem
+</pre>
+
+h2. Command (related to manipulator)
+
+It is a subcommand of castoro-manipulator as follows.
+
+h3. castoro-manipulator setup
+
+Create necessary configuration file by command for the manipulator.
+See below Usage.
+
+<pre>
+$ castoro-manipulator setup --help
+Usage: castoro-manipulator setup [options]
+    -v, --verbose                    verbose
+    -f, --force                      Override config file
+    -c, --conf <configfile>          Config file
+</pre>
+
+h3. castoro-manipulator start
+
+Command for starting up the castoro-manipulator program.
+See below Usage.
+
+<pre>
+$ castoro-manipulator start --help
+Usage: castoro-manipulator start [options]
+    -v, --verbose                    verbose
+    -d, --daemon                     daemon mode
+    -p, --pid <pidfile>              PID file (only for the daemon mode)
+    -l, --log <logfile>              Log file (only for the daemon mode)
+    -c, --conf <configfile>          Config file
+    -e, --env <environment>          Execution environment
+</pre>
+
+h3. castoro-manipulator stop
+
+Command for stopping the castoro-manipulator daemon program.
+See below Usage.
+
+<pre>
+$ castoro-manipulator stop --help
+Usage: castoro-manipulator stop [options]
+    -v, --verbose                    verbose
+    -f, --force                      force shutdown
+    -p, --pid <pidfile>              PID file
+</pre>
+
+h2. init.d script sample.
+
+/etc/init.d/castoro-manipulatord
+
+<pre>
+#!/bin/sh
+# castoro-manipulator start/stop script.
+# chkconfig: - 85 15
+# description: castoro-manipulator start/stop script.
+. /etc/rc.d/init.d/functions
+
+prog=castoro-manipulatord
+
+base=/usr/local/bin/castoro-manipulator
+cnf=/etc/castoro/manipulator.conf
+pid=/var/castoro/manipulator.pid
+log=/var/castoro/manipulator.log
+env=default
+
+start() {
+  echo $"Start Castoro-Manipulator ..."
+  $base start -c $cnf -p $pid -l $log -e $env -d
+}
+
+stop() {
+  echo $"Stop Castoro-Manipulator ..."
+  $base stop -p $pid
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart)
+    stop
+    start
+    ;;
+  status)
+    status -p $pid $prog
+    ;;
+  *)
+    echo $"Usage: $prog {start|stop|restart|status}"
+esac
+</pre>
+
+h2. manipulator config file details.
+
+Config file is based on the YAML format.
+
+h3. example
+
+<pre>
+---
+default:
+  user: castoro
+  workers: 5
+  loglevel: 1
+  socket: /var/castoro/manipulator.sock
+  base_directory: /expdsk
+</pre>
+
+h3. user
+
+Effective user for manipulator program.
+
+h3. workers
+
+count of worker processes.
+
+h3. loglevel
+
+logger level. must set to be between 0 and 5.
+It conforms to the enumeration value of Logger::Severity.
+
+h3. socket
+
+fullpath of UNIX socket file.
+
+h3. base_directory
+
+manipulate base directory.
+

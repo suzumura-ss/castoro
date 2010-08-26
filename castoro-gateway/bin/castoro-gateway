@@ -1,0 +1,160 @@
+#!/usr/bin/env ruby
+
+#
+#   Copyright 2010 Ricoh Company, Ltd.
+#
+#   This file is part of Castoro.
+#
+#   Castoro is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU Lesser General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   Castoro is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU Lesser General Public License for more details.
+#
+#   You should have received a copy of the GNU Lesser General Public License
+#   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+require 'fileutils'
+require 'optparse'
+require 'pathname'
+
+require 'rubygems'
+require 'castoro-gateway'
+
+require 'castoro-gateway/scripts/script_runner'
+
+COMMAND_OPTIONS = {
+  :start => {
+    :verbose => false,
+    :daemon => false,
+    :pid => '/var/castoro/gateway.pid',
+    :log => '/var/castoro/gateway.log',
+    :conf => '/etc/castoro/gateway.conf',
+    :env => 'default',
+  },
+  :stop => {
+    :verbose => false,
+    :force => false,
+    :pid => '/var/castoro/gateway.pid'
+  },
+  :setup => {
+    :force => false,
+    :conf => '/etc/castoro/gateway.conf'
+  },
+  :status => {
+    :verbose => false,
+    :port => Castoro::Gateway::DEFAULT_SETTINGS["gateway"]["console_port"].to_i,
+  },
+}
+
+def help
+  puts "#{File.basename(__FILE__)} <command>"
+  puts
+  puts "Available commands:"
+  COMMAND_OPTIONS.keys.each { |c| puts "\t#{c}" }
+  puts 
+end
+
+# get command.
+command = ARGV.shift.to_s.to_sym
+unless COMMAND_OPTIONS.include? command
+  help
+  exit 1
+end
+
+opt = COMMAND_OPTIONS[command].dup
+
+parser = OptionParser.new do |parser|
+  parser.program_name = "#{File.basename(__FILE__)} #{command}"
+
+  case command
+  when :start
+    parser.on('-v', '--verbose', 'verbose') do |v|
+      opt[:verbose] = true
+    end
+    parser.on('-d', '--daemon', 'daemon mode') do |v|
+      opt[:daemon] = true
+    end
+    parser.on('-p PID', '--pid <pidfile>', 'PID file (only for the daemon mode)') do |v|
+      if Pathname.new(v).absolute?
+        opt[:pid] = Pathname.new(v).to_s
+      else
+        opt[:pid] = Pathname.new(File.join(Pathname.pwd, v)).to_s
+      end
+      dir = File.dirname(opt[:pid])
+      FileUtils.mkdir_p(dir) unless File.exist?(dir)
+    end
+    parser.on('-l LOG', '--log <logfile>', 'Log file (only for the daemon mode)') do |v|
+      if Pathname.new(v).absolute?
+        opt[:log] = Pathname.new(v).to_s
+      else
+        opt[:log] = Pathname.new(File.join(Pathname.pwd, v)).to_s
+      end
+      dir = File.dirname(opt[:log])
+      FileUtils.mkdir_p(dir) unless File.exist?(dir)
+    end
+    parser.on('-c CNF', '--conf <configfile>', 'Config file') do |v|
+      if Pathname.new(v).absolute?
+        opt[:conf] = Pathname.new(v).to_s
+      else
+        opt[:conf] = Pathname.new(File.join(Pathname.pwd, v)).to_s
+      end
+    end
+    parser.on('-e ENV', '--env <environment>', 'Execution environment') do |v|
+      opt[:env] = v
+    end
+
+  when :stop
+    parser.on('-v', '--verbose', 'verbose') do |v|
+      opt[:verbose] = true
+    end
+    parser.on('-f', '--force', 'force shutdown') do |v|
+      opt[:force] = true
+    end
+    parser.on('-p PID', '--pid <pidfile>', 'PID file') do |v|
+      if Pathname.new(v).absolute?
+        opt[:pid] = Pathname.new(v).to_s
+      else
+        opt[:pid] = Pathname.new(File.join(Pathname.pwd, v)).to_s
+      end
+    end
+
+  when :setup
+    parser.on('-v', '--verbose', 'verbose') do |v|
+      opt[:verbose] = true
+    end
+    parser.on('-f', '--force', 'Override config file') do |v|
+      opt[:force] = v
+    end
+    parser.on('-c CNF', '--conf <configfile>', 'Config file') do |v|
+      if Pathname.new(v).absolute?
+        opt[:conf] = Pathname.new(v).to_s
+      else
+        opt[:conf] = Pathname.new(File.join(Pathname.pwd, v)).to_s
+      end
+    end
+
+  when :status
+    parser.on('-v', '--verbose', 'verbose') do |v|
+      opt[:verbose] = true
+    end
+    parser.on('-p PORT', '--port <portnumber>', 'console port') do |v|
+      opt[:port] = v.to_i
+    end
+
+  end
+end
+
+begin
+  parser.parse!(ARGV)
+rescue
+  puts parser.help
+  exit 1
+end
+
+Castoro::ScriptRunner.send(command, opt)
