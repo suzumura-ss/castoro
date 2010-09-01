@@ -27,7 +27,7 @@ require 'castoro-peer/basket'
 require 'castoro-peer/channel'
 require 'castoro-peer/extended_udp_socket'
 require 'castoro-peer/log'
-require 'castoro-peer/manupulator'
+require 'castoro-peer/manipulator'
 require 'castoro-peer/server_status'
 require 'castoro-peer/scheduler'
 
@@ -35,8 +35,7 @@ module Castoro
   module Peer
     
     class TCPReplicationServer < PreThreadedTcpServer
-      def initialize( port = Configurations.instance.ReplicationTCPCommunicationPort, host = '0.0.0.0', maxConnections = 20, priority = -1 )
-        # Todo: substitute an expression meaning priority = -1 
+      def initialize( port = Configurations.instance.ReplicationTCPCommunicationPort, host = '0.0.0.0', maxConnections = 20  )
         super
       end
 
@@ -60,6 +59,7 @@ module Castoro
         @directory_entries = []
         @basket = nil
         @dst = nil
+        @csm_executor = Csm.create_executor
       end
 
       def run
@@ -164,11 +164,9 @@ module Castoro
           raise RetryableError, "#{e.class} #{e.message} for #{@basket}"
         end
 
-        uid = Process.euid
-        gid = Process.egid
-        csm = CsmRequest.new( @config, 'mkdir', uid, gid, '0755', @path_r )
+        csm_request = Csm::Request::Catch.new( @path_r )
         begin
-          csm.execute
+          @csm_executor.execute( csm_request )
         rescue => e
           raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_r}"
         end
@@ -191,17 +189,14 @@ module Castoro
           return Hash[ :doesnot_exist => @path_a ]
         end
 
-        user  = @config.Dir_d_user
-        group = @config.Dir_d_group
-        perm  = @config.Dir_d_perm
-        csm = CsmRequest.new( @config, 'mv', user, group, perm, @path_a, @path_d )
+        csm_request = Csm::Request::Delete.new( @path_a, @path_d )
         begin
-          csm.execute
+          @csm_executor.execute( csm_request )
         rescue => e
           raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_a}"
         end
 
-        Log.notice( "DELETED: #{@basket} #{@basket.path_a} from #{@ip}:#{@port}" )
+        Log.notice( "DELETED: #{@basket} #{@path_a} from #{@ip}:#{@port}; moved to #{@path_d}")
         return nil
       end
 
@@ -277,12 +272,9 @@ module Castoro
       def process_cancel_command
         @dst.close if @dst and not @dst.closed?
         if ( File.exist? @path_r )
-          user  = @config.Dir_c_user
-          group = @config.Dir_c_group
-          perm  = @config.Dir_c_perm
-          csm = CsmRequest.new( @config, 'mv', user, group, perm, @path_r, @basket.path_c( @path_r ) )
+          csm_request = Csm::Request::Cancel.new( @path_r, @basket.path_c( @path_r ) )
           begin
-            csm.execute
+            @csm_executor.execute( csm_request )
           rescue => e
             raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_r} #{@path_a}"
           end
@@ -295,13 +287,9 @@ module Castoro
         if ( File.exist? @path_a )
           raise AlreadyExistsPermanentError, "Basket already exists: #{@basket} #{@path_a}"
         end
-
-        user  = @config.Dir_a_user
-        group = @config.Dir_a_group
-        perm  = @config.Dir_a_perm
-        csm = CsmRequest.new( @config, 'mv', user, group, perm, @path_r, @path_a )
+        csm_request = Csm::Request::Finalize.new( @path_r, @path_a )
         begin
-          csm.execute
+          @csm_executor.execute( csm_request )
         rescue => e
           raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_r} #{@path_a}"
         end

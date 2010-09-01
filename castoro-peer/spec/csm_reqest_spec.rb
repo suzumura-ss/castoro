@@ -19,7 +19,7 @@
 
 require File.dirname(__FILE__) + '/spec_helper.rb'
 
-require 'castoro-peer/manupulator'
+require 'castoro-peer/manipulator'
 require 'castoro-peer/configurations'
 
 describe Castoro::Peer::CsmRequest do

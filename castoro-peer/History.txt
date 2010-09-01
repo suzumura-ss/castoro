@@ -1,4 +1,20 @@
 
+=== 0.0.15 2010-08-31
+
+* Deleted require fileutils that had 100 methods which never be used
+* Increased ReplicationTransmissionDataSize from 65536 to 1048576
+* Disabled UdpCommandReceiver that had delt with INSERT, DROP, and ALIVE packets
+* Refactored Csm using a factory pattern and spliting it into interface and implementation
+* Fixed a bug showing a elapsed time of garbage collection in seconds instead of mili-secondes
+* Implemented a way of controlling Garbage Collection in cpeerd
+* Merged a fix for a problem of memory leaks in cpeerd
+* Revised a typo for manipulator
+* Suggested no use of fileutils
+* Removed Ruby own priority control from here and there
+* Refactored pre_threaded_tcp_server.rb; using SizedPipeline instead of SizedQueue
+* Implemented SizedPipeline to pipeline.rb
+* Thread.current.priority = 3 and use of @mutex.synchronize
+
 === 0.0.14 2010-08-31
 
 * Implemented a way of controlling Garbage Collection in cpeerd

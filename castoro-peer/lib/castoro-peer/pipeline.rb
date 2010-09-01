@@ -27,79 +27,100 @@ module Castoro
     # Unfortunately, Queue in Ruby 1.9.1 does not work efficiently.
 
     # Note that this code is tuned for ruby-1.9.1-p378/thread.c and 
-    # this might not efficiently work with other than Ruby 1.9.1
-
-    # The code Thread.current.priority = 3 prevents a critical region 
-    # from being preempted by the Ruby 1.9.1's tick timer of 10ms.
-    # See 
-    #  th->slice in rb_thread_priority_set() of thread.c
-    #  th->slice in rb_thread_execute_interrupts_rec() of thread.c
-    #  RUBY_VM_SET_TIMER_INTERRUPT() in timer_thread_function() of thread.c
-    #  timer_thread_function() in thread_timer() of thread_pthread.c
-    #  RUBY_VM_CHECK_INTS() in vm_core.h and files that uses the macro
+    # this might not efficiently work with rather than Ruby 1.9.1
 
     class Pipeline
-      RUBY_THREAD_PRIORITY_MAX = 3  # Defined in thread.c
-
       def initialize
         @mutex = Mutex.new
         @array = []
-        @sleepers = []
+        @consumers = []
       end
 
       def enq( object )
-        previous_priority = Thread.current.priority
-        Thread.current.priority = RUBY_THREAD_PRIORITY_MAX
-        @mutex.lock
-        @array.push( object )
-        begin
-          t = @sleepers.shift
-          t.wakeup if t
-        rescue ThreadError
-          retry
-        end
-      ensure
-        @mutex.unlock
-        Thread.current.priority = previous_priority
+        Thread.current.priority = 3
+        @mutex.synchronize {
+          @array.push( object )
+          begin
+            t = @consumers.shift
+            t.wakeup if t
+          rescue ThreadError
+            retry
+          end
+        }
       end
 
       def deq
-        previous_priority = Thread.current.priority
-        Thread.current.priority = RUBY_THREAD_PRIORITY_MAX
-        @mutex.lock
-        while ( @array.empty? )
-          @sleepers.unshift( Thread.current )
-          @mutex.sleep
-        end
-        return @array.shift
-      ensure
-        @mutex.unlock
-        Thread.current.priority = previous_priority
+        Thread.current.priority = 3
+        @mutex.synchronize {
+          while ( @array.empty? )
+            @consumers.unshift( Thread.current )
+            @mutex.sleep
+          end
+          @array.shift
+        }
       end
 
       def empty?
-        previous_priority = Thread.current.priority
-        Thread.current.priority = RUBY_THREAD_PRIORITY_MAX
-        @mutex.lock
-        return @array.empty?
-      ensure
-        @mutex.unlock
-        Thread.current.priority = previous_priority
+        Thread.current.priority = 3
+        @mutex.synchronize {
+          @array.empty?
+        }
       end
 
       def size
-        previous_priority = Thread.current.priority
-        Thread.current.priority = RUBY_THREAD_PRIORITY_MAX
-        @mutex.lock
-        return @array.size
-      ensure
-        @mutex.unlock
-        Thread.current.priority = previous_priority
+        Thread.current.priority = 3
+        @mutex.synchronize {
+          @array.size
+        }
       end
 
       def dump
+        Thread.current.priority = 3
         @mutex.synchronize {
           @array.map { |x| x.inspect }
+        }
+      end
+    end
+
+
+    class SizedPipeline < Pipeline
+      def initialize( max_length )
+        super()
+        @max_length = max_length
+        @producers = []
+      end
+
+      def enq( object )
+        Thread.current.priority = 3
+        @mutex.synchronize {
+          while ( @max_length <= @array.size )
+            @producers.unshift( Thread.current )
+            @mutex.sleep
+          end
+          @array.push( object )
+          begin
+            t = @consumers.shift
+            t.wakeup if t
+          rescue ThreadError
+            retry
+          end
+        }
+      end
+
+      def deq
+        Thread.current.priority = 3
+        @mutex.synchronize {
+          while ( @array.empty? )
+            @consumers.unshift( Thread.current )
+            @mutex.sleep
+          end
+          begin
+            t = @producers.shift
+            t.wakeup if t
+          rescue ThreadError
+            retry
+          end
+          @array.shift
         }
       end
     end
@@ -111,4 +132,3 @@ module Castoro
 
   end
 end
-

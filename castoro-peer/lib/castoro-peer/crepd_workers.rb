@@ -50,11 +50,11 @@ module Castoro
         c = Configurations.instance
         @w = []
         $ReplicationSenderQueue = queue = Queue.new
-        @w << UdpReplicationInternalCommandReceiver.new( PRIORITY_7, queue, c.ReplicationUDPCommandPort )
-        @w << ReplicationSenderManager.new( PRIORITY_7, queue )
-        c.NumberOfReplicationSender.times      { @w << ReplicationSender.new( PRIORITY_7, queue ) }
-        @m = TcpMaintenaceServer.new( PRIORITY_7, c.CrepdMaintenancePort )
-        @h = TCPHealthCheckPatientServer.new( PRIORITY_7, c.CrepdHealthCheckPort )
+        @w << UdpReplicationInternalCommandReceiver.new( queue, c.ReplicationUDPCommandPort )
+        @w << ReplicationSenderManager.new( queue )
+        c.NumberOfReplicationSender.times      { @w << ReplicationSender.new( queue ) }
+        @m = TcpMaintenaceServer.new( c.CrepdMaintenancePort )
+        @h = TCPHealthCheckPatientServer.new( c.CrepdHealthCheckPort )
       end
 
       def start_workers
@@ -93,7 +93,7 @@ module Castoro
         SLEEP_DURATION   = 10      # in seconds
         PUSH_INTERVAL    = 0.050   # in seconds
 
-        def initialize( priority, queue )
+        def initialize( queue )
           @queue = queue
           Dir.exists? DIR_REPLICATION or Dir.mkdir DIR_REPLICATION
           Dir.exists? DIR_WAITING     or Dir.mkdir DIR_WAITING
@@ -205,7 +205,7 @@ module Castoro
       end
 
       class ReplicationSender < Worker
-        def initialize( priority, queue )
+        def initialize( queue )
           @queue = queue
           super
         end
@@ -340,7 +340,7 @@ module Castoro
 
 
       class UdpReplicationInternalCommandReceiver < Worker
-        def initialize( priority, queue, port )
+        def initialize( queue, port )
           @queue = queue
           @socket = ExtendedUDPSocket.new
           @socket.bind( '127.0.0.1', port )
@@ -374,8 +374,8 @@ module Castoro
 
 
       class TcpMaintenaceServer < PreThreadedTcpServer
-        def initialize( priority, port )
-          super( port, '0.0.0.0', 10, priority )
+        def initialize( port )
+          super( port, '0.0.0.0', 10 )
           @config = Configurations.instance
         end
 

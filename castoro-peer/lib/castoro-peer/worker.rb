@@ -26,24 +26,12 @@ require 'castoro-peer/custom_condition_variable'
 module Castoro
   module Peer
 
-    # thread.c
-    RUBY_THREAD_PRIORITY_MAX = 3   # the highest priority
-    RUBY_THREAD_PRIORITY_MIN = -3  # the lowest priority
-    PRIORITY_7 = 3
-    PRIORITY_6 = 2
-    PRIORITY_5 = 1
-    PRIORITY_4 = 0
-    PRIORITY_3 = -1
-    PRIORITY_2 = -2
-    PRIORITY_1 = -3
-
     class Worker
-      def initialize( priority, *argv )
+      def initialize( *argv )
         # Please, please do not put any unrelated class in this file 
         # such as @config = Configurations.instance
         # This class is a general class for not only Castoro but also 
         # other application software
-        @priority = priority
         @mutex = Mutex.new
         @cv = CustomConditionVariable.new
         @thread = nil
@@ -58,6 +46,7 @@ module Castoro
         @finished = false
         @thread = Thread.new do
           loop do
+            Thread.current.priority = 3
             calmness = false
 #            @mutex.synchronize { @finished = false }
             begin
@@ -94,7 +83,6 @@ module Castoro
             end
           end
         end
-        @thread.priority = @priority
       end
 
       def serve( *args )

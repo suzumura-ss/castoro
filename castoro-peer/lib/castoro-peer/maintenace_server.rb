@@ -30,8 +30,8 @@ module Castoro
     class TCPHealthCheckPatientServer < PreThreadedTcpServer
       THRESHOLD = 3
 
-      def initialize( priority, port, concurrence = 5 )
-        super( port, '0.0.0.0', concurrence, priority )
+      def initialize( port, concurrence = 5 )
+        super( port, '0.0.0.0', concurrence )
       end
 
       def serve( io )

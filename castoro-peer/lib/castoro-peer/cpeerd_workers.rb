@@ -1,4 +1,4 @@
-
+#
 #   Copyright 2010 Ricoh Company, Ltd.
 #
 #   This file is part of Castoro.
@@ -24,7 +24,7 @@ require 'castoro-peer/ticket'
 require 'castoro-peer/database'
 require 'castoro-peer/extended_udp_socket'
 require 'castoro-peer/channel'
-require 'castoro-peer/manupulator'
+require 'castoro-peer/manipulator'
 require 'castoro-peer/log'
 require 'castoro-peer/pipeline'
 require 'castoro-peer/storage_servers'
@@ -113,7 +113,7 @@ module Castoro
     end
 
     class CsmControllerPL < SingletonPipeline
-      def fullname; 'Storage manupulator pipeline' ; end
+      def fullname; 'Storage manipulator pipeline' ; end
       def nickname; 'sm' ; end
     end
 
@@ -172,24 +172,28 @@ module Castoro
       def initialize
         c = Configurations.instance
         @w = []
-#        @w << AlivePacketSender.new( PRIORITY_7, c.MulticastAddress, c.WatchDogCommandPort )
-        @w << UdpCommandReceiver.new( PRIORITY_7, ExpressCommandReceiverPL.instance, c.PeerMulticastUDPCommandPort )
-        @w << UdpCommandReceiver.new( PRIORITY_7, ExpressCommandReceiverPL.instance, c.PeerUnicastUDPCommandPort )
-        @w << UdpCommandReceiver.new( PRIORITY_7, RegularCommandReceiverPL.instance, c.GatewayUDPCommandPort )
-        @w << UdpCommandReceiver.new( PRIORITY_7, RegularCommandReceiverPL.instance, c.WatchDogCommandPort )
-        @w << TcpCommandAcceptor.new( PRIORITY_7, TcpAcceptorPL.instance, c.PeerTCPCommandPort )
-        5.times { @w << TcpCommandReceiver.new( PRIORITY_7, TcpAcceptorPL.instance, RegularCommandReceiverPL.instance ) }
-        c.NumberOfExpressCommandProcessor.times   { @w << CommandProcessor.new( PRIORITY_7, ExpressCommandReceiverPL.instance ) }
-        c.NumberOfRegularCommandProcessor.times   { @w << CommandProcessor.new( PRIORITY_7, RegularCommandReceiverPL.instance ) }
-        c.NumberOfBasketStatusQueryDB.times { @w << BasketStatusQueryDB.new( PRIORITY_7 ) }
-        c.NumberOfCsmController.times      { @w << CsmController.new( PRIORITY_7 ) }
-        c.NumberOfUdpResponseSender.times  { @w << UdpResponseSender.new( PRIORITY_7, UdpResponseSenderPL.instance ) }
-        c.NumberOfTcpResponseSender.times  { @w << TcpResponseSender.new( PRIORITY_7, TcpResponseSenderPL.instance ) }
-        c.NumberOfMulticastCommandSender.times { @w << MulticastCommandSender.new( PRIORITY_7, c.MulticastAddress, c.GatewayUDPCommandPort ) }
-        c.NumberOfReplicationDBClient.times  { @w << ReplicationDBClient.new( PRIORITY_7 ) }
-        @w << StatisticsLogger.new( PRIORITY_7 )
-        @m = TcpMaintenaceServer.new( PRIORITY_7, c.CpeerdMaintenancePort )
-        @h = TCPHealthCheckPatientServer.new( PRIORITY_7, c.CpeerdHealthCheckPort )
+        @w << UdpCommandReceiver.new( ExpressCommandReceiverPL.instance, c.PeerMulticastUDPCommandPort )
+        @w << UdpCommandReceiver.new( ExpressCommandReceiverPL.instance, c.PeerUnicastUDPCommandPort )
+
+        # Todo: neither INSERT nor DROP is interested here
+        # #@w << UdpCommandReceiver.new( RegularCommandReceiverPL.instance, c.GatewayUDPCommandPort )
+
+        # Todo: ALIVE is not interested here
+        # @w << UdpCommandReceiver.new( RegularCommandReceiverPL.instance, c.WatchDogCommandPort )
+
+        @w << TcpCommandAcceptor.new( TcpAcceptorPL.instance, c.PeerTCPCommandPort )
+        5.times { @w << TcpCommandReceiver.new( TcpAcceptorPL.instance, RegularCommandReceiverPL.instance ) }
+        c.NumberOfExpressCommandProcessor.times   { @w << CommandProcessor.new( ExpressCommandReceiverPL.instance ) }
+        c.NumberOfRegularCommandProcessor.times   { @w << CommandProcessor.new( RegularCommandReceiverPL.instance ) }
+        c.NumberOfBasketStatusQueryDB.times { @w << BasketStatusQueryDB.new() }
+        c.NumberOfCsmController.times      { @w << CsmController.new() }
+        c.NumberOfUdpResponseSender.times  { @w << UdpResponseSender.new( UdpResponseSenderPL.instance ) }
+        c.NumberOfTcpResponseSender.times  { @w << TcpResponseSender.new( TcpResponseSenderPL.instance ) }
+        c.NumberOfMulticastCommandSender.times { @w << MulticastCommandSender.new( c.MulticastAddress, c.GatewayUDPCommandPort ) }
+        c.NumberOfReplicationDBClient.times  { @w << ReplicationDBClient.new() }
+        @w << StatisticsLogger.new()
+        @m = TcpMaintenaceServer.new( c.CpeerdMaintenancePort )
+        @h = TCPHealthCheckPatientServer.new( c.CpeerdHealthCheckPort )
       end
 
       def start_workers
@@ -218,7 +222,7 @@ module Castoro
    ########################################################################
 
       class UdpCommandReceiver < Worker
-        def initialize( priority, pipeline, port )
+        def initialize( pipeline, port )
           @pipeline = pipeline
           @socket = ExtendedUDPSocket.new
           @socket.bind( Configurations.instance.MulticastAddress, port )
@@ -243,7 +247,7 @@ module Castoro
 
 
       class TcpCommandAcceptor < Worker
-        def initialize( priority, pipeline, port )
+        def initialize( pipeline, port )
           @pipeline = pipeline
           sockaddr = Socket.pack_sockaddr_in( port, '0.0.0.0' )
           @socket = Socket.new( Socket::AF_INET, Socket::SOCK_STREAM, 0 )
@@ -279,7 +283,7 @@ module Castoro
 
 
       class TcpCommandReceiver < Worker
-        def initialize( priority, pipeline1, pipeline2 )
+        def initialize( pipeline1, pipeline2 )
           @pipeline1 = pipeline1
           @pipeline2 = pipeline2
           super
@@ -315,10 +319,10 @@ module Castoro
 
 
       class CommandProcessor < Worker
-        def initialize( priority, pipeline )
+        def initialize( pipeline )
           @pipeline = pipeline
           super
-          @config = Configurations.instance
+          @hostname = Configurations.instance.HostnameForClient
         end
 
         def serve
@@ -329,7 +333,7 @@ module Castoro
           # Todo: basket_text.nil? and raise an exception
           basket = Basket.new_from_text( basket_text ) if basket_text
           ticket.command, ticket.args, ticket.basket = command, args, basket
-          ticket.host = @config.HostnameForClient
+          ticket.host = @hostname
           command_sym = nil
           case command
           when 'GET'
@@ -407,13 +411,8 @@ module Castoro
 
       class BasketStatusQueryDB < Worker
         def serve
-          @config = Configurations.instance
-
           ticket = BasketStatusQueryDatabasePL.instance.deq
           request = ticket.pop
-          # Todo: make them configurable
-          @root = 'root'
-          @user = 'quanp'
           status = request.execute  # an exception might be raised
           b = ticket.basket
           path_x = ticket.args[ 'path' ]
@@ -421,11 +420,7 @@ module Castoro
               when :CREATE
                 case status
                 when S_ABCENSE
-                  #CsmRequest.new( config, 'mkdir', @user, @user, '0777', b.path_w )
-                  user  = @config.Dir_w_user
-                  group = @config.Dir_w_group
-                  perm  = @config.Dir_w_perm
-                  CsmRequest.new( @config, 'mkdir', user, group, perm, b.path_w )
+                  Csm::Request::Create.new( b.path_w )
                 else
                   reason = case status
                            when S_ABCENSE;  'Internal server error: Something goes wrongly.'
@@ -439,26 +434,15 @@ module Castoro
                 end
               when :CLONE
                 status == S_ARCHIVED or raise NotFoundError, b.path_a
-                user  = @config.Dir_w_user
-                group = @config.Dir_w_group
-                perm  = @config.Dir_w_perm
-                CsmRequest.new( @config, 'copy', user, group, perm, b.path_a, b.path_w )
+                Csm::Request::Clone.new( b.path_a, b.path_w )
               when :DELETE
                 status == S_ARCHIVED or raise NotFoundError, b.path_a
-                user  = @config.Dir_d_user
-                group = @config.Dir_d_group
-                perm  = @config.Dir_d_perm
-                CsmRequest.new( @config, 'mv', user, group, perm, b.path_a, b.path_d )
+                Csm::Request::Delete.new( b.path_a, b.path_d )
               when :CANCEL
                 case status
                 when S_WORKING, :S_ABCENSE
                   File.exist? path_x or raise NotFoundError, path_x
-                  user  = @config.Dir_c_user
-                  group = @config.Dir_c_group
-                  perm  = @config.Dir_c_perm
-                  CsmRequest.new( @config, 'mv', user, group, perm, path_x, b.path_c( path_x ) )
-                  #              when S_ARCHIVED
-                  #                CsmRequest.new( @config, 'mv', @root, @user, '0555', b.path_a, b.path_d )
+                  Csm::Request::Cancel.new( path_x, b.path_c( path_x ) )
                 else
                   reason = case status
                            when S_ABCENSE;  'The basket does not exist.'
@@ -473,10 +457,7 @@ module Castoro
               when :FINALIZE, :S_ABCENSE
                 # status == S_WORKING or raise PreconditionFailedError, path_x
                 File.exist? path_x or raise NotFoundError, path_x
-                user  = @config.Dir_a_user
-                group = @config.Dir_a_group
-                perm  = @config.Dir_a_perm
-                CsmRequest.new( @config, 'mv', user, group, perm, path_x, b.path_a )
+                Csm::Request::Finalize.new( path_x, b.path_a )
               else
                 raise InternalServerError, "Unknown command symbol' #{ticket.command_sym.inspect}"
               end
@@ -496,11 +477,16 @@ module Castoro
       end
 
       class CsmController < Worker
+        def initialize
+          super
+          @csm_executor = Csm.create_executor
+        end
+
         def serve
           ticket = CsmControllerPL.instance.deq
           ticket.mark
-          request = ticket.pop
-          result = request.execute
+          csm_request = ticket.pop
+          @csm_executor.execute( csm_request )
           ticket.mark
           basket = ticket.basket
           h = { 'basket' => basket.to_s }
@@ -539,7 +525,7 @@ module Castoro
 
 
       class ResponseSender < Worker
-        def initialize( priority, pipeline )
+        def initialize( pipeline )
           @pipeline = pipeline
           super
         end
@@ -572,7 +558,7 @@ module Castoro
       end
 
       class UdpResponseSender < ResponseSender
-        def initialize( priority, pipeline )
+        def initialize( pipeline )
           @socket = ExtendedUDPSocket.new
           super
         end
@@ -580,7 +566,7 @@ module Castoro
 
 
       class TcpResponseSender < ResponseSender
-        def initialize( priority, pipeline )
+        def initialize( pipeline )
           @socket = nil
           super
         end
@@ -588,7 +574,7 @@ module Castoro
 
 
       class MulticastCommandSender < Worker
-        def initialize( priority, ip, port )
+        def initialize( ip, port )
           @channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
           @ip, @port = ip, port
           super
@@ -604,12 +590,11 @@ module Castoro
 
 
       class ReplicationDBClient < Worker
-        def initialize( priority )
+        def initialize
           Dir.exists? DIR_WAITING or raise StandardError, "no directory exists: #{DIR_WAITING}"
           super
-          @config = Configurations.instance
           @ip = '127.0.0.1'
-          @port = @config.ReplicationUDPCommandPort
+          @port = Configurations.instance.ReplicationUDPCommandPort
           @channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
         end
 
@@ -637,9 +622,9 @@ module Castoro
 
 
       class TcpMaintenaceServer < PreThreadedTcpServer
-        def initialize( priority, port )
-          super( port, '0.0.0.0', 10, priority )
-          @config = Configurations.instance
+        def initialize( port )
+          super( port, '0.0.0.0', 10 )
+          @hostname = Configurations.instance.HostnameForClient
         end
 
         def serve( io )
@@ -648,7 +633,7 @@ module Castoro
             next if line =~ /\A\s*\Z/
 
             program = $0.sub(/.*\//, '')
-            host = @config.HostnameForClient
+            host = @hostname
 
             begin
               a = line.split(' ')
@@ -741,7 +726,7 @@ module Castoro
                 begin
                   # Todo:
                   # CpeerdWorkers.instance.stop_workers
-                  entries = @config.reload( file )
+                  entries = Configurations.instance.reload( file )
                   # Todo:
                   # CpeerdWorkers.instance.start_workers
                   io.puts( "#{entries.inspect}\r\n" )
@@ -811,13 +796,19 @@ module Castoro
                   when 'off'    ; GC::Profiler.disable
                   when 'on'     ; GC::Profiler.enable
                   when 'report'
-                    io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} GC::Profiler.report:\r\n" )
-                    GC::Profiler.report(io)
+                    if ( GC::Profiler.enabled? )
+                      io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} GC::Profiler.report:\n" )
+                      GC::Profiler.report(io)
+                    else
+                      io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} GC::Profiler is disabled. Try gc_profiler on\n" )
+                    end
                   when nil  ; 
                   else raise StandardError, "400 Unknown parameter: #{x} ; gc_profiler [off|on|report]"
                   end
                 end
-                io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} gc_profiler: " + ( (GC::Profiler.enabled?) ? "on" : "off")  + "\r\n" )
+                unless ( x == 'report' )
+                  io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} gc_profiler: " + ( (GC::Profiler.enabled?) ? "on" : "off")  + "\n" )
+                end
 
                 when 'gc'
                 t = Time.new
@@ -829,8 +820,8 @@ module Castoro
                     t1 = Time.new
                     GC.start
                     t2 = Time.new
-                    io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} GC finished: #{"%.1fms" % (t2 - t1)}\n" )
-                  when 'count'
+                    io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} GC finished: #{"%.1fms" % ((t2 - t1) * 1000)}\n" ) 
+                 when 'count'
                     io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} GC.count: #{GC.count}\n" )
                   else
                     raise StandardError, "400 Unknown parameter: #{x} ; gc [start|count]"
@@ -841,7 +832,7 @@ module Castoro
 
               when 'version'
                 t = Time.new
-                io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} Version: #{PROGRAM_VERSION}\r\n" )
+                io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} Version: #{PROGRAM_VERSION}\n" )
 
               when 'stat'
                 opt_short = false
@@ -879,9 +870,9 @@ module Castoro
 
 
       class StatisticsLogger < Worker
-        def initialize( priority )
+        def initialize
           super
-          @config = Configurations.instance
+          @period = Configurations.instance.PeriodOfStatisticsLogger
         end
 
         def serve
@@ -898,7 +889,7 @@ module Castoro
           rescue => e
             Log.warning e
           ensure
-            sleep @config.PeriodOfStatisticsLogger
+            sleep @period
           end
         end
       end

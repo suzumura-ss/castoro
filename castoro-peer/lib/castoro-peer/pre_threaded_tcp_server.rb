@@ -19,18 +19,18 @@
 
 require 'socket'
 require 'thread'
+require 'castoro-peer/pipeline'
 require 'castoro-peer/log'
 
 module Castoro
   module Peer
 
     class PreThreadedTcpServer
-      def initialize( port, host, number_of_threads, priority = 0 )
+      def initialize( port, host, number_of_threads )
         @number_of_threads = number_of_threads
-        @priority = priority
-        backlog = (5 <= number_of_threads) ? number_of_threads : 5
         factor = 1
-        max_length_of_the_queue = backlog * factor
+        backlog = number_of_threads * factor
+        backlog = 5 if backlog < 5
         sockaddr = Socket.pack_sockaddr_in( port, host )
         @server_socket = Socket.new( Socket::AF_INET, Socket::SOCK_STREAM, 0 )
         @server_socket.setsockopt( Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true )
@@ -39,23 +39,21 @@ module Castoro
         @server_socket.do_not_reverse_lookup = true
         @server_socket.bind( sockaddr )
         @server_socket.listen( backlog )
-        @queue = SizedQueue.new( max_length_of_the_queue )
+        @queue = SizedPipeline.new( 1 )
+        @thread_acceptor = nil
+        @thread_workers = []
       end
 
       def start
-        t = Thread.new { acceptor }
-        # Todo: should revise this line
-        t.priority = 3  # RUBY_THREAD_PRIORITY_MAX and _MIN are defined in ruby-1.9.1-p378/thread.c
-        @threads = []
+        @thread_acceptor = Thread.new { acceptor }
         @number_of_threads.times {
-          w = Thread.new { worker }
-          w.priority = @priority
-          @threads << w
+          @thread_workers << Thread.new { worker }
         }
       end
 
       def acceptor
         loop do
+          Thread.current.priority = 3
           begin
             client_socket, client_sockaddr = @server_socket.accept
             @queue.enq client_socket
@@ -73,10 +71,11 @@ module Castoro
 
       def worker
         loop do
+          Thread.current.priority = 3
           begin
             socket = @queue.deq
             return if socket.nil?
-            serve(socket)
+            serve( socket )
             socket.close unless socket.closed?
           rescue => e
             Log.warning e
@@ -84,20 +83,22 @@ module Castoro
         end
       end
 
+      def serve( socket )
+        # should be implemented in a subclass
+      end
+
       def stop
-        @server_socket.close
-        @threads.each { |t| Thread.kill t }
+        Thread.kill @thread_acceptor
+        @server_socket.close unless @server_socket.closed?
+        @thread_workers.each { |t| Thread.kill t }
       end
 
       def graceful_stop
-        @server_socket.close
-        @threads.each { @queue.enq nil }
+        Thread.kill @thread_acceptor
+        @server_socket.close unless @server_socket.closed?
+        @thread_workers.each { @queue.enq nil }
         sleep 0.5
         stop
-      end
-
-      def serve(socket)
-        #  should be implemented in a derived class
       end
     end
 

@@ -25,7 +25,7 @@ require 'rake/rdoctask'
 
 spec = Gem::Specification.new do |s|
   s.name = 'castoro-peer'
-  s.version = '0.0.14'
+  s.version = '0.0.15'
   s.has_rdoc = true
   s.extra_rdoc_files = ['README.textile']
   s.summary = "This(it) is peer for Castoro which is distributed abstraction filesystem."

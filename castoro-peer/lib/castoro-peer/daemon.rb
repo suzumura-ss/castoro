@@ -18,7 +18,6 @@
 #
 
 require 'thread'
-require 'fileutils'
 require 'timeout'
 require 'castoro-peer/log'
 
@@ -67,7 +66,12 @@ module Castoro
         File.open( file, 'w' ) do |f|
           f.puts( pid )
         end
-        at_exit { FileUtils.rm_f( file ) }
+        at_exit {
+          begin
+            File.delete( file ) if File.exists?( file )
+          rescue
+          end
+        }
       end
 
       def self.close_stdio

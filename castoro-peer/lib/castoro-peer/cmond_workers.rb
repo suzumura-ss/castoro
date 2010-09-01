@@ -73,17 +73,16 @@ module Castoro
         @s = StorageSpaceMonitor.new( c.BasketBaseDir )
 
         @w = []
-#        @w << SampleWorker.new( PRIORITY_7 )
-        @a = AlivePacketSender.new( PRIORITY_7, c.MulticastAddress, c.WatchDogCommandPort, @s )
+        @a = AlivePacketSender.new( c.MulticastAddress, c.WatchDogCommandPort, @s )
         @my_host = StorageServers.instance.my_host
-        @p = CxxxdCommnicationWorker.new( PRIORITY_7, @my_host, c.CpeerdHealthCheckPort )
-        @r = CxxxdCommnicationWorker.new( PRIORITY_7, @my_host, c.CrepdHealthCheckPort )
+        @p = CxxxdCommnicationWorker.new( @my_host, c.CpeerdHealthCheckPort )
+        @r = CxxxdCommnicationWorker.new( @my_host, c.CrepdHealthCheckPort )
         @colleague_hosts = StorageServers.instance.colleague_hosts
-        @colleague_hosts.each { |h| @w << CxxxdCommnicationWorker.new( PRIORITY_7, h, c.CmondHealthCheckPort ) }
+        @colleague_hosts.each { |h| @w << CxxxdCommnicationWorker.new( h, c.CmondHealthCheckPort ) }
         @d = nil
-        @z = SupervisorWorker.new( PRIORITY_7, @p, @r, @d, @w, @s )
-        @m = TcpMaintenaceServer.new( PRIORITY_7, c.CmondMaintenancePort, @p, @r, @d, @w, @s )
-        @h = TCPHealthCheckPatientServer.new( PRIORITY_7, c.CmondHealthCheckPort )
+        @z = SupervisorWorker.new( @p, @r, @d, @w, @s )
+        @m = TcpMaintenaceServer.new( c.CmondMaintenancePort, @p, @r, @d, @w, @s )
+        @h = TCPHealthCheckPatientServer.new( c.CmondHealthCheckPort )
       end
 
       def start_workers
@@ -129,7 +128,7 @@ module Castoro
         INTERVAL = 1
         THRESHOLD = 3
 
-        def initialize( priority, host, port )
+        def initialize( host, port )
           @host, @port = host, port
           super
           @socket = nil
@@ -225,7 +224,7 @@ module Castoro
    ########################################################################
 
       class SupervisorWorker < Worker
-        def initialize( priority, p, r, d, w, space_monitor )
+        def initialize( p, r, d, w, space_monitor )
           @p, @r, @d, @w = p, r, d, w
           @space_monitor = space_monitor
           super
@@ -330,7 +329,7 @@ module Castoro
    ########################################################################
 
       class AlivePacketSender < Worker
-        def initialize( priority, ip, port, space_monitor )
+        def initialize( ip, port, space_monitor )
           @channel       = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
           @ip, @port     = ip, port
           @host          = Configurations.instance.HostnameForClient
@@ -359,10 +358,10 @@ module Castoro
    ########################################################################
 
       class TcpMaintenaceServer < PreThreadedTcpServer
-        def initialize( priority, port, p, r, d, w, space_monitor )
+        def initialize( port, p, r, d, w, space_monitor )
           @p, @r, @d, @w = p, r, d, w
           @space_monitor = space_monitor
-          super( port, '0.0.0.0', 10, priority )
+          super( port, '0.0.0.0', 10 )
           @config = Configurations.instance
         end
 
