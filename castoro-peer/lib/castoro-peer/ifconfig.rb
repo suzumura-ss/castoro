@@ -18,7 +18,6 @@
 #
 
 require 'singleton'
-require 'monitor'
 require 'socket'
 require "ipaddr"
 
@@ -33,12 +32,12 @@ module Castoro
       def initialize
         super
         @monitor = nil
-        @monitor.extend( MonitorMixin )
+        @mutex = Mutex.new
         load
       end
 
       def load
-        @monitor.synchronize {
+        @mutex.synchronize {
           @interface_addresses = get_all_interface_addresses
         }
       end
@@ -56,14 +55,14 @@ module Castoro
       end
 
       def has_interface?( interface_address )
-        @monitor.synchronize {
+        @mutex.synchronize {
           return @interface_addresses.include?( interface_address )
         }
       end
 
       def multicast_interface_by_network_address( network_address )
         n = IPAddr.new( network_address )
-        @monitor.synchronize {
+        @mutex.synchronize {
           a = @interface_addresses.select { |inet| n.include?( IPAddr.new( inet ) ) }
           if ( 1 < a.count )
             s = 'Too may candidates for the multicast network interface in the given network address'

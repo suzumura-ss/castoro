@@ -157,6 +157,11 @@ module Castoro
          :PeriodOfAlivePacketSender,
          :PeriodOfStatisticsLogger,
 
+### Temporarily resumed DataBase relevant items for backward compatibility
+         :DatabaseName,
+         :DatabaseUser,
+         :DatabasePassword,
+
          :NumberOfReplicationSender,
 
          :Dir_w_user,

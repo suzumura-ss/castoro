@@ -18,7 +18,6 @@
 #
 
 require 'time'
-require 'monitor'
 require 'singleton'
 
 module Castoro
@@ -40,9 +39,8 @@ module Castoro
         @start_time = nil
         @finish_time = nil
         @elapse_times = []
-        self.extend( MonitorMixin )
         @stack = []
-        @stack.extend( MonitorMixin )
+        @mutex = Mutex.new
         self.push( object ) if object
       end
 
@@ -51,7 +49,7 @@ module Castoro
       end
 
       def mark
-        @stack.synchronize {
+        @mutex.synchronize {
           if ( @start_time )
             @elapse_times.push Time.new
           else
@@ -61,7 +59,7 @@ module Castoro
       end
 
       def finish
-        @stack.synchronize {
+        @mutex.synchronize {
           @finish_time.nil? or raise InternalServerError, "Ticket#finish is called twice: #{self.inspect}"
           t = Time.new
           @elapse_times.push t
@@ -70,13 +68,13 @@ module Castoro
       end
 
       def duration
-        @stack.synchronize {
+        @mutex.synchronize {
           @finish_time - @start_time
         }
       end
 
       def durations
-        @stack.synchronize {
+        @mutex.synchronize {
           last_time = @start_time
           @elapse_times.map { |t|
             x = last_time
@@ -87,20 +85,20 @@ module Castoro
       end
 
       def push( *args )
-        @stack.synchronize { @stack.push( *args ) }
+        @mutex.synchronize { @stack.push( *args ) }
       end
 
       def pop
-        @stack.synchronize { @stack.pop }
+        @mutex.synchronize { @stack.pop }
       end
 
       def pop2
-        @stack.synchronize { @stack.slice!( -2, 2 ) }
+        @mutex.synchronize { @stack.slice!( -2, 2 ) }
       end
 
       def dump( name = nil )
         if ( name.nil? or name == nickname or name == fullname )
-          @stack.synchronize { self.inspect }
+          @mutex.synchronize { self.inspect }
         end
       end
     end
@@ -115,27 +113,30 @@ module Castoro
 
       def initialize
         @tickets = []
-        @tickets.extend( MonitorMixin )
+        @mutex = Mutex.new
       end
 
       def create_ticket( ticket_class )
+        Thread.current.priority = 3
         ticket = ticket_class.new
-        @tickets.synchronize { @tickets << ticket }
+        @mutex.synchronize { @tickets << ticket }
         ticket
       end
 
       def delete( ticket )
         # Todo: calculate the statistics
-
-        @tickets.synchronize { @tickets.delete ticket }
+        Thread.current.priority = 3
+        @mutex.synchronize { @tickets.delete ticket }
       end
 
       def real_size
-        @tickets.synchronize { @tickets.size }
+        Thread.current.priority = 3
+        @mutex.synchronize { @tickets.size }
       end
 
       def size  # size of the active tickets
-        @tickets.synchronize {
+        Thread.current.priority = 3
+        @mutex.synchronize {
           count = 0
           @tickets.each { |t| count = count + 1 if t.active? }
           count
@@ -143,8 +144,9 @@ module Castoro
       end
 
       def dump( name = nil )
+        Thread.current.priority = 3
         if ( name.nil? or name == nickname or name == fullname )
-          @tickets.synchronize {
+          @mutex.synchronize {
             ( @tickets.select { |t| t.active? } ).map { |t| t.dump }
           }
         end

@@ -1,5 +1,14 @@
 
-=== 0.0.12 2010-08-26
+=== 0.0.14 2010-08-31
+
+* Implemented a way of controlling Garbage Collection in cpeerd
+* Fixed a problem of memory leaks in cpeerd
+
+=== 0.0.13 2010-08-26
+
+* Implemented version, inspect and gc_profiler commands in cpeerd
+
+=== 0.0.12 2010-08-25
 
 * Slightly revised a legal notice
 * Commented out s.extensions = ["ext/extconf.rb.linux"] in Rakefile

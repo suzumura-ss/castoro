@@ -1,4 +1,4 @@
-#
+
 #   Copyright 2010 Ricoh Company, Ltd.
 #
 #   This file is part of Castoro.
@@ -663,6 +663,10 @@ module Castoro
                           "debug [on|off]",
                           "stat [-s] [period] [count]", 
                           "dump",
+                          "inspect",
+                          "gc_profiler [off|on|report]",
+                          "gc [start|count]",
+                          "version",
                           "reload [configration_file]",
                           "shutdown",
                           nil
@@ -766,6 +770,79 @@ module Castoro
                 crlf = "\r\n"
                 a = STATISTICS_TARGETS.map { |s| x = s.instance; sprintf( "  (%-3s) %-40s\r\n%s", x.nickname, x.fullname, x.dump.join(crlf) ) }
                 io.puts "#{t.iso8601}.#{t.usec} #{host} #{program}\r\n#{a.join("\r\n\r\n")}\r\n\r\n"
+
+              when 'inspect'
+                t = Time.new
+                io.write "#{t.iso8601}.#{t.usec} #{host} #{program} ObjectSpace.each_object:\n"
+#                last_status_of_profiler = GC::Profiler.enabled?
+#                GC::Profiler.enable
+
+                # rb_garbage_collect() is already called in os_obj_of() for ObjectSpace.each_object()
+                # So, no neccesary to call GC.start here
+#                GC.start
+
+#                GC::Profiler.report(io)
+#                io.write "\n"
+#                ObjectSpace.each_object(Object) { |x|
+                count = 0
+                ObjectSpace.each_object { |x|
+                  begin
+                    io.write "#{"0x%08x" % x.object_id}\t#{x.class}\t#{x.inspect}\n"
+                  rescue NotImplementedError => e
+                    io.write "#{e}\n"
+                  end
+                  count = count + 1
+                }
+                io.write "The number of objects including NotImplementedError: #{count}\n"
+#                GC::Profiler.report(io)
+#                io.write "\n"
+#                if ( last_status_of_profiler )
+#                  GC::Profiler.enable
+#                else
+#                  GC::Profiler.disable
+#                end
+
+              when 'gc_profiler'
+                t = Time.new
+                x = a.shift
+                if (x)
+                  x.downcase!
+                  case (x) 
+                  when 'off'    ; GC::Profiler.disable
+                  when 'on'     ; GC::Profiler.enable
+                  when 'report'
+                    io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} GC::Profiler.report:\r\n" )
+                    GC::Profiler.report(io)
+                  when nil  ; 
+                  else raise StandardError, "400 Unknown parameter: #{x} ; gc_profiler [off|on|report]"
+                  end
+                end
+                io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} gc_profiler: " + ( (GC::Profiler.enabled?) ? "on" : "off")  + "\r\n" )
+
+                when 'gc'
+                t = Time.new
+                x = a.shift
+                if (x)
+                  x.downcase!
+                  case (x) 
+                  when 'start'
+                    t1 = Time.new
+                    GC.start
+                    t2 = Time.new
+                    io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} GC finished: #{"%.1fms" % (t2 - t1)}\n" )
+                  when 'count'
+                    io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} GC.count: #{GC.count}\n" )
+                  else
+                    raise StandardError, "400 Unknown parameter: #{x} ; gc [start|count]"
+                  end
+                else
+                  io.write( "Usage: gc [start|count]\n" )
+                end
+
+              when 'version'
+                t = Time.new
+                io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} Version: #{PROGRAM_VERSION}\r\n" )
+
               when 'stat'
                 opt_short = false
                 opt_period = nil

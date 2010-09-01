@@ -79,14 +79,3 @@ $ ruby number_generator.rb
 6976964400000013
 6976964400000014
 6976964400000015
-
-
-Another way to implement this
-require 'monitor'
-
-    def initialize( maximum = 0 )
-      @monitor.extend MonitorMixin
-
-    def generate
-      @monitor.synchronize do
-
