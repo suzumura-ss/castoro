@@ -19,7 +19,7 @@
 
 require "castoro-gateway"
 
-require "thread"
+require "monitor"
 
 module Castoro
   class Gateway
@@ -43,8 +43,8 @@ module Castoro
       def initialize logger, config
         
         @logger           = logger
-        @locker           = Mutex.new
-        @recv_locker      = Mutex.new
+        @locker           = Monitor.new
+        @recv_locker      = Monitor.new
 
         @addr             = config["multicast_addr"].to_s
         @device           = config["multicast_device_addr"].to_s
@@ -119,9 +119,11 @@ module Castoro
       # return the state of alive or not alive.
       #
       def alive?
-        @unicast and !@unicast.closed? and
-          @multicast and !@multicast.closed? and
-          @watchdog and !@watchdog.closed?
+        @locker.synchronize {
+          @unicast and !@unicast.closed? and
+            @multicast and !@multicast.closed? and
+            @watchdog and !@watchdog.closed?
+        }
       end
 
       ##
@@ -131,10 +133,17 @@ module Castoro
       #
       def recv
         received = @recv_locker.synchronize {
+
           return nil unless alive?
 
           sockets = [@unicast, @multicast, @watchdog]
-          ret = IO.select(sockets, nil, nil, RECV_EXPIRE)
+          ret = begin
+                  IO.select(sockets, nil, nil, RECV_EXPIRE)
+                rescue Errno::EBADF
+                  raise if alive?
+                  nil
+                end
+
           return nil unless ret
 
           readable = ret[0]

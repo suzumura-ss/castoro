@@ -60,10 +60,10 @@ describe Castoro::Gateway do
         @g.instance_variable_get(:@repository).should be_kind_of Castoro::Gateway::Repository
       end
 
-      it "should raise already started RuntimeError." do
+      it "should raise already started GatewayError." do
         Proc.new {
           @g.start
-        }.should raise_error RuntimeError
+        }.should raise_error Castoro::GatewayError
       end
 
       context "when stop" do
@@ -87,10 +87,17 @@ describe Castoro::Gateway do
           @g.instance_variable_get(:@repository).should be_nil
         end
 
-        it "should raise already stopped RuntimeError." do
+        it "should raise already stopped GatewayError." do
           Proc.new {
             @g.stop
-          }.should raise_error RuntimeError
+          }.should raise_error Castoro::GatewayError
+        end
+
+        it "should be able to start > stop > start > ..." do
+          10.times {
+            @g.start
+            @g.stop
+          }
         end
       end
     end
@@ -184,23 +191,6 @@ describe Castoro::Gateway do
           it "should alive? false." do
             @g.stop true
             @g.alive?.should be_false
-          end
-
-          it "facade should stop and be nil." do
-            @facade.should_receive(:stop).exactly(1)
-            @g.stop true
-            @g.instance_variable_get(:@facade).should be_nil
-          end
-
-          it "workers should stop and be nil." do
-            @workers.should_receive(:stop).with(true).exactly(1)
-            @g.stop true
-            @g.instance_variable_get(:@workers).should be_nil
-          end
-
-          it "repository should be nil." do
-            @g.stop true
-            @g.instance_variable_get(:@repository).should be_nil
           end
         end
       end

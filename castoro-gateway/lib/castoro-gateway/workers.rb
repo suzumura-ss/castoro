@@ -20,7 +20,6 @@
 require "castoro-gateway"
 
 require "logger"
-require "thread"
 
 module Castoro
   class Gateway

@@ -19,7 +19,7 @@
 
 require "castoro-gateway"
 
-require "thread"
+require "monitor"
 
 module Castoro
   class BasketCache
@@ -29,17 +29,17 @@ module Castoro
       @filter             = eval(config["filter"].to_s) || Proc.new{ |peers| peers }
 
       page_num = (config["cache_size"] / Cache::PAGE_SIZE).ceil
-      @mutex   = Mutex.new
+      @locker  = Monitor.new
       @cache   = Cache.new page_num
     end
 
     def method_missing method_name, *arguments
       self.class.instance_eval {
         define_method(method_name) { |*args|
-          @mutex.synchronize { @cache.send method_name, *args }
+          @locker.synchronize { @cache.send method_name, *args }
         }
       }
-      @mutex.synchronize { @cache.send method_name, *arguments }
+      @locker.synchronize { @cache.send method_name, *arguments }
     end
 
     def insert basket, host, base_path
@@ -49,8 +49,8 @@ module Castoro
 
       @logger.debug {
         "insert into cache data, host => #{host}, key => #{basket.content},#{basket.type},#{basket.revision}, base_path => #{base_path}"
-      } if @logger
-      @mutex.synchronize {
+      }
+      @locker.synchronize {
         @cache.peers[host].insert(basket.content, basket.type, basket.revision, base_path)
       }
     end
@@ -62,8 +62,8 @@ module Castoro
 
       @logger.debug {
         "drop cache data, host => #{host}, key => #{basket.content},#{basket.type},#{basket.revision}"
-      } if @logger
-      @mutex.synchronize {
+      }
+      @locker.synchronize {
         @cache.peers[host].erase(basket.content, basket.type, basket.revision)
       }
     end
@@ -72,11 +72,9 @@ module Castoro
       raise "Nil cannot be set to basket." if basket.nil?
       basket = basket.to_basket
 
-      @logger.debug {
-        "find cache data by key, #{basket.content},#{basket.type},#{basket.revision}"
-      } if @logger
+      @logger.debug { "find cache data by key, #{basket.content},#{basket.type},#{basket.revision}" }
 
-      @mutex.synchronize {
+      @locker.synchronize {
         result = {}
         # [ToDo] If #find returned nil, the basket is removed.
         (@cache.find(basket.content, basket.type, basket.revision)||[]).each { |path|
@@ -91,7 +89,7 @@ module Castoro
     # fetch satisfied Peer.
     #
     def find_peers hints = {}
-      @mutex.synchronize {
+      @locker.synchronize {
         availables = @filter.call(@cache.peers.find(hints["length"].to_i), hints["class"])
         availables.sort_by{ rand }[0..(@return_peer_number-1)]
       }
@@ -109,18 +107,9 @@ module Castoro
     # +available+::
     #   capacity that can be used
     #
-    # === Watchdog status specification
-    #
-    # 0:UNKNOWN
-    # 10..19:MAINTENANCE
-    # 11:DRAIN
-    # 12:DEAD
-    # 20..29:READONLY
-    # 30..39:ALIVE
-    #
     def set_status peer_id, watchdog_code, available
 
-      @mutex.synchronize {
+      @locker.synchronize {
         p = @cache.peers[peer_id]
         s = p ? p.status[:status] : nil rescue nil
         if s != watchdog_code
@@ -134,7 +123,7 @@ module Castoro
     # The status of hash representation is returned.
     #
     def status
-      @mutex.synchronize {
+      @locker.synchronize {
         {
           :CACHE_EXPIRE            => @cache.stat(Castoro::Cache::DSTAT_CACHE_EXPIRE),
           :CACHE_REQUESTS          => @cache.stat(Castoro::Cache::DSTAT_CACHE_REQUESTS),

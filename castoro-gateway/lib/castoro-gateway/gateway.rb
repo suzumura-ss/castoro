@@ -21,7 +21,7 @@ require "castoro-gateway"
 
 require "logger"
 require "yaml"
-require "thread"
+require "monitor"
 require "socket"
 
 module Castoro
@@ -91,7 +91,7 @@ module Castoro
       @config = merge_r DEFAULT_SETTINGS,(config || {})
       @logger = logger || Logger.new(STDOUT)
       @logger.level = @config["loglevel"].to_i
-      @locker = Mutex.new
+      @locker = Monitor.new
     end
 
     ##
@@ -99,7 +99,8 @@ module Castoro
     #
     def start
       @locker.synchronize {
-        raise "gateway already started." if alive?
+        raise GatewayError, "gateway already started." if alive?
+
         @logger.info { "*** castoro-gateway starting. with config\n" + @config.to_yaml }
 
         @unicast_count = 0
@@ -139,7 +140,7 @@ module Castoro
     #
     def stop force = false
       @locker.synchronize {
-        raise "gateway already stopped." unless alive?
+        raise GatewayError, "gateway already stopped." unless alive?
         
         @console_workers.stop force
         @console_workers = nil
@@ -147,11 +148,11 @@ module Castoro
         @console.stop
         @console = nil
 
-        @facade.stop
-        @facade = nil
-
         @workers.stop force
         @workers = nil
+
+        @facade.stop
+        @facade = nil
 
         @repository = nil
 
@@ -163,17 +164,23 @@ module Castoro
     # return the state of alive or not alive.
     #
     def alive?
-      @facade and @facade.alive? and
-        @workers and @workers.alive? and @repository and
-        @console and @console.alive? and
-        @console_workers and @console_workers.alive?
+      @locker.synchronize {
+        @facade and @facade.alive? and
+          @workers and @workers.alive? and @repository and
+          @console and @console.alive? and
+          @console_workers and @console_workers.alive?
+      }
     end
 
     ##
     # The status of hash representation is returned.
     #
     def status
-      @repository.status
+      @locker.synchronize {
+        raise GatewayError, "gateway is stopped." unless alive?
+
+        @repository.status
+      }
     end
 
     private

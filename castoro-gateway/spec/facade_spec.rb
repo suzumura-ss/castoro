@@ -58,8 +58,8 @@ describe Castoro::Gateway::Facade do
 
     it "should be set variables correctly" do
       @facade.instance_variable_get(:@logger).nil?.should be_false
-      @facade.instance_variable_get(:@locker).should be_kind_of Mutex
-      @facade.instance_variable_get(:@recv_locker).should be_kind_of Mutex
+      @facade.instance_variable_get(:@locker).should be_kind_of Monitor
+      @facade.instance_variable_get(:@recv_locker).should be_kind_of Monitor
 
       @facade.instance_variable_get(:@addr).should == "239.192.1.1"
       @facade.instance_variable_get(:@device).should == "127.0.0.1"

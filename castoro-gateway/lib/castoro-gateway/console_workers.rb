@@ -30,7 +30,7 @@ module Castoro
       # initialize.
       #
       def initialize logger, facade, gateway
-        super logger, 1
+        super logger, 1, :name => "console"
         @facade, @gateway = facade, gateway
       end
 
