@@ -20,7 +20,7 @@
 require "castoro-client"
 
 require "logger"
-require "thread"
+require "monitor"
 require "timeout"
 require "yaml"
 
@@ -83,12 +83,12 @@ module Castoro
         @logger           = logger || Logger.new(nil)
         @my_host          = my_host
         @my_ports         = my_ports
-        @destinations     = destinations.to_a
+        @destinations     = destinations.to_a.sort_by{ rand }
         @expire           = expire.to_f
         @request_interval = request_interval.to_f
 
-        @locker           = Mutex.new
-        @response_locker  = Mutex.new
+        @locker           = Monitor.new
+        @response_locker  = Monitor.new
         @response_queue   = []
 
         @sid = 0
@@ -120,6 +120,10 @@ module Castoro
           end
 
           @logger.info { "reserved_port => #{@port}" }
+
+          # pid where start was executed is saved.
+          # when PID is changed by the reason such as fork, restart is done.
+          @start_pid = Process.pid
         }
       end
 
@@ -139,10 +143,22 @@ module Castoro
       end
 
       ##
+      # (re)start sender.
+      #
+      def restart
+        @locker.synchronize {
+          stop if alive?
+          start
+        }
+      end
+
+      ##
       # Return the state of alive or not alive.
       #
       def alive?
-        @sender and @sender.alive? and @receiver and @receiver.alive?
+        @locker.synchronize {
+          !! (@sender and @sender.alive? and @receiver and @receiver.alive?)
+        }
       end
 
       ##
@@ -153,6 +169,11 @@ module Castoro
       #
       def send command
         @locker.synchronize {
+
+          raise ClientError, "timeslide sender is not started." unless alive?
+
+          # when PID is changed by the reason such as fork, restart is done.
+          restart if @start_pid != Process.pid
 
           @sid += 1
           clear

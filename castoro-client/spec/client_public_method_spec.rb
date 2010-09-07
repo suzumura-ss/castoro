@@ -54,13 +54,13 @@ describe Castoro::Client do
     end
     @client.open
 
-    @client.stub!(:send).with(@get_command_1).and_return {
+    @sender_mock.stub!(:send).with(@get_command_1).and_return {
       Castoro::Protocol::Response::Get.new nil, @key_1, { "peer"=>"paths" }
     }
-    @client.stub!(:send).with(@get_command_2).and_return {
+    @sender_mock.stub!(:send).with(@get_command_2).and_return {
       Castoro::Protocol::Response.new nil
     }
-    @client.stub!(:send).with(@get_command_3).and_return {
+    @sender_mock.stub!(:send).with(@get_command_3).and_return {
       Castoro::Protocol::Response::Get.new "error", @key_3, { "peer"=>"paths" }
     }
   end
@@ -162,19 +162,20 @@ describe Castoro::Client do
   context "when create" do
 
     context "key was given Castoro::BasketKey instance." do
-      it "#send and #create_internal should be called once." do
-        @client.stub!(:create_internal)
-        @client.stub!(:send).and_return Castoro::Protocol::Response::Create::Gateway.new nil, @key, {}
-        @client.should_receive(:send).exactly(1)
+      it "TimeSlideSender#send and #create_internal should be called once." do
+        @sender_mock.should_receive(:send).exactly(1).and_return {
+          Castoro::Protocol::Response::Create::Gateway.new nil, @key, {}
+        }
         @client.should_receive(:create_internal).exactly(1)
         @client.create(@key, @hints){}
       end
     end
 
     context "the Response not intended." do
-      it "should raise Castoro::ClientError with #send should be called once." do
-        @client.stub!(:send).and_return Castoro::Protocol::Response::Create.new nil, @key
-        @client.should_receive(:send).exactly(1)
+      it "should raise Castoro::ClientError with TimeslideSender#send should be called once." do
+        @sender_mock.should_receive(:send).exactly(1).and_return {
+          Castoro::Protocol::Response::Create.new nil, @key
+        }
         Proc.new {
           @client.create(@key, @hints){}
         }.should raise_error Castoro::ClientError
@@ -183,8 +184,9 @@ describe Castoro::Client do
 
     context "gateway connection failed." do
       it "should raise Castoro::ClientError with #send should be called once." do
-        @client.stub!(:send).and_return Castoro::Protocol::Response::Create::Gateway.new "error", @key, {}
-        @client.should_receive(:send).exactly(1)
+        @sender_mock.should_receive(:send).exactly(1).and_return {
+          Castoro::Protocol::Response::Create::Gateway.new "error", @key, {}
+        }
         Proc.new {
           @client.create(@key, @hints){}
         }.should raise_error Castoro::ClientError

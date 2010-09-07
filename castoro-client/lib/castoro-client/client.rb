@@ -23,7 +23,7 @@ require "logger"
 require "socket"
 require "yaml"
 require "timeout"
-require "thread"
+require "monitor"
 
 ##
 # Castoro::Client
@@ -120,15 +120,14 @@ module Castoro
       @tcp_connect_retry  = opt["tcp_connect_retry"]
       @tcp_request_expire = opt["tcp_request_expire"]
 
-      @mutex = Mutex.new
-      @nop   = Protocol::Command::Nop.new
+      @locker = Monitor.new
     end
 
     ##
     # open client.
     #
     def open
-      @mutex.synchronize {
+      @locker.synchronize {
         raise ClientError, "client already opened." if opened?
 
         @logger.info { "*** castoro-client open." }
@@ -140,7 +139,7 @@ module Castoro
     # close client.
     #
     def close
-      @mutex.synchronize {
+      @locker.synchronize {
         raise ClientError, "client already closed." if closed?
 
         @sender.stop
@@ -148,8 +147,8 @@ module Castoro
       }
     end
 
-    def opened?; @sender.alive?; end
-    def closed?; !opened?; end
+    def opened?; @locker.synchronize { @sender.alive? } ; end
+    def closed?; @locker.synchronize { !opened?       } ; end
 
     ##
     # A safe contents addition procedure is offered.
@@ -174,22 +173,24 @@ module Castoro
     # </pre>
     #
     def create key, hints = {}, &block
-      raise ClientError, "Client is not opened." unless opened?
-      raise ClientError, "It is necessary to specify the block argument." unless block
+      @locker.synchronize {
+        raise ClientError, "Client is not opened." unless opened?
+        raise ClientError, "It is necessary to specify the block argument." unless block
 
-      key = key.to_basket
-      hints ||= {}
+        key = key.to_basket
+        hints ||= {}
 
-      # craete command.
-      cmd = Protocol::Command::Create.new key, hints
+        # craete command.
+        cmd = Protocol::Command::Create.new key, hints
 
-      # get available peers from gateway.
-      @logger.info { "[key:#{key}] send CREATE request to gateways" }
-      res = send(cmd)
-      raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Create::Gateway
-      raise ClientError, "gateway connection failed - #{res.inspect}" if res.error?
+        # get available peers from gateway.
+        @logger.info { "[key:#{key}] send CREATE request to gateways" }
+        res = @sender.send cmd
+        raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Create::Gateway
+        raise ClientError, "gateway connection failed - #{res.inspect}" if res.error?
 
-      create_internal res.hosts, cmd, &block
+        create_internal res.hosts, cmd, &block
+      }
     end
 
     ##
@@ -217,16 +218,18 @@ module Castoro
     # </pre>
     #
     def create_direct peer, key, hints = {}, &block
-      raise ClientError, "Client is not opened." unless opened?
-      raise ClientError, "It is necessary to specify the block argument." unless block
+      @locker.synchronize {
+        raise ClientError, "Client is not opened." unless opened?
+        raise ClientError, "It is necessary to specify the block argument." unless block
 
-      key = key.to_basket
-      hints ||= {}
+        key = key.to_basket
+        hints ||= {}
 
-      # craete command.
-      cmd = Protocol::Command::Create.new key, hints
+        # craete command.
+        cmd = Protocol::Command::Create.new key, hints
 
-      create_internal [peer].flatten, cmd, &block
+        create_internal [peer].flatten, cmd, &block
+      }
     end
 
     ##
@@ -245,28 +248,30 @@ module Castoro
     # </pre>
     #
     def delete key
-      raise ClientError, "Client is not opened." unless opened?
+      @locker.synchronize {
+        raise ClientError, "Client is not opened." unless opened?
 
-      key = key.to_basket
+        key = key.to_basket
 
-      peers = get(key).keys.dup
+        peers = get(key).keys.dup
 
-      # shuffle.
-      (sid % peers.length).times { peers.push(peers.shift) }
+        # shuffle.
+        (sid % peers.length).times { peers.push(peers.shift) }
 
-      peer_decide_proc = Proc.new { |sender, peer|
-        # DELETE
-        cmd = Protocol::Command::Delete.new key
-        @logger.info { "[key:#{cmd.basket}] send DELETE request to peer<#{peer}>" }
-        res = sender.send cmd, @tcp_request_expire
-        raise ClientTimeoutError, "delete command timeout - #{peer}" if res.nil?
-        raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Delete
-        raise ClientError, "delete command failed - #{res.inspect}, #{peer}." if res.error?
+        peer_decide_proc = Proc.new { |sender, peer|
+          # DELETE
+          cmd = Protocol::Command::Delete.new key
+          @logger.info { "[key:#{cmd.basket}] send DELETE request to peer<#{peer}>" }
+          res = sender.send cmd, @tcp_request_expire
+          raise ClientTimeoutError, "delete command timeout - #{peer}" if res.nil?
+          raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Delete
+          raise ClientError, "delete command failed - #{res.inspect}, #{peer}." if res.error?
+        }
+
+        # choice tcp connection from available one peer(s).
+        open_peer_connection(key, peers, peer_decide_proc)
+        nil
       }
-
-      # choice tcp connection from available one peer(s).
-      open_peer_connection(key, peers, peer_decide_proc)
-      nil
     end
 
     ##
@@ -286,13 +291,15 @@ module Castoro
     # => {"peer1" => "/foo/bar/baz", "peer2" => "/hoge/fuga"}
     # </pre>
     def get key
-      raise ClientError, "Client is not opened." unless opened?
+      @locker.synchronize {
+        raise ClientError, "Client is not opened." unless opened?
 
-      @logger.info { "[key:#{key}] send GET request to gateways" }
-      res = send Protocol::Command::Get.new(key)
-      raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Get
-      raise ClientError, "get command failed - #{res.inspect}." if res.error?
-      res.paths.to_hash
+        @logger.info { "[key:#{key}] send GET request to gateways" }
+        res = @sender.send Protocol::Command::Get.new(key)
+        raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Get
+        raise ClientError, "get command failed - #{res.inspect}." if res.error?
+        res.paths.to_hash
+      }
     end
 
     def sid
@@ -300,12 +307,6 @@ module Castoro
     end
 
   private
-
-    def send command
-      @mutex.synchronize {
-        @sender.send command
-      }
-    end
 
     def create_internal peers, cmd
 
@@ -384,12 +385,9 @@ module Castoro
       ( peers * (1 + @tcp_connect_retry.to_i) ).each { |p|
         s = nil
         begin
+          # connect.
           s = Sender::TCP.new @logger, p, @peer_port
           s.start @tcp_connect_expire
-          res = s.send(@nop, @tcp_connect_expire)
-          raise ClientTimeoutError, "nop command timeout - #{p}" if res.nil?
-          raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Nop
-          raise ClientError, "nop command failed - #{res.inspect}, #{p}." if res.error?
 
           peer_decide_proc.call(s, p) if peer_decide_proc
 

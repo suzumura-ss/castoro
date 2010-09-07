@@ -23,31 +23,14 @@ require "logger"
 require "socket"
 require "ipaddr"
 require "thread"
-require "timeout"
 
 module Castoro
   module Sender
     class SenderError < CastoroError; end
     class SenderTimeoutError < SenderError; end
 
-    class TCP
-      def self.start logger, host, port, connect_timeout
-        me = TCP.new logger, host, port
-        me.start connect_timeout
-
-        if block_given?
-          ret = nil
-          begin
-            ret = yield me
-          ensure
-            me.stop
-          end
-          ret
-        else
-          me
-        end
-      end
-
+    class Connectable
+      
       ##
       # Initialize.
       #
@@ -56,26 +39,21 @@ module Castoro
       # +logger+::
       #  the logger.
       #
-      def initialize logger, host, port
+      def initialize logger
         @logger = logger || Logger.new(nil)
-        @host   = host
-        @port   = port
         @locker = Mutex.new
       end
 
       ##
       # Start sender service.
       #
-      def start connect_timeout
+      def start connect_expire
         @locker.synchronize {
           raise SenderError, "sender already started." if alive?
 
-          begin
-            @socket = timeout(connect_timeout) { TCPSocket.open(@host, @port) }
-          rescue TimeoutError
-            raise SenderTimeoutError, "tcp connection timeout."
-          end
-
+          sock = create_socket
+          connect sock, connect_expire
+          @socket = sock
           set_sock_opt @socket
         }
       end
@@ -101,7 +79,6 @@ module Castoro
       ##
       # Send packet and get response.
       #
-      #
       # === Args
       #
       # +data+::
@@ -113,18 +90,12 @@ module Castoro
         raise SenderError, "data should be Castoro::Protocol::Command." unless data.kind_of? Protocol::Command
         raise SenderError, "sender service doesn't start." unless alive?
         
-        @logger.debug { "sent to #{@host}:#{@port}\r\n#{data}" }
+        @logger.debug { "sent to #{@target}\n#{data.to_s.chomp}" }
         @socket.write data.to_s
 
-        res =
-          begin
-            s = IO.select([@socket], nil, nil, expire)
-            s ? (s[0][0]).recv(1024) : nil
-          rescue TimeoutError
-            nil
-          end
+        res = IO.select([@socket], nil, nil, expire) ? @socket.recv(1024) : nil
         return nil unless res
-        @logger.debug { "returned\r\n#{res}" }
+        @logger.debug { "returned\n#{res.to_s.chomp}" }
         
         res = Protocol.parse(res)
         unless res.kind_of? Protocol::Response
@@ -134,7 +105,30 @@ module Castoro
         res
       end
 
-    private
+      private
+
+      ##
+      # connect with timeout
+      #
+      # === Args
+      #
+      # +sock+::
+      #   connectable (unix, tcp) socket instance.
+      # +expire+::
+      #   connect timeout(sec).
+      #
+      def connect sock, expire
+        begin
+          sock.connect_nonblock(@sock_addr)
+        rescue Errno::EINPROGRESS
+          res = IO.select(nil, [sock], nil, expire)
+          raise SenderTimeoutError, "connection timeout." unless res
+          begin
+            sock.connect_nonblock(@sock_addr)
+          rescue Errno::EISCONN # already connected.
+          end
+        end
+      end
 
       ##
       # When the socket begins,
@@ -149,7 +143,99 @@ module Castoro
       # the option can be set by changing the definition of the method.
       #
       def unset_sock_opt socket; end
-      
+
+      ##
+      # Create socket resource.
+      #
+      # The method of making the socket by 
+      # changing the definition of the method can be set. 
+      #
+      def create_socket; nil; end
+
+    end
+
+    class UNIX < Connectable
+
+      def self.start logger, sock_file, connect_expire
+        me = TCP.new logger, sock_file
+        me.start connect_expire
+
+        if block_given?
+          ret = nil
+          begin
+            ret = yield me
+          ensure
+            me.stop
+          end
+          ret
+        else
+          me
+        end
+      end
+
+      ##
+      # Initialize.
+      #
+      # === Args
+      #
+      # +logger+::
+      #  the logger.
+      # +sock_file+::
+      #  fullpath of UNIX socket file.
+      #
+      def initialize logger, sock_file
+        super logger
+        @target = sock_file
+        @sock_addr = Socket.pack_sockaddr_un(sock_file)
+      end
+
+      def create_socket
+        Socket.new(Socket::AF_UNIX, Socket::SOCK_STREAM, 0)
+      end
+
+    end
+
+    class TCP < Connectable
+
+      def self.start logger, host, port, connect_expire
+        me = TCP.new logger, host, port
+        me.start connect_expire
+
+        if block_given?
+          ret = nil
+          begin
+            ret = yield me
+          ensure
+            me.stop
+          end
+          ret
+        else
+          me
+        end
+      end
+
+      ##
+      # Initialize.
+      #
+      # === Args
+      #
+      # +logger+::
+      #   the logger.
+      # +host+::
+      #   destination host address.
+      # +port+::
+      #   destination port number.
+      #
+      def initialize logger, host, port
+        super logger
+        @target = "#{host}:#{port}"
+        @sock_addr = Socket.pack_sockaddr_in(port, host)
+      end
+
+      def create_socket
+        Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0)
+      end
+
     end
 
     class UDP
@@ -240,12 +326,12 @@ module Castoro
         raise SenderError, "nil cannot be set to port." if port.nil?
         raise SenderError, "sender service doesn't start." unless alive?
 
-        @logger.debug { "sent to #{addr}:#{port}\r\n#{header}#{data}" }
+        @logger.debug { "sent to #{addr}:#{port}\n#{header}#{data}" }
         @socket.send "#{header}#{data}", 0, addr, port
         nil
       end
 
-    private
+      private
 
       ##
       # When the socket begins,
@@ -322,7 +408,7 @@ module Castoro
         send header, data, @multicast_addr, @port
       end
 
-    private
+      private
 
       def set_sock_opt socket
         socket.setsockopt(Socket::IPPROTO_IP, Socket::IP_MULTICAST_IF, IPAddr.new(@device_addr).hton)
@@ -332,3 +418,4 @@ module Castoro
     end
   end
 end
+

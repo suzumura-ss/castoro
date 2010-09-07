@@ -1,4 +1,9 @@
 
+=== 0.0.10 2010-08-31
+
+* Refactored Sender::UNIX, Sender::TCP
+** The method of judging the time-out is changed. (Timeout->IO#select)
+
 === 0.0.9 2010-08-25
 
 * Added dependency json 1.2.3

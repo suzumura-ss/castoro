@@ -198,6 +198,18 @@ describe Castoro::Client::TimeslideSender do
       @w.sid.should == 0
     end
 
+    it "should not be able to #send" do
+      Proc.new {
+        @w.send(Castoro::Protocol::Command::Nop.new)
+      }.should raise_error(Castoro::ClientError, "timeslide sender is not started.")
+    end
+
+    it "should be able to #restart" do
+      @w.alive?.should == false
+      @w.restart
+      @w.alive?.should == true
+    end
+
     context "when start" do
       before do
         @w.start
@@ -222,6 +234,23 @@ describe Castoro::Client::TimeslideSender do
         @w.sid.should == @times_of_send
       end
 
+      it "should be able to #restart" do
+        @w.alive?.should == true
+        @w.restart
+        @w.alive?.should == true
+      end
+
+      context "when proces forked" do
+        before do
+          Process.stub!(:pid).and_return(12345) # fork is camouflaged.
+        end
+
+        it "reactivation should be executed by #send" do
+          @w.should_receive(:restart).exactly(1)
+          @w.send(@n)
+        end
+      end
+
       context "when stop" do
         before do
           @w.stop
@@ -234,6 +263,12 @@ describe Castoro::Client::TimeslideSender do
         it "should threads is nil" do
           threads = @w.instance_variable_get :@threads
           threads.should be_nil
+        end
+
+        it "should be able to #restart" do
+          @w.alive?.should == false
+          @w.restart
+          @w.alive?.should == true
         end
 
         after do

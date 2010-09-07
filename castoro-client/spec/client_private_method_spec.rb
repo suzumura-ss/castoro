@@ -44,7 +44,6 @@ describe Castoro::Client do
   context "when create_internal" do
     before do
       @peer     = ["peer"]
-      @nop      = Castoro::Protocol::Command::Nop.new
       @command  = Castoro::Protocol::Command::Create.new @key, { "class" => "hints"}
       @finalize = Castoro::Protocol::Command::Finalize.new @key, "host", "path"
       @cancel   = Castoro::Protocol::Command::Cancel.new @key, "host", "path"
@@ -53,7 +52,6 @@ describe Castoro::Client do
       @sender = mock Castoro::Sender::TCP
       @sender.stub!(:start).with(0.05)
       @sender.stub!(:stop)
-      @sender.stub!(:send).with(@nop, 0.05).and_return Castoro::Protocol::Response::Nop.new nil
       @sender.stub!(:send).with(@command, 5.00).and_return Castoro::Protocol::Response::Create::Peer.new nil, @key, "host", "path"
       @sender.stub!(:send).with(@finalize, 5.00).and_return Castoro::Protocol::Response::Finalize.new nil, @key
       @sender.stub!(:send).with(@cancel, 5.00).and_return Castoro::Protocol::Response::Cancel.new nil, @key
@@ -168,7 +166,6 @@ describe Castoro::Client do
   context "when open_peer_connection" do
     before do
       @key  = Castoro::BasketKey.new(1, 2, 3)
-      @nop  = Castoro::Protocol::Command::Nop.new
 
       #TCP sender mock.
       #TCP sender to peer1
@@ -176,7 +173,6 @@ describe Castoro::Client do
       @sender1.stub!(:start).with(0.05)
       @sender1.stub!(:stop)
       @sender1.stub!(:alive?).and_return(true)
-      @sender1.stub!(:send).with(@nop, 0.05).and_return Castoro::Protocol::Response::Nop.new nil
       Castoro::Sender::TCP.stub!(:new).with(@client.instance_variable_get(:@logger), "peer1", 30111).and_return @sender1
 
       #TCP sender to peer2
@@ -184,41 +180,38 @@ describe Castoro::Client do
       @sender2.stub!(:start).with(0.05)
       @sender2.stub!(:stop)
       @sender2.stub!(:alive?).and_return(true)
-      @sender2.stub!(:send).with(@nop, 0.05).and_return Castoro::Protocol::Response::Nop.new nil
       Castoro::Sender::TCP.stub!(:new).with(@client.instance_variable_get(:@logger), "peer2", 30111).and_return @sender2
-    end
-
-    context "all response was normally." do
-      it "TCP sender#alive? should be not called." do
-        peer = [ "peer1", "peer2" ]
-        @sender1.should_receive(:alive?).exactly(0)
-        @sender2.should_receive(:alive?).exactly(0)
-        @client.open_peer_connection @key, peer
-      end
     end
 
     context "first response was error response, second response was normally response." do
       it "error responsed TCP sender#alive? should be called once." do
-        peer = [ "peer2", "peer1" ]
-        @sender2.stub!(:send).with(@nop, 0.05).and_return Castoro::Protocol::Response::Nop.new "error"
-        @sender2.should_receive(:alive?).exactly(1)
-        @client.open_peer_connection @key, peer
+        peers = [ "peer2", "peer1" ]
+        @sender2.stub!(:start).with(0.05).and_return {
+          raise Castoro::SenderTimeoutError, "connection timeout."
+        }
+        @client.open_peer_connection(@key, peers, nil) { |s, p|
+          s.should == @sender1
+          p.should == "peer1"
+        }
       end
     end
 
-    context "first response was normally response, second response was no response." do
-      it "second TCP sender#alive? should be not called" do
-        peer = [ "peer1", "peer2" ]
-        @sender2.stub!(:send).with(@nop, 0.05)
-        @sender2.should_receive(:alive?).exactly(0)
-        @client.open_peer_connection @key, peer
+    context "second response was error response, second response was normally response." do
+      it "error responsed TCP sender#alive? should be called once." do
+        peers = [ "peer2", "peer1" ]
+        @sender1.stub!(:start).with(0.05).and_return {
+          raise Castoro::SenderTimeoutError, "connection timeout."
+        }
+        @client.open_peer_connection(@key, peers, nil) { |s, p|
+          s.should == @sender2
+          p.should == "peer2"
+        }
       end
     end
 
     context "peer_decide_proc was not given." do
       it "TCP sender#start and send and stop should be called once." do
         @sender1.should_receive(:start).exactly(1)
-        @sender1.should_receive(:send).with(@nop, 0.05).exactly(1)
         @sender1.should_receive(:stop).exactly(1)
         @client.open_peer_connection @key, ["peer1"]
       end
@@ -227,57 +220,19 @@ describe Castoro::Client do
     context "peer_decide_proc was given Proc instance." do
       it "peer_decide_proc#call should be called once" do
         peer_decide_proc = Proc.new { |sender, peer|
+          sender.should == @sender1
+          peer.should   == "peer1"
         }
         peer_decide_proc.should_receive(:call).with(@sender1, "peer1").exactly(1)
         @client.open_peer_connection @key, ["peer1"], peer_decide_proc
       end
     end
 
-    context "block argument was given." do
-      it "block argument was normally given." do
-        @client.open_peer_connection @key, ["peer1"] { |sender, peer|
-          sender.should == @sender1
-          peer.should   == "peer1"
-        }
-      end
-    end
-
-    context "nop command timeout." do
-      it "should raise Castoro::ClientNothingPeerError with TCP sender#alive? and stop should be called once." do
-        @sender1.stub!(:send).with(@nop, 0.05)
-        @sender1.should_receive(:alive?).exactly(1)
-        @sender1.should_receive(:stop).exactly(1)
-        Proc.new {
-          @client.open_peer_connection @key, ["peer1"]
-        }.should raise_error Castoro::ClientNothingPeerError
-      end
-    end
-
-    context "the Response not intended." do
-      it "should raise Castoro::ClientNothingPeerError with TCP sender#alive? and stop should be called once." do
-        @sender1.stub!(:send).with(@nop, 0.05).and_return Castoro::Protocol::Response.new nil
-        @sender1.should_receive(:alive?).exactly(1)
-        @sender1.should_receive(:stop).exactly(1)
-        Proc.new {
-          @client.open_peer_connection @key, ["peer1"]
-        }.should raise_error Castoro::ClientNothingPeerError
-      end
-    end
-
-    context "nop command failed." do
-      it "should raise Castoro::ClientNothingPeerError with TCP sender#alive? and stop should be called once." do
-        @sender1.stub!(:send).with(@nop, 0.05).and_return Castoro::Protocol::Response::Nop.new "error"
-        @sender1.should_receive(:alive?).exactly(1)
-        @sender1.should_receive(:stop).exactly(1)
-        Proc.new {
-          @client.open_peer_connection @key, ["peer1"]
-        }.should raise_error Castoro::ClientNothingPeerError
-      end
-    end
-
     context "There is no Peer that can be connected by TCP." do
       it "should raise Castoro::ClientNothingPeerError." do
-        @sender1.stub!(:send).with(@nop, 0.05)
+        @sender1.stub!(:start).with(0.05).and_return {
+          raise Castoro::SenderTimeoutError, "connection timeout."
+        }
         Proc.new {
           @client.open_peer_connection @key, ["peer1"]
         }.should raise_error Castoro::ClientNothingPeerError

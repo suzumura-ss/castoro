@@ -1,4 +1,10 @@
 
+=== 0.0.7 2010-08-31
+
+* Refactored method of connecting TCP
+** Mounting by the MultiThreading is excluded as much as possible.
+* Changed lock object (Mutex to Monitor)
+
 === 0.0.6 2010-08-25
 
 * Correction of license sentence

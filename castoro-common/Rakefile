@@ -25,7 +25,7 @@ require 'rake/rdoctask'
 
 spec = Gem::Specification.new do |s|
   s.name = 'castoro-common'
-  s.version = '0.0.9'
+  s.version = '0.0.10'
   s.has_rdoc = true
   s.extra_rdoc_files = ['README.textile', 'LICENSE']
   s.summary = "This(it) is libraries for Castoro which is distributed abstraction filesystem."
