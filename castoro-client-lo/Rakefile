@@ -26,7 +26,7 @@ require 'rake/testtask'
 
 spec = Gem::Specification.new do |s|
   s.name = 'castoro-client-lo'
-  s.version = '0.0.5'
+  s.version = '0.0.6'
   s.has_rdoc = false
   s.extra_rdoc_files = ['README', 'LICENSE']
   s.summary = "This(it) is client libraries for Castoro which is distributed abstraction filesystem."

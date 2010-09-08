@@ -23,6 +23,7 @@ require 'fileutils'
 module Castoro
   module ClientLocal
     attr_accessor :basedir
+    @local_opened = false
 
   private
     def basepath(key, mode)
@@ -35,15 +36,16 @@ module Castoro
   public
     def open
       FileUtils.mkdir_p("#{@basedir}/trash")
-      @receiver = ""
-      @sender = ""
+      @local_opened = true
       @basedir ||= '/expdsk'
     end
 
     def close
-      @receiver = nil
-      @sender = nil
+      @local_opened = false
     end
+
+    def opened?; @local_opened; end
+    def closed?; !opened?; end
 
     def http_port=(port)
       @http_port = (port==80)? "" : ":#{port}"

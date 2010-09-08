@@ -16,3 +16,5 @@
 0.0.5:
   Added license sentence.
 
+0.0.6:
+  Bugfix: add opened?/clised? method.
