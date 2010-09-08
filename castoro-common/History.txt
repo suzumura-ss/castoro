@@ -1,4 +1,9 @@
 
+=== 0.0.11 2010-09-08
+
+* Suppress warning message (parenthesize argument(s)) for ruby1.8.x
+* Adjusted spec code for ruby1.8.x
+
 === 0.0.10 2010-08-31
 
 * Refactored Sender::UNIX, Sender::TCP

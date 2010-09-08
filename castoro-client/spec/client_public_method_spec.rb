@@ -68,37 +68,37 @@ describe Castoro::Client do
   it "The argument should not be able to omit of #get." do
     Proc.new {
       @client.get
-    }.should raise_error ArgumentError
+    }.should raise_error(ArgumentError)
   end
 
   it "The argument should not be able to omit of #create." do
     Proc.new {
       @client.create
-    }.should raise_error ArgumentError
+    }.should raise_error(ArgumentError)
   end
 
   it "#create shall not be block argument omissible." do
     Proc.new {
       @client.create @key
-    }.should raise_error Castoro::ClientError
+    }.should raise_error(Castoro::ClientError)
   end
 
   it "The argument should not be able to omit of #create_direct." do
     Proc.new {
       @client.create_direct
-    }.should raise_error ArgumentError
+    }.should raise_error(ArgumentError)
   end
 
   it "#create shall not be block argument omissible." do
     Proc.new {
       @client.create_direct @peers, @key
-    }.should raise_error Castoro::ClientError
+    }.should raise_error(Castoro::ClientError)
   end
 
   it "The argument should not be able to omit of #delete." do
     Proc.new {
       @client.delete
-    }.should raise_error ArgumentError
+    }.should raise_error(ArgumentError)
   end
 
   context "When closed." do
@@ -146,7 +146,7 @@ describe Castoro::Client do
       it "should raise Castoro::ClientError." do
         Proc.new {
           @client.get(@key_2)
-        }.should raise_error Castoro::ClientError
+        }.should raise_error(Castoro::ClientError)
       end
     end
 
@@ -154,7 +154,7 @@ describe Castoro::Client do
       it "should raise Castoro::ClientError." do
         Proc.new {
           @client.get(@key_3)
-        }.should raise_error Castoro::ClientError
+        }.should raise_error(Castoro::ClientError)
       end
     end
   end
@@ -178,7 +178,7 @@ describe Castoro::Client do
         }
         Proc.new {
           @client.create(@key, @hints){}
-        }.should raise_error Castoro::ClientError
+        }.should raise_error(Castoro::ClientError)
       end
     end
 
@@ -189,7 +189,7 @@ describe Castoro::Client do
         }
         Proc.new {
           @client.create(@key, @hints){}
-        }.should raise_error Castoro::ClientError
+        }.should raise_error(Castoro::ClientError)
       end
     end
   end
@@ -236,27 +236,31 @@ describe Castoro::Client do
         @client.should_receive(:get).exactly(1)
         Proc.new {
           @client.delete(@key)
-        }.should raise_error Castoro::ClientNothingPeerError
+        }.should raise_error(Castoro::ClientNothingPeerError)
       end
     end
 
     context "Response not intended." do
       it "should raise Castoro::ClientNothingPeerError with get should be called once." do
-        @sender.stub!(:send).with(@delete_command, 5.00).and_return Castoro::Protocol::Response.new nil
+        @sender.stub!(:send).with(@delete_command, 5.00).and_return {
+          Castoro::Protocol::Response.new(nil)
+        }
         @client.should_receive(:get).exactly(1)
         Proc.new {
           @client.delete(@key)
-        }.should raise_error Castoro::ClientNothingPeerError
+        }.should raise_error(Castoro::ClientNothingPeerError)
       end
     end
 
     context "delete command failed." do
       it "should raise Castoro::ClientNothingPeerError with get should be called once." do
-        @sender.stub!(:send).with(@delete_command, 5.00).and_return Castoro::Protocol::Response::Delete.new "error", @key
+        @sender.stub!(:send).with(@delete_command, 5.00).and_return {
+          Castoro::Protocol::Response::Delete.new("error", @key)
+        }
         @client.should_receive(:get).exactly(1)
         Proc.new {
           @client.delete(@key)
-        }.should raise_error Castoro::ClientNothingPeerError
+        }.should raise_error(Castoro::ClientNothingPeerError)
       end
     end
   end

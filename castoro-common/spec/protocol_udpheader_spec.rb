@@ -50,7 +50,7 @@ describe Castoro::Protocol::UDPHeader do
     context '"["222.333.1.1",100,200]"' do
       it 'should be able to create an instance of Protocol::UDPHeader' do
         udp = Castoro::Protocol::UDPHeader.parse '["222.333.1.1",100,200]'
-        udp.should be_kind_of Castoro::Protocol::UDPHeader
+        udp.should be_kind_of(Castoro::Protocol::UDPHeader)
       end
     end
   end
@@ -103,7 +103,7 @@ describe Castoro::Protocol::UDPHeader do
       end
 
       it 'should be able to create an instance of Protocol::UDPHeader' do
-        @udp.should be_kind_of Castoro::Protocol::UDPHeader
+        @udp.should be_kind_of(Castoro::Protocol::UDPHeader)
       end
 
       it 'should be able to use #to_s' do
@@ -133,7 +133,7 @@ describe Castoro::Protocol::UDPHeader do
       end
 
       it 'should be able to create an instance of Protocol::UDPHeader' do
-        @udp.should be_kind_of Castoro::Protocol::UDPHeader
+        @udp.should be_kind_of(Castoro::Protocol::UDPHeader)
       end
 
       it 'should be able to use #to_s' do

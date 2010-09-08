@@ -1,4 +1,9 @@
 
+=== 0.0.8 2010-09-08
+
+* Suppress warning message (parenthesize argument(s)) for ruby1.8.x
+* Adjusted spec code for ruby1.8.x
+
 === 0.0.7 2010-08-31
 
 * Refactored method of connecting TCP

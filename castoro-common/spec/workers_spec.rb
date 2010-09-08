@@ -39,7 +39,7 @@ describe Castoro::Workers do
     it "should not be able to stop" do
       Proc.new {
         @w.stop
-      }.should raise_error Castoro::WorkersError
+      }.should raise_error(Castoro::WorkersError)
     end
 
     context "when start" do
@@ -53,13 +53,13 @@ describe Castoro::Workers do
 
       it "should thread count is 3" do
         threads = @w.instance_variable_get :@threads
-        threads.count.should == 3
+        threads.length.should == 3
       end
 
       it "should not be able to start" do
         Proc.new {
           @w.start
-        }.should raise_error Castoro::WorkersError
+        }.should raise_error(Castoro::WorkersError)
       end
 
       context "when stop" do

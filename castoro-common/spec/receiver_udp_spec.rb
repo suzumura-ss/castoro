@@ -19,9 +19,11 @@
 
 require File.dirname(__FILE__) + '/spec_helper.rb'
 
-UDP_PORT     = 30150
-
 describe Castoro::Receiver::UDP do
+  before do
+    @udp_port = 30150
+  end
+
   context "when port argument is zero or negative number." do
     it "should raise Castoro::Receiver::ReceiverError" do
       Proc.new {
@@ -38,7 +40,7 @@ describe Castoro::Receiver::UDP do
 
   context "when the logger, thread_count, subscriber argument is omitted." do
     before do
-      @r = Castoro::Receiver::UDP.new(nil, UDP_PORT)
+      @r = Castoro::Receiver::UDP.new(nil, @udp_port)
     end
 
     it "should logger equals NilLogger" do
@@ -69,7 +71,7 @@ describe Castoro::Receiver::UDP do
 
   context "when service started." do
     before do
-      @r = Castoro::Receiver::UDP.new(nil, UDP_PORT)
+      @r = Castoro::Receiver::UDP.new(nil, @udp_port)
       @r.start
     end
 
@@ -92,7 +94,7 @@ describe Castoro::Receiver::UDP do
 
   context "when service stopped." do
     before do
-      @r = Castoro::Receiver::UDP.new(nil, UDP_PORT)
+      @r = Castoro::Receiver::UDP.new(nil, @udp_port)
     end
 
     it "should alive? false" do

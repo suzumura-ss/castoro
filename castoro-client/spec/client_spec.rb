@@ -67,11 +67,11 @@ describe Castoro::Client do
     end
 
     it "should be kind of Castoro::Client instance." do
-      @client.should be_kind_of Castoro::Client
+      @client.should be_kind_of(Castoro::Client)
     end
 
     it "should be respond_to open, close, opened?, closed?, create, create_direct, delete, get." do
-      @client.should respond_to :open, :close, :opened?, :closed?, :create, :create_direct, :delete, :get
+      @client.should respond_to(:open, :close, :opened?, :closed?, :create, :create_direct, :delete, :get)
     end
 
     it "should be used default settings." do

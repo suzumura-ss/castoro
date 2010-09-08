@@ -102,7 +102,7 @@ describe Castoro::Protocol::Response do
       end
 
       it 'should return an instance of Response .' do
-        @response.should be_kind_of Castoro::Protocol::Response
+        @response.should be_kind_of(Castoro::Protocol::Response)
       end
 
       it 'should be able to use #to_s' do
@@ -121,7 +121,7 @@ describe Castoro::Protocol::Response do
       end
 
       it 'should return an instance of Response .' do
-        @response.should be_kind_of Castoro::Protocol::Response
+        @response.should be_kind_of(Castoro::Protocol::Response)
       end
 
       it 'should be able to use #to_s' do
@@ -143,7 +143,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Nop .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Nop
+          @response.should be_kind_of(Castoro::Protocol::Response::Nop)
         end
 
         it 'should be able to use #to_s' do
@@ -162,7 +162,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Nop .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Nop
+          @response.should be_kind_of(Castoro::Protocol::Response::Nop)
         end
 
         it 'should be able to use #to_s' do
@@ -187,7 +187,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create
+          @response.should be_kind_of(Castoro::Protocol::Response::Create)
         end
 
         it 'should be able to use #to_s' do
@@ -201,7 +201,7 @@ describe Castoro::Protocol::Response do
 
         it 'should be able to get :basket' do
           basket = @response.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "123456789.1.2"
         end
       end
@@ -213,7 +213,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create
+          @response.should be_kind_of(Castoro::Protocol::Response::Create)
         end
 
         it 'should be able to use #to_s' do
@@ -236,7 +236,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create
+          @response.should be_kind_of(Castoro::Protocol::Response::Create)
         end
 
         it 'should be able to use #to_s' do
@@ -263,7 +263,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create::Gateway .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create::Gateway
+          @response.should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
         end
 
         it 'should be able to use #to_s' do
@@ -277,7 +277,7 @@ describe Castoro::Protocol::Response do
 
         it 'should be able to get :basket' do
           basket = @response.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "123456789.1.2"
         end
 
@@ -310,7 +310,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create::Gateway .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create::Gateway
+          @response.should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
         end
 
         it 'should be able to use #to_s' do
@@ -365,7 +365,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create::Gateway .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create::Gateway
+          @response.should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
         end
 
         it 'should be able to use #to_s' do
@@ -419,7 +419,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create::Gateway .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create::Gateway
+          @response.should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
         end
 
         it 'should be able to use #to_s' do
@@ -478,7 +478,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create::Peer .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create::Peer
+          @response.should be_kind_of(Castoro::Protocol::Response::Create::Peer)
         end
 
         it 'should be able to use #to_s' do
@@ -492,7 +492,7 @@ describe Castoro::Protocol::Response do
 
         it 'should be able to get :basket' do
           basket = @response.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "123456789.1.2"
         end
 
@@ -510,7 +510,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create::Peer .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create::Peer
+          @response.should be_kind_of(Castoro::Protocol::Response::Create::Peer)
         end
 
         it 'should be able to use #to_s' do
@@ -539,7 +539,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create::Peer .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create::Peer
+          @response.should be_kind_of(Castoro::Protocol::Response::Create::Peer)
         end
 
         it 'should be able to use #to_s' do
@@ -568,7 +568,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create::Peer .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create::Peer
+          @response.should be_kind_of(Castoro::Protocol::Response::Create::Peer)
         end
 
         it 'should be able to use #to_s' do
@@ -597,7 +597,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create::Peer .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create::Peer
+          @response.should be_kind_of(Castoro::Protocol::Response::Create::Peer)
         end
 
         it 'should be able to use #to_s' do
@@ -625,7 +625,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create::Peer .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create::Peer
+          @response.should be_kind_of(Castoro::Protocol::Response::Create::Peer)
         end
 
         it 'should be able to use #to_s' do
@@ -653,7 +653,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create::Peer .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create::Peer
+          @response.should be_kind_of(Castoro::Protocol::Response::Create::Peer)
         end
 
         it 'should be able to use #to_s' do
@@ -681,7 +681,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create::Peer .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create::Peer
+          @response.should be_kind_of(Castoro::Protocol::Response::Create::Peer)
         end
 
         it 'should be able to use #to_s' do
@@ -708,7 +708,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Response::Create::Peer .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Create::Peer
+          @response.should be_kind_of(Castoro::Protocol::Response::Create::Peer)
         end
 
         it 'should be able to use #to_s' do
@@ -741,7 +741,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should be able to create an instance of Castoro::Protocol::Response::Finalize' do
-          @response.should be_kind_of Castoro::Protocol::Response::Finalize
+          @response.should be_kind_of(Castoro::Protocol::Response::Finalize)
         end
 
         it 'should be able to use #to_s' do
@@ -755,7 +755,7 @@ describe Castoro::Protocol::Response do
 
         it 'should be able to get :basket' do
           basket = @response.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "123456789.1.2"
         end
       end
@@ -767,7 +767,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Castoro::Protocol::Response::Finalize .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Finalize
+          @response.should be_kind_of(Castoro::Protocol::Response::Finalize)
         end
 
         it 'should be able to use #to_s' do
@@ -790,7 +790,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Castoro::Protocol::Response::Finalize .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Finalize
+          @response.should be_kind_of(Castoro::Protocol::Response::Finalize)
         end
 
         it 'should be able to use #to_s' do
@@ -819,7 +819,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should be able to create an instance of Castoro::Protocol::Response::Cancel' do
-          @response.should be_kind_of Castoro::Protocol::Response::Cancel
+          @response.should be_kind_of(Castoro::Protocol::Response::Cancel)
         end
 
         it 'should be able to use #to_s' do
@@ -833,7 +833,7 @@ describe Castoro::Protocol::Response do
 
         it 'should be able to get :basket' do
           basket = @response.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "123456789.1.2"
         end
       end
@@ -845,7 +845,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Castoro::Protocol::Response::Cancel .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Cancel
+          @response.should be_kind_of(Castoro::Protocol::Response::Cancel)
         end
 
         it 'should be able to use #to_s' do
@@ -868,7 +868,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Castoro::Protocol::Response::Cancel .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Cancel
+          @response.should be_kind_of(Castoro::Protocol::Response::Cancel)
         end
 
         it 'should be able to use #to_s' do
@@ -897,7 +897,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should be able to create an instance of Castoro::Protocol::Response::Get' do
-          @response.should be_kind_of Castoro::Protocol::Response::Get
+          @response.should be_kind_of(Castoro::Protocol::Response::Get)
         end
 
         it 'should be able to use #to_s' do
@@ -911,12 +911,12 @@ describe Castoro::Protocol::Response do
 
         it 'should be able to get :basket' do
           basket = @response.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "123456789.1.2"
         end
 
         it 'should be able to get :paths' do
-          @response.paths.to_s.should == '{"host1"=>"path1/2/3/4", "host2"=>"path5/6/7/8"}'
+          @response.paths.should == {"host1"=>"path1/2/3/4", "host2"=>"path5/6/7/8"}
         end
       end
 
@@ -927,7 +927,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Castoro::Protocol::Response::Get .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Get
+          @response.should be_kind_of(Castoro::Protocol::Response::Get)
         end
 
         it 'should be able to use #to_s' do
@@ -954,7 +954,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Castoro::Protocol::Response::Get .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Get
+          @response.should be_kind_of(Castoro::Protocol::Response::Get)
         end
 
         it 'should be able to use #to_s' do
@@ -988,7 +988,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should be able to create an instance of Castoro::Protocol::Response::Delete' do
-          @response.should be_kind_of Castoro::Protocol::Response::Delete
+          @response.should be_kind_of(Castoro::Protocol::Response::Delete)
         end
 
         it 'should be able to use #to_s' do
@@ -1002,7 +1002,7 @@ describe Castoro::Protocol::Response do
 
         it 'should be able to get :basket' do
           basket = @response.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "123456789.1.2"
         end
       end
@@ -1014,7 +1014,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Castoro::Protocol::Response::Delete .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Delete
+          @response.should be_kind_of(Castoro::Protocol::Response::Delete)
         end
 
         it 'should be able to use #to_s' do
@@ -1037,7 +1037,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Castoro::Protocol::Response::Delete .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Delete
+          @response.should be_kind_of(Castoro::Protocol::Response::Delete)
         end
 
         it 'should be able to use #to_s' do
@@ -1065,7 +1065,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should be able to create an instance of Castoro::Protocol::Response::Insert' do
-          @response.should be_kind_of Castoro::Protocol::Response::Insert
+          @response.should be_kind_of(Castoro::Protocol::Response::Insert)
         end
 
         it 'should be able to use #to_s' do
@@ -1085,7 +1085,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Castoro::Protocol::Response::Insert .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Insert
+          @response.should be_kind_of(Castoro::Protocol::Response::Insert)
         end
 
         it 'should be able to use #to_s' do
@@ -1109,7 +1109,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should be able to create an instance of Castoro::Protocol::Response::Drop' do
-          @response.should be_kind_of Castoro::Protocol::Response::Drop
+          @response.should be_kind_of(Castoro::Protocol::Response::Drop)
         end
 
         it 'should be able to use #to_s' do
@@ -1129,7 +1129,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Castoro::Protocol::Response::Drop .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Drop
+          @response.should be_kind_of(Castoro::Protocol::Response::Drop)
         end
 
         it 'should be able to use #to_s' do
@@ -1153,7 +1153,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should be able to create an instance of Castoro::Protocol::Response::Alive' do
-          @response.should be_kind_of Castoro::Protocol::Response::Alive
+          @response.should be_kind_of(Castoro::Protocol::Response::Alive)
         end
 
         it 'should be able to use #to_s' do
@@ -1173,7 +1173,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Castoro::Protocol::Response::Alive .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Alive
+          @response.should be_kind_of(Castoro::Protocol::Response::Alive)
         end
 
         it 'should be able to use #to_s' do
@@ -1225,7 +1225,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should be able to create an instance of Castoro::Protocol::Response::Status' do
-          @response.should be_kind_of Castoro::Protocol::Response::Status
+          @response.should be_kind_of(Castoro::Protocol::Response::Status)
         end
 
         it 'should be able to use #to_s' do
@@ -1252,7 +1252,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should be able to create an instance of Castoro::Protocol::Response::Status' do
-          @response.should be_kind_of Castoro::Protocol::Response::Status
+          @response.should be_kind_of(Castoro::Protocol::Response::Status)
         end
 
         it 'should be able to use #to_s' do
@@ -1279,7 +1279,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Castoro::Protocol::Response::Status .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Status
+          @response.should be_kind_of(Castoro::Protocol::Response::Status)
         end
 
         it 'should be able to use #to_s' do
@@ -1308,7 +1308,7 @@ describe Castoro::Protocol::Response do
         end
 
         it 'should return an instance of Castoro::Protocol::Response::Status .' do
-          @response.should be_kind_of Castoro::Protocol::Response::Status
+          @response.should be_kind_of(Castoro::Protocol::Response::Status)
         end
 
         it 'should be able to use #to_s' do

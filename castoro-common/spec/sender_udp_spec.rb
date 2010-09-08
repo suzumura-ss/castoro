@@ -19,15 +19,17 @@
 
 require File.dirname(__FILE__) + '/spec_helper.rb'
 
-UDP_PORT = 30150
-
 describe Castoro::Sender::UDP do
+  before do
+    @udp_port = 30150
+  end
+
   context "when the logger, thread_count, subscriber argument is omitted." do
     it "should liberate socket resource" do
-      h = Castoro::Protocol::UDPHeader.new "127.0.0.1", UDP_PORT
+      h = Castoro::Protocol::UDPHeader.new "127.0.0.1", @udp_port
       d = Castoro::Protocol::Command::Nop.new
       10000.times {
-        Castoro::Sender::UDP.start(nil) { |s| s.send h, d, "127.0.0.1", UDP_PORT }
+        Castoro::Sender::UDP.start(nil) { |s| s.send h, d, "127.0.0.1", @udp_port }
       }
     end
   end
@@ -56,11 +58,11 @@ describe Castoro::Sender::UDP do
     end
 
     it "should be able start>send>stop" do
-      h = Castoro::Protocol::UDPHeader.new "127.0.0.1", UDP_PORT
+      h = Castoro::Protocol::UDPHeader.new "127.0.0.1", @udp_port
       d = Castoro::Protocol::Command::Nop.new
       10000.times {
         @s.start
-        @s.send h, d, "127.0.0.1", UDP_PORT
+        @s.send h, d, "127.0.0.1", @udp_port
         @s.stop
       }
     end

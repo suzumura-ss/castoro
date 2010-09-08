@@ -27,3 +27,20 @@ end
 
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'castoro-common'
+
+def be_synonymas_with(expected)
+  simple_matcher "expected #{expected.inspect} to included" do |actual|
+    act = JSON.parse(actual.to_s)
+    exp = JSON.parse(expected.to_s)
+
+    act.class.should == Array
+    exp.class.should == Array
+
+    act[0].should == exp[0]
+    act[1].should == exp[1]
+    act[2].should == exp[2]
+    act[3].should == exp[3]
+    act.length.should == exp.length
+  end
+end
+

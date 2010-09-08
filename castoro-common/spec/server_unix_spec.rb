@@ -45,7 +45,7 @@ describe Castoro::Server::UNIX do
     it "should not be able to stop" do
       Proc.new {
         @s.stop
-      }.should raise_error Castoro::ServerError
+      }.should raise_error(Castoro::ServerError)
     end
 
     context "when start" do
@@ -66,7 +66,7 @@ describe Castoro::Server::UNIX do
       it "should not be able to start" do
         Proc.new {
           @s.start
-        }.should raise_error Castoro::ServerError
+        }.should raise_error(Castoro::ServerError)
       end
 
       context "when stop" do

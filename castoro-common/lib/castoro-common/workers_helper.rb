@@ -88,7 +88,7 @@ module Castoro
       rescue => e
         @logger.warn { e.message }
         res = Protocol::Response.new("code" => e.class.to_s, "message" => e.message)
-        return send_response client, res
+        return send_response(client, res)
       end
 
       begin

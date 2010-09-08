@@ -137,7 +137,7 @@ describe Castoro::Receiver::TCP do
         3000.times {
           cmd = Castoro::Protocol::Command::Nop.new
           res = s.send(cmd, 5.0)
-          res.class.should be_eql Castoro::Protocol::Response::Nop
+          res.class.should be_eql(Castoro::Protocol::Response::Nop)
           res.error?.should be_false
         }
       }
@@ -148,7 +148,7 @@ describe Castoro::Receiver::TCP do
         3000.times {
           cmd = Castoro::Protocol::Command::Status.new
           res = s.send(cmd, 5.0)
-          res.class.should be_eql Castoro::Protocol::Response::Status
+          res.class.should be_eql(Castoro::Protocol::Response::Status)
           res.error?.should be_false
         }
       }
@@ -160,7 +160,7 @@ describe Castoro::Receiver::TCP do
           key = Castoro::BasketKey.new(1, 2, 3)
           cmd = Castoro::Protocol::Command::Get.new(key)
           res = s.send(cmd, 5.0)
-          res.class.should be_eql Castoro::Protocol::Response::Get
+          res.class.should be_eql(Castoro::Protocol::Response::Get)
           res.error?.should be_true
         }
       }

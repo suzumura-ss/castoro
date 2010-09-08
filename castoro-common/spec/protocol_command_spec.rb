@@ -63,7 +63,7 @@ describe Castoro::Protocol::Command do
       context '()' do
         it 'should return an instance of Command::Nop .' do
           command = Castoro::Protocol::Command::Nop.new()
-          command.should be_kind_of Castoro::Protocol::Command::Nop
+          command.should be_kind_of(Castoro::Protocol::Command::Nop)
         end
 
         it 'should be able to use #to_s' do
@@ -110,12 +110,12 @@ describe Castoro::Protocol::Command do
         end
 
         it "should return an instance of Command::Create." do
-          @command.should be_kind_of Castoro::Protocol::Command::Create
+          @command.should be_kind_of(Castoro::Protocol::Command::Create)
         end
 
         it "should be able to get :basket ." do
           basket = @command.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "987654321.1.2"
         end
 
@@ -130,7 +130,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response without argument." do
           error_res = @command.error_response
-          error_res.should be_kind_of Castoro::Protocol::Response::Create
+          error_res.should be_kind_of(Castoro::Protocol::Response::Create)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","CREATE",{"basket":null,"hosts":null,"error":{}}]'+ "\r\n")
@@ -138,7 +138,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response with argument." do
           error_res = @command.error_response("Unexpected error!")
-          error_res.should be_kind_of Castoro::Protocol::Response::Create
+          error_res.should be_kind_of(Castoro::Protocol::Response::Create)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == JSON.parse('["1.1","R","CREATE",{"basket":null,"hosts":null,"error":"Unexpected error!"}]' + "\r\n")
         end
@@ -186,12 +186,12 @@ describe Castoro::Protocol::Command do
         end
 
         it "should return an instance of Command::Finalize." do
-          @command.should be_kind_of Castoro::Protocol::Command::Finalize
+          @command.should be_kind_of(Castoro::Protocol::Command::Finalize)
         end
 
         it "should be able to get :basket ." do
           basket = @command.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "987654321.1.2"
         end
 
@@ -210,7 +210,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response without argument." do
           error_res = @command.error_response
-          error_res.should be_kind_of Castoro::Protocol::Response::Finalize
+          error_res.should be_kind_of(Castoro::Protocol::Response::Finalize)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","FINALIZE",{"basket":null,"error":{}}]' + "\r\n")
@@ -218,7 +218,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response with argument." do
           error_res = @command.error_response("Unexpected error!")
-          error_res.should be_kind_of Castoro::Protocol::Response::Finalize
+          error_res.should be_kind_of(Castoro::Protocol::Response::Finalize)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","FINALIZE",{"basket":null,"error":"Unexpected error!"}]' + "\r\n")
@@ -267,12 +267,12 @@ describe Castoro::Protocol::Command do
         end
 
         it "should return an instance of Command::Cancel." do
-          @command.should be_kind_of Castoro::Protocol::Command::Cancel
+          @command.should be_kind_of(Castoro::Protocol::Command::Cancel)
         end
 
         it "should be able to get :basket ." do
           basket = @command.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "987654321.1.2"
         end
 
@@ -291,7 +291,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response without argument." do
           error_res = @command.error_response
-          error_res.should be_kind_of Castoro::Protocol::Response::Cancel
+          error_res.should be_kind_of(Castoro::Protocol::Response::Cancel)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","CANCEL",{"basket":null,"error":{}}]' + "\r\n")
@@ -299,7 +299,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response with argument." do
           error_res = @command.error_response("Unexpected error!")
-          error_res.should be_kind_of Castoro::Protocol::Response::Cancel
+          error_res.should be_kind_of(Castoro::Protocol::Response::Cancel)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","CANCEL",{"basket":null,"error":"Unexpected error!"}]' + "\r\n")
@@ -330,12 +330,12 @@ describe Castoro::Protocol::Command do
         end
 
         it "should return an instance of Command::Get." do
-          @command.should be_kind_of Castoro::Protocol::Command::Get
+          @command.should be_kind_of(Castoro::Protocol::Command::Get)
         end
 
         it "should be able to get :basket ." do
           basket = @command.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "987654321.1.2"
         end
 
@@ -346,7 +346,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response without argument." do
           error_res = @command.error_response
-          error_res.should be_kind_of Castoro::Protocol::Response::Get
+          error_res.should be_kind_of(Castoro::Protocol::Response::Get)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","GET",{"basket":null,"paths":{},"error":{}}]' + "\r\n")
@@ -354,7 +354,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response with argument." do
           error_res = @command.error_response("Unexpected error!")
-          error_res.should be_kind_of Castoro::Protocol::Response::Get
+          error_res.should be_kind_of(Castoro::Protocol::Response::Get)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","GET",{"basket":null,"paths":{},"error":"Unexpected error!"}]' + "\r\n")
@@ -385,12 +385,12 @@ describe Castoro::Protocol::Command do
         end
 
         it "should return an instance of Command::Delete." do
-          @command.should be_kind_of Castoro::Protocol::Command::Delete
+          @command.should be_kind_of(Castoro::Protocol::Command::Delete)
         end
 
         it "should be able to get :basket ." do
           basket = @command.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "987654321.1.2"
         end
 
@@ -401,7 +401,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response without argument." do
           error_res = @command.error_response
-          error_res.should be_kind_of Castoro::Protocol::Response::Delete
+          error_res.should be_kind_of(Castoro::Protocol::Response::Delete)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","DELETE",{"basket":null,"error":{}}]' + "\r\n")
@@ -409,7 +409,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response with argument." do
           error_res = @command.error_response("Unexpected error!")
-          error_res.should be_kind_of Castoro::Protocol::Response::Delete
+          error_res.should be_kind_of(Castoro::Protocol::Response::Delete)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","DELETE",{"basket":null,"error":"Unexpected error!"}]' + "\r\n")
@@ -458,12 +458,12 @@ describe Castoro::Protocol::Command do
         end
 
         it "should return an instance of Command::Insert." do
-          @command.should be_kind_of Castoro::Protocol::Command::Insert
+          @command.should be_kind_of(Castoro::Protocol::Command::Insert)
         end
 
         it "should be able to get :basket ." do
           basket = @command.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "987654321.1.2"
         end
 
@@ -482,7 +482,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response without argument." do
           error_res = @command.error_response
-          error_res.should be_kind_of Castoro::Protocol::Response::Insert
+          error_res.should be_kind_of(Castoro::Protocol::Response::Insert)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should ==
             JSON.parse( '["1.1","R","INSERT",{"error":{}}]' + "\r\n")
@@ -490,7 +490,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response with argument." do
           error_res = @command.error_response("Unexpected error!")
-          error_res.should be_kind_of Castoro::Protocol::Response::Insert
+          error_res.should be_kind_of(Castoro::Protocol::Response::Insert)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","INSERT",{"error":"Unexpected error!"}]' + "\r\n")
@@ -539,12 +539,12 @@ describe Castoro::Protocol::Command do
         end
 
         it "should return an instance of Command::Drop." do
-          @command.should be_kind_of Castoro::Protocol::Command::Drop
+          @command.should be_kind_of(Castoro::Protocol::Command::Drop)
         end
 
         it "should be able to get :basket ." do
           basket = @command.basket
-          basket.should be_kind_of Castoro::BasketKey
+          basket.should be_kind_of(Castoro::BasketKey)
           basket.to_s.should == "987654321.1.2"
         end
 
@@ -563,7 +563,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response without argument." do
           error_res = @command.error_response
-          error_res.should be_kind_of Castoro::Protocol::Response::Drop
+          error_res.should be_kind_of(Castoro::Protocol::Response::Drop)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","DROP",{"error":{}}]' + "\r\n")
@@ -571,7 +571,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response with argument." do
           error_res = @command.error_response("Unexpected error!")
-          error_res.should be_kind_of Castoro::Protocol::Response::Drop
+          error_res.should be_kind_of(Castoro::Protocol::Response::Drop)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","DROP",{"error":"Unexpected error!"}]' + "\r\n")
@@ -618,7 +618,7 @@ describe Castoro::Protocol::Command do
         end
 
         it "should return an instance of Command::Alive." do
-          @command.should be_kind_of Castoro::Protocol::Command::Alive
+          @command.should be_kind_of(Castoro::Protocol::Command::Alive)
         end
 
         it "should be able to get :host ." do
@@ -640,7 +640,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response without argument." do
           error_res = @command.error_response
-          error_res.should be_kind_of Castoro::Protocol::Response::Alive
+          error_res.should be_kind_of(Castoro::Protocol::Response::Alive)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","ALIVE",{"error":{}}]' + "\r\n")
@@ -648,7 +648,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response with argument." do
           error_res = @command.error_response("Unexpected error!")
-          error_res.should be_kind_of Castoro::Protocol::Response::Alive
+          error_res.should be_kind_of(Castoro::Protocol::Response::Alive)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","ALIVE",{"error":"Unexpected error!"}]' + "\r\n")
@@ -669,7 +669,7 @@ describe Castoro::Protocol::Command do
         end
 
         it "should return an instance of Command::Status." do
-          @command.should be_kind_of Castoro::Protocol::Command::Status
+          @command.should be_kind_of(Castoro::Protocol::Command::Status)
         end
 
         it "should be able to use Status#to_s and return json data." do
@@ -679,7 +679,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response without argument." do
           error_res = @command.error_response
-          error_res.should be_kind_of Castoro::Protocol::Response::Status
+          error_res.should be_kind_of(Castoro::Protocol::Response::Status)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","STATUS",{"status":{},"error":{}}]' + "\r\n")
@@ -687,7 +687,7 @@ describe Castoro::Protocol::Command do
 
         it "should be able to return error_response with argument." do
           error_res = @command.error_response("Unexpected error!")
-          error_res.should be_kind_of Castoro::Protocol::Response::Status
+          error_res.should be_kind_of(Castoro::Protocol::Response::Status)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should == 
             JSON.parse('["1.1","R","STATUS",{"status":{},"error":"Unexpected error!"}]' + "\r\n")
