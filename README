@@ -34,17 +34,22 @@ along with Castoro.  If not, see < http://www.gnu.org/licenses/ >.
 == INSTALL ==
 - Client
   gem castoro-common, castoro-client をインストールします。
-  gem json-1.2.3 が必要です。
+  gem json-1.2.3 以降が必要です。
   gem castoro_client_lo は開発環境向けに提供されているもので、
   Gatewayなし・Peer1台で環境を構築する為に利用します。
 
 - Gateway
   gem castoro-common, castoro-gateway をインストールします。
+  gem json-1.2.3 以降が必要です。
   Ruby-1.9系でのみ動作します。Ruby1.8系では動作しません。
 
 - Peer
-  gem castoro-manipulator, castoro-peer をインストールします。
+  gem castoro-common, castoro-manipulator, castoro-peer をインストールします。
+  gem json-1.2.3 以降が必要です。
   Ruby-1.9系でのみ動作します。Ruby1.8系では動作しません。
+  ClientからHTTP Putでファイルを書き込む為には別途Apache moduleが必要です。
+  例えば以下が利用できます。
+  http://github.com/suzumura-ss/mod_upload
 
 
 == SERVER CONFIGURATION ==
