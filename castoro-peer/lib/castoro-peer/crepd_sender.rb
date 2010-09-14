@@ -214,7 +214,7 @@ module Castoro
         unit_size = @config.ReplicationTransmissionDataUnitSize
         Find.find( @basket.path_a ) do |path|
 
-          MaintenaceServerScheduler.instance.check_point
+          MaintenaceServerSingletonScheduler.instance.check_point
 
           if FileTest.directory?( path )
             # p [ 'd', path ]
@@ -249,12 +249,12 @@ module Castoro
             x = Hash[ :size => size ]
             sending( 'DATA', x )
             while ( 0 < size )
-              MaintenaceServerScheduler.instance.check_point
+              MaintenaceServerSingletonScheduler.instance.check_point
               n = ( unit_size < size ) ? unit_size : size
               m = IO.copy_stream( src, @socket, n )
               size = size - m
             end
-            MaintenaceServerScheduler.instance.check_point
+            MaintenaceServerSingletonScheduler.instance.check_point
             src.close
             @total_file_size = @total_file_size + sending_size
             command, args = receiving

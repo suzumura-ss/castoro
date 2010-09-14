@@ -58,7 +58,7 @@ end
 ################################################################################
 
 if $0 == __FILE__
-  $LOAD_PATH.dup.each{ |x|
+  $LOAD_PATH.dup.each { |x|
     $LOAD_PATH.delete x if x.match '\/gems\/'
   }
 

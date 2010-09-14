@@ -71,7 +71,7 @@ module Castoro
           @command.upcase!
           ret = nil
 
-          MaintenaceServerScheduler.instance.check_point
+          MaintenaceServerSingletonScheduler.instance.check_point
 
           begin
 
@@ -144,6 +144,7 @@ module Castoro
       end
 
       def process_catch_command
+        @dst.close if @dst and not @dst.closed?
         begin
           basket_text = @args[ 'basket' ] or raise PermanentError
           @basket = Basket.new_from_text( basket_text )
@@ -174,6 +175,7 @@ module Castoro
       end
 
       def process_delete_command
+        @dst.close if @dst and not @dst.closed?
         begin
           basket_text = @args[ 'basket' ] or raise PermanentError
           @basket = Basket.new_from_text( basket_text )
@@ -201,6 +203,7 @@ module Castoro
       end
 
       def process_directory_command
+        @dst.close if @dst and not @dst.closed?
         path = @args[ 'path' ] or raise InvalidArgumentPermanentError, "path is not given: #{@basket} ;"
         absolute_path = "#{@path_r}/#{path}"
         Log.debug( "DIRECTORY: #{@basket} #{absolute_path} from #{@ip}:#{@port}" )
@@ -221,12 +224,9 @@ module Castoro
         path = @args[ 'path' ] or raise InvalidArgumentPermanentError, "path is not given: #{@basket} ;"
         @file_path = "#{@path_r}/#{path}"
         Log.debug( "FILE: #{@basket} #{@file_path} from #{@ip}:#{@port}" )
-
         @dst = File.new( @file_path, "w" )
+        # @dst will be closed in the method process_data_command
         size = @args[ 'size' ].to_i
-        if ( 0 == size )
-          @dst.close
-        end
         @mode  = @args[ 'mode' ].to_i
         @atime = @args[ 'atime' ].to_i
         @mtime = @args[ 'mtime' ].to_i
@@ -234,18 +234,19 @@ module Castoro
       end
 
       def process_data_command
+        # @dst should be kept open here, which should be already opened 
+        # in the method process_file_command
         size = @args[ 'size' ].to_i
         sending_size = size
         unit_size = @config.ReplicationTransmissionDataUnitSize
         while ( 0 < size )
-          MaintenaceServerScheduler.instance.check_point
+          MaintenaceServerSingletonScheduler.instance.check_point
           n = ( unit_size < size ) ? unit_size : size
           m = IO.copy_stream( @io, @dst, n )
           size = size - m
         end
-        MaintenaceServerScheduler.instance.check_point
-        @dst.close
-        MaintenaceServerScheduler.instance.check_point
+        @dst.close if @dst and not @dst.closed?
+        MaintenaceServerSingletonScheduler.instance.check_point
         File.utime( @atime, @mtime, @file_path )
         File.chmod( @mode, @file_path )
         receiving_size = File.size( @file_path )

@@ -18,6 +18,8 @@
 #
 
 require 'singleton'
+require 'yaml'
+require 'json'
 require 'castoro-peer/log'
 require 'castoro-peer/ifconfig'
 require 'castoro-peer/errors'
@@ -157,11 +159,6 @@ module Castoro
          :PeriodOfAlivePacketSender,
          :PeriodOfStatisticsLogger,
 
-### Temporarily resumed DataBase relevant items for backward compatibility
-         :DatabaseName,
-         :DatabaseUser,
-         :DatabasePassword,
-
          :NumberOfReplicationSender,
 
          :Dir_w_user,
@@ -180,8 +177,8 @@ module Castoro
          :Dir_c_group,
          :Dir_c_perm,
 
-         :StorageHostsYaml,
-         :StorageGroupsJson,
+         :StorageHostsFile,
+         :StorageGroupsFile,
 
          :EffectiveUser,
 
@@ -196,8 +193,10 @@ module Castoro
       def load( file )
         @file = file
         @entries = @default_entries.dup
-        do_load()
-        validate()
+        do_load
+        load_storage_hosts_file
+        load_storage_groups_file
+        validate
         @entries
       end
 
@@ -230,8 +229,8 @@ module Castoro
         @entries[ :BasketBaseDir ] or raise ConfigurationError, "BasketBaseDir is not sepecfied in #{@file}"
         
         check_existence( :BasketBaseDir )
-        check_existence( :StorageHostsYaml )
-        check_existence( :StorageGroupsJson )
+        @entries[ :StorageHostsFile ] or raise ConfigurationError, "StorageHostsFile is not sepecfied in #{@file}"
+        @entries[ :StorageGroupsFile ] or raise ConfigurationError, "StorageGroupsFile is not sepecfied in #{@file}"
 
         @entries[ :CmondMaintenancePort ] or raise ConfigurationError, "CmondMaintenancePort is not sepecfied in #{@file}"
         @entries[ :CgetdMaintenancePort ] or raise ConfigurationError, "CgetdMaintenancePort is not sepecfied in #{@file}"
@@ -282,6 +281,16 @@ module Castoro
             end
           end
         end
+      end
+
+      def load_storage_hosts_file
+        check_existence( :StorageHostsFile )
+        @entries[ :StorageHostsData ] = YAML::load_file( @entries[ :StorageHostsFile ] )
+      end
+      
+      def load_storage_groups_file
+        check_existence( :StorageGroupsFile )
+        @entries[ :StorageGroupsData ] = JSON::parse IO.read( @entries[ :StorageGroupsFile ] )
       end
     end
 

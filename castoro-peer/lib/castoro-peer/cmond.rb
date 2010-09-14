@@ -51,19 +51,12 @@ end
 ################################################################################
 
 if $0 == __FILE__
-  $LOAD_PATH.dup.each{ |x|
+  $LOAD_PATH.dup.each { |x|
     $LOAD_PATH.delete x if x.match '\/gems\/'
   }
 
   m = Castoro::Peer::CmondMain.instance
   Castoro::Peer::ServerStatus.instance.status_name = 'offline'
-
-  Thread.new {
-    sleep 0.5
-    c = Castoro::Peer::Configurations.instance
-    Castoro::Peer::RemoteControl.set_mode( "127.0.0.1", c.CpeerdMaintenancePort )
-    Castoro::Peer::RemoteControl.set_mode( "127.0.0.1", c.CrepdMaintenancePort )
-  }
-
+  Castoro::Peer::RemoteControl.set_mode_of_every_local_target
   m.main_loop
 end

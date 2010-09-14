@@ -23,7 +23,7 @@ require 'getoptlong'
 require 'socket'
 require 'timeout'
 
-PROGRAM_VERSION = '0.0.5'
+PROGRAM_VERSION = '0.0.6 for peer-0.0.16 or later'
 
 class CommandLineOptions < GetoptLong
   def initialize
@@ -96,7 +96,7 @@ duration = 0.7
 tolerance = 3
 
 case c
-when 'help', 'shutdown', 'dump', 'quit'
+when 'help', 'shutdown', 'dump', 'quit', 'version', 'inspect'
   command = c
 when 'status'
   command = c
@@ -109,10 +109,16 @@ when 'mode'
   when 'unknown', '0', 'offline', '10', 'readonly', '20', 'rep', '23', 'fin_rep', '25', 'del_rep', '27', 'online', '30'
     args << ARGV.shift
   end
-when 'auto', 'debug'
+when 'auto', 'debug', 'gc_profiler'
   command = c
   case ARGV[0]
-  when 'on', 'off', 'auto'
+  when 'on', 'off', 'auto', 'report'
+    args << ARGV.shift
+  end
+when 'gc'
+  command = c
+  case ARGV[0]
+  when 'start', 'count'
     args << ARGV.shift
   end
 when 'stat'
@@ -176,6 +182,9 @@ hosts.each { |host|
     }
     if ( period )
       duration = period.to_i * count.to_i + 0.7
+    end
+    if ( command == 'inspect' )
+      duration = 3
     end
     sleep duration
   rescue Errno::ETIMEDOUT, Timeout::Error => e
