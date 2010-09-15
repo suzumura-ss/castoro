@@ -16,7 +16,6 @@ INVALID_REQUEST10 = 100
 REQUEST1         = '["1.1", "C", "FINALIZE",{"foo":"bar"}]'           + "\r\n"
 REQUEST2         = '["1.1", "C", "CREATE", {"foo":"bar","hoge":100}]' + "\r\n"
 
-
 describe Castoro::Peer::ServerChannel do
 
   it 'PROTOCOL_VERSION should "1.1"' do
@@ -37,7 +36,6 @@ describe Castoro::Peer::ServerChannel do
     end
   end
 
-  
   context 'when #parse with' do
     context "nil" do
       it 'should raise Error.' do
@@ -222,6 +220,5 @@ describe Castoro::Peer::ServerChannel do
   after do
     @channel = nil
   end
-    
 end
 

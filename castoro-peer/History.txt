@@ -1,3 +1,7 @@
+=== 0.0.17 2010-09-15
+
+* Added, removed, and modified specs.
+
 === 0.0.16 2010-09-14
 
 * peerctl version 0.0.6 additionally supporting gc, gc_profiler, inspect, version commands
