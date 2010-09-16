@@ -22,14 +22,7 @@
 require "rubygems"
 require 'castoro-peer/cmond'
 
-Castoro::Peer::ServerStatus.instance.status_name = 'offline'
 m = Castoro::Peer::CmondMain.instance
-
-Thread.new {
-  sleep 0.5
-  c = Castoro::Peer::Configurations.instance
-  RemoteControl.set_mode( 'localhost', c.CpeerdMaintenancePort )
-  RemoteControl.set_mode( 'localhost', c.CrepdMaintenancePort )
-}
-
+Castoro::Peer::ServerStatus.instance.status_name = 'offline'
+Castoro::Peer::RemoteControl.set_mode_of_every_local_target
 m.main_loop

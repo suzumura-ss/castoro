@@ -30,7 +30,7 @@ require 'castoro-peer/custom_condition_variable'
 module Castoro
   module Peer
 
-    PROGRAM_VERSION = 'peer-0.0.15 - 2010-08-31'
+    PROGRAM_VERSION = 'peer-0.0.16 - 2010-09-14'
 
     $RUN_AS_DAEMON = true
 
@@ -82,6 +82,13 @@ module Castoro
           Daemon.close_stdio
         end
         Log.notice( "Started." )
+
+        # Activate set_trace_func() being traced with 
+        # pid$target::call_trace_proc:entry of DTrace
+        # set_trace_func proc {}
+
+        # Inactivate it
+        # set_trace_func nil
       end
 
       def stop

@@ -103,7 +103,7 @@ module Castoro
         # @port, @ip = socket.peeraddr[1], socket.peeraddr[3]
         @port, @ip = Socket.unpack_sockaddr_in( socket.getpeername )
         ticket.mark unless ticket.nil?
-        socket.write( s )
+        socket.syswrite( s )
         ticket.mark unless ticket.nil?
         if ( $DEBUG )
           Log.debug( sprintf( "TCP O : %s:%s %s", @ip, @port, s ) )
@@ -186,7 +186,7 @@ module Castoro
     class TcpClientChannel < ClientChannel
       def send( socket, command, args )
         s = "#{super}\r\n"
-        socket.write( s )
+        socket.syswrite( s )
         if ( $DEBUG )
           # @port, @ip = socket.peeraddr[1], socket.peeraddr[3]
           @port, @ip = Socket.unpack_sockaddr_in( socket.getpeername )

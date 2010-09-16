@@ -22,6 +22,7 @@ require 'socket'
 require 'syslog'
 require 'singleton'
 require 'thread'
+require 'castoro-peer/pipeline'
 
 # require 'logger'  # Todo: a way to switch an underlaying logging system from syslog to logger
 
@@ -32,7 +33,7 @@ module Castoro
       FACILITY = Syslog::LOG_DAEMON
 
       @@output = $stdout
-      @@queue = Queue.new
+      @@queue = Pipeline.new
 
       def Log.output=( output )
         @@output = output

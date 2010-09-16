@@ -61,6 +61,8 @@ module Castoro
 
           # request.
           response = connect_manipulator_daemon { |sock|
+            # Use write() here and do not use syswrite() which might block 
+            # due to some reasons of the destination process
             sock.write request
             ret = IO.select([sock], nil, nil, @@request_expire)
             if ret

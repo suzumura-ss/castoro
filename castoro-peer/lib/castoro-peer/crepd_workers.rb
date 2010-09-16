@@ -25,6 +25,7 @@ require 'castoro-peer/server_status'
 require 'castoro-peer/maintenace_server'
 require 'castoro-peer/crepd_sender'
 require 'castoro-peer/scheduler'
+require 'castoro-peer/pipeline'
 
 module Castoro
   module Peer
@@ -49,11 +50,11 @@ module Castoro
       def initialize
         c = Configurations.instance
         @w = []
-        $ReplicationSenderQueue = queue = Queue.new
+        $ReplicationSenderQueue = queue = Pipeline.new
         @w << UdpReplicationInternalCommandReceiver.new( queue, c.ReplicationUDPCommandPort )
         @w << ReplicationSenderManager.new( queue )
         c.NumberOfReplicationSender.times      { @w << ReplicationSender.new( queue ) }
-        @m = TcpMaintenaceServer.new( c.CrepdMaintenancePort )
+        @m = CrepdTcpMaintenaceServer.new( c.CrepdMaintenancePort )
         @h = TCPHealthCheckPatientServer.new( c.CrepdHealthCheckPort )
       end
 
@@ -113,7 +114,7 @@ module Castoro
             return
           end
 
-          MaintenaceServerScheduler.instance.check_point
+          MaintenaceServerSingletonScheduler.instance.check_point
 
           mtime_w = File.mtime( DIR_WAITING )
           mtime_s = File.mtime( DIR_SLEEPING )
@@ -373,133 +374,29 @@ module Castoro
       end
 
 
-      class TcpMaintenaceServer < PreThreadedTcpServer
-        def initialize( port )
-          super( port, '0.0.0.0', 10 )
-          @config = Configurations.instance
+      class CrepdTcpMaintenaceServer < TcpMaintenaceServer
+        def do_help
+          @io.syswrite( [ 
+                         "quit",
+                         "version",
+                         "mode [unknown(0)|offline(10)|readonly(20)|rep(23)|fin_rep(25)|del_rep(27)|online(30)]",
+                         "auto [off|auto]",
+                         "debug [on|off]",
+                         "shutdown",
+                         "inspect",
+                         "gc_profiler [off|on|report]",
+                         "gc [start|count]",
+                         nil
+                        ].join("\n") )
         end
 
-        def serve( io )
-          while ( line = io.gets )
-            line.chomp!
-            next if line =~ /\A\s*\Z/
-
-            program = $0.sub(/.*\//, '')
-
-            begin
-              a = line.split(' ')
-              case c = a.shift.downcase
-              when 'quit'
-                break
-              when 'help'
-                io.puts( [ 
-                          "quit",
-                          "auto [off|auto]",
-                          "mode [unknown(0)|offline(10)|readonly(20)|rep(23)|fin_rep(25)|del_rep(27)|online(30)]",
-                          "debug [on|off]",
-                          "reload [configration_file]",
-                          "shutdown",
-                          nil
-                         ].join("\r\n") )
-
-              when 'shutdown'
-                #  Todo: should use graceful-stop.
-                io.puts( "Shutdown is going ...\r\n" )
-                Log.notice( "Shutdown is requested." )
-                # Todo:
-                Thread.new {
-                  sleep 2
-                  Process.exit 0
-                }
-                CrepdMain.instance.stop
-
-              when 'health'
-                io.puts( "#{ServerStatus.instance.status_name} #{($AUTO_PILOT) ? "auto" : "off"} #{($DEBUG) ? "on" : "off"}\r\n" )
-
-              when 'mode'
-                p = a.shift
-#                if ( $AUTO_PILOT )
-#                  if (p)
-#                    io.puts( "run mode cannot be manually altered when auto is enable.\r\n" )
-#                  else
-#                    x = ServerStatus.instance.status_name
-#                    io.puts( "run mode: #{x}\r\n" )
-#                  end
-#                else
-                if (p)
-                  p.downcase!
-                  ServerStatus.instance.status_name = p
-                end
-                x = ServerStatus.instance.status_name
-                io.puts( "run mode: #{x}\r\n" )
-#                end
-
-              when '_mode'
-                p = a.shift
-                if ( $AUTO_PILOT )
-                  if (p)
-                    p.downcase!
-                    ServerStatus.instance.status_name = p
-                  end
-                  x = ServerStatus.instance.status_name
-                  io.puts( "run mode: #{x}\r\n" )
-                else
-                  if (p)
-                    io.puts( "run mode cannot be automatically altered when auto is disable.\r\n" )
-                  else
-                    x = ServerStatus.instance.status_name
-                    io.puts( "run mode: #{x}\r\n" )
-                  end
-                end
-
-              when 'auto'
-                p = a.shift
-                if (p)
-                  p.downcase!
-                  case (p) 
-                  when 'auto' ; $AUTO_PILOT = true
-                  when 'off'  ; $AUTO_PILOT = false
-                  when nil  ; 
-                  else raise StandardError, "400 Unknown parameter: #{p} ; auto [off|auto]"
-                  end
-                end
-                io.puts( "auto: " + ( ($AUTO_PILOT) ? "auto" : "off")  + "\r\n" )
-
-              when 'reload'
-                file = a.shift
-                begin
-                  # Todo:
-                  # XXXWorkers.instance.stop_workers
-                  entries = @config.reload( file )
-                  # Todo:
-                  # XXXWorkers.instance.start_workers
-                  io.puts( "#{entries.inspect}\r\n" )
-                rescue => e
-                  io.puts( "#{e.class} - #{e.message}" )
-                end
-
-              when 'debug'
-                p = a.shift
-                if (p)
-                  p.downcase!
-                  case (p) 
-                  when 'on' ; $DEBUG = true
-                  when 'off'; $DEBUG = false
-                  when nil  ; 
-                  else raise StandardError, "400 Unknown parameter: #{p} ; debug [on|off]"
-                  end
-                end
-                io.puts( "debug mode: " + ( ($DEBUG) ? "on" : "off")  + "\r\n" )
-
-              else
-                raise StandardError, "400 Unknown command: #{c} ; try help command"
-              end
-            rescue StandardError => e
-              io.puts( "#{e.message}\r\n" )
-            rescue => e
-              io.puts( "500 Internal Server Error: #{e.class} #{e.message}\r\n" )
-            end
-          end
+        def do_shutdown
+          # Todo:
+          Thread.new {
+            sleep 2
+            Process.exit 0
+          }
+          CrepdMain.instance.stop
         end
       end
 

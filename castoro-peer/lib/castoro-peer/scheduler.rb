@@ -36,8 +36,8 @@ module Castoro
       end
 
       def check_point
-        previous_priority = Thread.current.priority
-        Thread.current.priority = 3
+        current = Thread.current
+        current.priority = 3
         @mutex.lock
         unless ( @expired )
           rest = @target - Time.new
@@ -57,47 +57,57 @@ module Castoro
         end
 
         while ( @expired )
-          @sleepers1.push( Thread.current )
+          @sleepers1.push( current )
           @mutex.sleep
         end
       ensure
         @mutex.unlock
-        Thread.current.priority = previous_priority
       end
 
       def wait
-        previous_priority = Thread.current.priority
-        Thread.current.priority = 3
+        current = Thread.current
+        current.priority = 3
         @mutex.lock
-        rest = @target - Time.new
-        if ( rest < 0 )
-          @target = @target + @duration * ( 1 + ( ( 0 - rest ) / @duration ).to_i )
-        elsif ( rest < @margin )
-          @target = @target + @duration
+        # Log.notice "#{@sleepers2.size} #{@target} - #{Time.new} = #{"%f" % (@target - Time.new)}"
+        if ( 0 < @sleepers2.size )
+          @sleepers2.push( current )
+          @mutex.sleep
+          @sleepers2.delete( current )
         else
-          @sleepers2.push( Thread.current )
-          @mutex.sleep( rest )
-          @sleepers2.delete( Thread.current )
-          @target = @target + @duration
-        end
-        @expired = false
+          rest = @target - Time.new
+          if ( rest < 0 )
+            @target = @target + @duration * ( 1 + ( ( 0 - rest ) / @duration ).to_i )
+          elsif ( rest < @margin )
+            @target = @target + @duration
+          else
+            @sleepers2.push( current )
+            @mutex.sleep( rest )
+            @sleepers2.delete( current )
+            loop do
+              t = @sleepers2.shift or break
+              begin
+                t.wakeup
+              rescue ThreadError
+              end
+            end
+            @target = @target + @duration
+          end
+          @expired = false
 
-        loop do
-          t = @sleepers1.shift or break
-          begin
-            t.wakeup
-          rescue ThreadError
+          loop do
+            t = @sleepers1.shift or break
+            begin
+              t.wakeup
+            rescue ThreadError
+            end
           end
         end
       ensure
         @mutex.unlock
-        Thread.current.priority = previous_priority
       end
     end
 
     class MaintenaceServerScheduler < Scheduler
-      include Singleton
-
       DURATION = 1
       MARGIN = 0.200
 
@@ -106,6 +116,9 @@ module Castoro
       end
     end
 
+    class MaintenaceServerSingletonScheduler < MaintenaceServerScheduler
+      include Singleton
+    end
   end
 end
 
@@ -219,7 +232,7 @@ module Castoro
         n = Thread.current[:thread_number]
         s = "#{" " * n}#{n}"
         m = "#{"%.3f" % (Time.new - @@START)} #{"%-32s" % s} #{Thread.current} #{message}\n"
-        # Don't use puts, print, like that which causes switching a thread upon 
+        # Don't use puts, print, like that, which causes switching a thread upon 
         # flushing an internal buffer every 8192 bytes.
         # The action of flush involves write() system call in a blocking region and
         # consequently, a current thread would surrender without leasing a lock
@@ -228,8 +241,8 @@ module Castoro
       end
     end
 
-    #class MaintenaceServerScheduler < Scheduler
-    class MaintenaceServerScheduler < SchedulerForDebugging
+    #class MaintenaceServerSingletonScheduler < Scheduler
+    class MaintenaceServerSingletonScheduler < SchedulerForDebugging
       include Singleton
 
       DURATION = 1
@@ -246,7 +259,7 @@ end
 if $0 == __FILE__
   module Castoro
     module Peer
-      m = MaintenaceServerScheduler.instance
+      m = MaintenaceServerSingletonScheduler.instance
       30.times { |i|
         Thread.new {
           n = i + 1

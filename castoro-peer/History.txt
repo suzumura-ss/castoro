@@ -1,3 +1,30 @@
+=== 0.0.17 2010-09-15
+
+* Added, removed, and modified specs.
+
+=== 0.0.16 2010-09-14
+
+* peerctl version 0.0.6 additionally supporting gc, gc_profiler, inspect, version commands
+* Deleted three entries, DatabaseName, DatabaseUser, and DatabasePassword, from configurations.rb
+* Moved codes to load replication relevant setting files from storage_servers.rb to configurations.rb
+* Removed lib/castoro-peer.rb
+* Moved codes to load replication relevant setting files from storage_servers.rb to configurations.rb
+* Altered my_host with 127.0.0.1 for a health check port of both crepd and cpeerd
+* Use of RemoteControl.set_mode_of_every_local_target at the start of cmond
+* Added an originating ip:port to a log message
+* Removed a class DbRequestQueryBasketStatus and relevant codes
+* Fixed a bug, issue 72, close() had been called twice
+* Centralized codes of controlling local targets into RemoteControl.set_mode_of_every_local_target
+* Replaced both io.write and io.puts with io.syswrite
+* Substituted \r\n with \n in cmond
+* Centralized codes of sending an ALIVE packet into send_alive_packet
+* Centralized similar codes for maintenance command interpreters in every deamon into TcpMaintenaceServer
+* Activated, but commented out, debug facility with set_trace_func proc {} for DTrace
+* Replaced Queue with Pipeline
+* Fixed a bug on Scheduler that had not cared about multiple connections from external cmond
+* Attempted to surpress error messages on exception upon shutdown
+* Added logging AlreadyExistsError upon failure of attempt of CREATE and FINALIZE commands
+* Fixed a bug on TcpCommandAcceptor that falled in an infinite loop upon shutdown requested
 
 === 0.0.15 2010-08-31
 

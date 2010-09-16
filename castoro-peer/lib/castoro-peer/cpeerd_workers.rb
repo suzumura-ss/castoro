@@ -21,7 +21,6 @@ require 'castoro-peer/basket'
 require 'castoro-peer/pre_threaded_tcp_server'
 require 'castoro-peer/worker'
 require 'castoro-peer/ticket'
-require 'castoro-peer/database'
 require 'castoro-peer/extended_udp_socket'
 require 'castoro-peer/channel'
 require 'castoro-peer/manipulator'
@@ -192,7 +191,7 @@ module Castoro
         c.NumberOfMulticastCommandSender.times { @w << MulticastCommandSender.new( c.MulticastAddress, c.GatewayUDPCommandPort ) }
         c.NumberOfReplicationDBClient.times  { @w << ReplicationDBClient.new() }
         @w << StatisticsLogger.new()
-        @m = TcpMaintenaceServer.new( c.CpeerdMaintenancePort )
+        @m = CpeerdTcpMaintenaceServer.new( c.CpeerdMaintenancePort )
         @h = TCPHealthCheckPatientServer.new( c.CpeerdHealthCheckPort )
       end
 
@@ -248,35 +247,47 @@ module Castoro
 
       class TcpCommandAcceptor < Worker
         def initialize( pipeline, port )
-          @pipeline = pipeline
-          sockaddr = Socket.pack_sockaddr_in( port, '0.0.0.0' )
+          @pipeline, @port = pipeline, port
+          super
+          @socket = nil
+        end
+
+        def serve
+          sockaddr = Socket.pack_sockaddr_in( @port, '0.0.0.0' )
+          @socket.close if @socket and not @socket.closed?
           @socket = Socket.new( Socket::AF_INET, Socket::SOCK_STREAM, 0 )
           @socket.setsockopt( Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true )
           @socket.setsockopt( Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true )
           @socket.do_not_reverse_lookup = true
           @socket.bind( sockaddr )
           @socket.listen( 10 )
-          super
-        end
 
-        def serve
-          begin
-            client_socket, client_sockaddr = @socket.accept
+          loop do
+            client_socket = nil
+            begin
+              client_socket, client_sockaddr = @socket.accept
+            rescue IOError, Errno::EBADF => e
+              # IOError "closed stream"
+              # Errno::EBADF "Bad file number"
+              if ( @stop_requested )
+                @finished = true
+                return
+              else
+                raise e
+              end
+            end
+            if ( @stop_requested )
+              @socket.close if @socket and not @socket.closed?
+              @finished = true
+              return
+            end
             @pipeline.enq client_socket
-          rescue IOError => e
-            return if e.message.match( /closed stream/ )
-            Log.warning e
-          rescue Errno::EBADF => e
-            return if e.message.match( /Bad file number/ )
-            Log.warning e
-          rescue => e
-            Log.warning e
           end
         end
 
         def graceful_stop
+          @stop_requested = true
           @socket.close if @socket
-          finished
           super
         end
       end
@@ -364,11 +375,11 @@ module Castoro
             ticket.push Hash[]
             ResponseSenderPL.instance.enq ticket
           when 'INSERT'
-            # Todo: insert the entry into the database
+            # Todo: Do nothing
           when 'DROP'
-            # Todo: drop the entry from the database
+            # Todo: Do nothing
           when 'ALIVE'
-            # Todo: mark the host alive
+            # Todo: Do nothing
           when 'CREATE'  ; command_sym = :CREATE
           when 'CLONE'   ; command_sym = :CLONE
           when 'DELETE'  ; command_sym = :DELETE
@@ -390,8 +401,6 @@ module Castoro
                      end
             if ( accept )
               ticket.command_sym = command_sym
-              path_x = args[ 'path' ]
-              ticket.push DbRequestQueryBasketStatus.new( basket, path_x )
               BasketStatusQueryDatabasePL.instance.enq ticket
             else
               Log.notice( "#{command_sym.to_s}: ServerStatusError server status: #{ServerStatus.instance.status_name}: #{basket}" )
@@ -409,13 +418,18 @@ module Castoro
       end
 
 
+      # Todo: BasketStatusQueryDB could be disolved into CommandProcessor
       class BasketStatusQueryDB < Worker
         def serve
           ticket = BasketStatusQueryDatabasePL.instance.deq
-          request = ticket.pop
-          status = request.execute  # an exception might be raised
           b = ticket.basket
           path_x = ticket.args[ 'path' ]
+          status = S_ABCENSE
+          if ( File.exist?( b.path_a ) )
+            status = S_ARCHIVED
+          elsif ( path_x and File.exist?( path_x ) )
+            status = S_WORKING
+          end
           a = case ticket.command_sym
               when :CREATE
                 case status
@@ -426,10 +440,11 @@ module Castoro
                            when S_ABCENSE;  'Internal server error: Something goes wrongly.'
                            when S_WORKING;  b.path_w
                            when S_ARCHIVED; b.path_a
-                           when S_DELETED;  b.path_d
+                           when S_DELETED;  b.path_d  # It is okay with the same basket id being created.
                            else
                              raise UnknownBasketStatusInternalServerError, status
                            end
+                  ticket.message = "CREATE failed: AlreadyExistsError: #{b} #{reason}"
                   raise AlreadyExistsError, reason
                 end
               when :CLONE
@@ -454,8 +469,12 @@ module Castoro
                            end
                   raise PreconditionFailedError, reason
                 end
-              when :FINALIZE, :S_ABCENSE
-                # status == S_WORKING or raise PreconditionFailedError, path_x
+              when :FINALIZE
+                case status
+                when S_ARCHIVED
+                  ticket.message = "FINALIZE failed: AlreadyExistsError: #{b} #{b.path_a}"
+                  raise AlreadyExistsError, b.path_a
+                end
                 File.exist? path_x or raise NotFoundError, path_x
                 Csm::Request::Finalize.new( path_x, b.path_a )
               else
@@ -476,6 +495,8 @@ module Castoro
         end
       end
 
+
+      # Todo: CsmController could be also disolved into CommandProcessor
       class CsmController < Worker
         def initialize
           super
@@ -547,8 +568,14 @@ module Castoro
           end
 # Todo: socket.close was written here. why does this worked?
 #          socket.close if ticket.channel.tcp?
+          ip, port = nil, nil
+          if ( ticket.channel.tcp? )
+            ip, port = ticket.channel.get_peeraddr
+          else
+            # Todo: should be implemented for UDP
+          end
           ticket.finish
-          Log.notice( sprintf( "%s %.1fms", message, ticket.duration * 1000 ) ) if message
+          Log.notice( sprintf( "%s %s:%d %.1fms", message, ip, port, ticket.duration * 1000 ) ) if message
           command = ticket.command
           Log.debug( sprintf( "%s %.1fms [%s] %s", ticket.command.slice(0,3), ticket.duration * 1000, 
                               ( ticket.durations.map { |x| "%.1f" % (x * 1000) } ).join(', '), basket_text ) ) if $DEBUG
@@ -621,253 +648,69 @@ module Castoro
       end
 
 
-      class TcpMaintenaceServer < PreThreadedTcpServer
+      class CpeerdTcpMaintenaceServer < TcpMaintenaceServer
         def initialize( port )
-          super( port, '0.0.0.0', 10 )
+          super
           @hostname = Configurations.instance.HostnameForClient
         end
 
-        def serve( io )
-          while ( line = io.gets )
-            line.chomp!
-            next if line =~ /\A\s*\Z/
+        def do_help
+          @io.syswrite( [ 
+                         "quit",
+                         "version",
+                         "mode [unknown(0)|offline(10)|readonly(20)|rep(23)|fin_rep(25)|del_rep(27)|online(30)]",
+                         "auto [off|auto]",
+                         "debug [on|off]",
+                         "shutdown",
+                         "inspect",
+                         "gc_profiler [off|on|report]",
+                         "gc [start|count]",
+                         "stat [-s] [period] [count]", 
+                         "dump",
+                         nil
+                        ].join("\n") )
+        end
 
-            program = $0.sub(/.*\//, '')
-            host = @hostname
+        def do_shutdown
+          # Todo:
+          Thread.new {
+            sleep 2
+            Process.exit 0
+          }
+          # Todo:
+          CpeerdMain.instance.stop
+        end
 
-            begin
-              a = line.split(' ')
-              case c = a.shift.downcase
-              when 'quit'
-                break
-              when 'help'
-                io.puts( [ 
-                          "quit",
-                          "auto [off|auto]",
-                          "mode [unknown(0)|offline(10)|readonly(20)|rep(23)|fin_rep(25)|del_rep(27)|online(30)]",
-                          "debug [on|off]",
-                          "stat [-s] [period] [count]", 
-                          "dump",
-                          "inspect",
-                          "gc_profiler [off|on|report]",
-                          "gc [start|count]",
-                          "version",
-                          "reload [configration_file]",
-                          "shutdown",
-                          nil
-                         ].join("\r\n") )
+        def do_dump
+          t = Time.new
+          a = STATISTICS_TARGETS.map { |s| x = s.instance; sprintf( "  (%-3s) %-40s\n%s", x.nickname, x.fullname, x.dump.join("\n") ) }
+          @io.syswrite "#{t.iso8601}.#{t.usec} #{@hostname} #{@program}\n#{a.join("\n\n")}\n\n"
+        end
 
-              when 'shutdown'
-                #  Todo: should use graceful-stop.
-                io.puts( "Shutdown is going ...\r\n" )
-                Log.notice( "Shutdown is requested." )
-                # Todo:
-                Thread.new {
-                  sleep 2
-                  Process.exit 0
-                }
-                # Todo:
-                CpeerdMain.instance.stop
-
-              when 'health'
-                io.puts( "#{ServerStatus.instance.status_name} #{($AUTO_PILOT) ? "auto" : "off"} #{($DEBUG) ? "on" : "off"}\r\n" )
-
-              when 'mode'
-                p = a.shift
-#                if ( $AUTO_PILOT )
-#                  if (p)
-#                    io.puts( "run mode cannot be manually altered when auto is enable.\r\n" )
-#                  else
-#                    x = ServerStatus.instance.status_name
-#                    io.puts( "run mode: #{x}\r\n" )
-#                  end
-#                else
-                if (p)
-                  p.downcase!
-                  ServerStatus.instance.status_name = p
-                end
-                x = ServerStatus.instance.status_name
-                io.puts( "run mode: #{x}\r\n" )
-#                end
-
-              when '_mode'
-                p = a.shift
-                if ( $AUTO_PILOT )
-                  if (p)
-                    p.downcase!
-                    ServerStatus.instance.status_name = p
-                  end
-                  x = ServerStatus.instance.status_name
-                  io.puts( "run mode: #{x}\r\n" )
-                else
-                  if (p)
-                    io.puts( "run mode cannot be automatically altered when auto is disable.\r\n" )
-                  else
-                    x = ServerStatus.instance.status_name
-                    io.puts( "run mode: #{x}\r\n" )
-                  end
-                end
-
-              when 'auto'
-                p = a.shift
-                if (p)
-                  p.downcase!
-                  case (p) 
-                  when 'auto' ; $AUTO_PILOT = true
-                  when 'off'  ; $AUTO_PILOT = false
-                  when nil  ; 
-                  else raise StandardError, "400 Unknown parameter: #{p} ; auto [off|auto]"
-                  end
-                end
-                io.puts( "auto: " + ( ($AUTO_PILOT) ? "auto" : "off")  + "\r\n" )
-
-              when 'reload'
-                file = a.shift
-                begin
-                  # Todo:
-                  # CpeerdWorkers.instance.stop_workers
-                  entries = Configurations.instance.reload( file )
-                  # Todo:
-                  # CpeerdWorkers.instance.start_workers
-                  io.puts( "#{entries.inspect}\r\n" )
-                rescue => e
-                  io.puts( "#{e.class} - #{e.message}" )
-                end
-
-              when 'debug'
-                p = a.shift
-                if (p)
-                  p.downcase!
-                  case (p) 
-                  when 'on' ; $DEBUG = true
-                  when 'off'; $DEBUG = false
-                  when nil  ; 
-                  else raise StandardError, "400 Unknown parameter: #{p} ; debug [on|off]"
-                  end
-                end
-                io.puts( "debug mode: " + ( ($DEBUG) ? "on" : "off")  + "\r\n" )
-                #            when 'stop'
-                #              Main.instance.stop
-                #            when 'start'
-                #              Main.instance.start
-              when 'dump'
-                t = Time.new
-                crlf = "\r\n"
-                a = STATISTICS_TARGETS.map { |s| x = s.instance; sprintf( "  (%-3s) %-40s\r\n%s", x.nickname, x.fullname, x.dump.join(crlf) ) }
-                io.puts "#{t.iso8601}.#{t.usec} #{host} #{program}\r\n#{a.join("\r\n\r\n")}\r\n\r\n"
-
-              when 'inspect'
-                t = Time.new
-                io.write "#{t.iso8601}.#{t.usec} #{host} #{program} ObjectSpace.each_object:\n"
-#                last_status_of_profiler = GC::Profiler.enabled?
-#                GC::Profiler.enable
-
-                # rb_garbage_collect() is already called in os_obj_of() for ObjectSpace.each_object()
-                # So, no neccesary to call GC.start here
-#                GC.start
-
-#                GC::Profiler.report(io)
-#                io.write "\n"
-#                ObjectSpace.each_object(Object) { |x|
-                count = 0
-                ObjectSpace.each_object { |x|
-                  begin
-                    io.write "#{"0x%08x" % x.object_id}\t#{x.class}\t#{x.inspect}\n"
-                  rescue NotImplementedError => e
-                    io.write "#{e}\n"
-                  end
-                  count = count + 1
-                }
-                io.write "The number of objects including NotImplementedError: #{count}\n"
-#                GC::Profiler.report(io)
-#                io.write "\n"
-#                if ( last_status_of_profiler )
-#                  GC::Profiler.enable
-#                else
-#                  GC::Profiler.disable
-#                end
-
-              when 'gc_profiler'
-                t = Time.new
-                x = a.shift
-                if (x)
-                  x.downcase!
-                  case (x) 
-                  when 'off'    ; GC::Profiler.disable
-                  when 'on'     ; GC::Profiler.enable
-                  when 'report'
-                    if ( GC::Profiler.enabled? )
-                      io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} GC::Profiler.report:\n" )
-                      GC::Profiler.report(io)
-                    else
-                      io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} GC::Profiler is disabled. Try gc_profiler on\n" )
-                    end
-                  when nil  ; 
-                  else raise StandardError, "400 Unknown parameter: #{x} ; gc_profiler [off|on|report]"
-                  end
-                end
-                unless ( x == 'report' )
-                  io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} gc_profiler: " + ( (GC::Profiler.enabled?) ? "on" : "off")  + "\n" )
-                end
-
-                when 'gc'
-                t = Time.new
-                x = a.shift
-                if (x)
-                  x.downcase!
-                  case (x) 
-                  when 'start'
-                    t1 = Time.new
-                    GC.start
-                    t2 = Time.new
-                    io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} GC finished: #{"%.1fms" % ((t2 - t1) * 1000)}\n" ) 
-                 when 'count'
-                    io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} GC.count: #{GC.count}\n" )
-                  else
-                    raise StandardError, "400 Unknown parameter: #{x} ; gc [start|count]"
-                  end
-                else
-                  io.write( "Usage: gc [start|count]\n" )
-                end
-
-              when 'version'
-                t = Time.new
-                io.write( "#{t.iso8601}.#{t.usec} #{host} #{program} Version: #{PROGRAM_VERSION}\n" )
-
-              when 'stat'
-                opt_short = false
-                opt_period = nil
-                opt_count = 1
-                while ( opt = a.shift )
-                  opt_short = true if opt == "-s"
-                  opt_period = opt.to_i if opt_period.nil? and opt.match(/[0-9]/)
-                  opt_count  = opt.to_i if ! opt_period.nil? and opt.match(/[0-9]/)
-                end
-                while ( 0 < opt_count )
-                  t = Time.new
-                  if ( opt_short )
-                    a = STATISTICS_TARGETS.map { |s| x = s.instance; "#{x.nickname}=#{x.size}" }
-                    io.puts "#{t.iso8601}.#{t.usec} #{host} #{program} #{a.join(' ')}"
-                  else
-                    a = STATISTICS_TARGETS.map { |s| x = s.instance; sprintf( "  (%-3s) %-40s %d", x.nickname, x.fullname, x.size ) }
-                    crlf = "\r\n"
-                    io.puts "#{t.iso8601}.#{t.usec} #{host} #{program}\r\n#{a.join(crlf)}\r\n\r\n"
-                  end
-                  sleep opt_period unless opt_period.nil?
-                  opt_count = opt_count - 1
-                end
-              else
-                raise StandardError, "400 Unknown command: #{c} ; try help command"
-              end
-            rescue StandardError => e
-              io.puts( "#{e.message}\r\n" )
-            rescue => e
-              io.puts( "500 Internal Server Error: #{e.class} #{e.message}\r\n" )
+        def do_stat
+          opt_short = false
+          opt_period = nil
+          opt_count = 1
+          while ( opt = a.shift )
+            opt_short = true if opt == "-s"
+            opt_period = opt.to_i if opt_period.nil? and opt.match(/[0-9]/)
+            opt_count  = opt.to_i if ! opt_period.nil? and opt.match(/[0-9]/)
+          end
+          while ( 0 < opt_count )
+            t = Time.new
+            if ( opt_short )
+              a = STATISTICS_TARGETS.map { |s| x = s.instance; "#{x.nickname}=#{x.size}" }
+              @io.syswrite "#{t.iso8601}.#{t.usec} #{@hostname} #{@program} #{a.join(' ')}\n"
+            else
+              a = STATISTICS_TARGETS.map { |s| x = s.instance; sprintf( "  (%-3s) %-40s %d", x.nickname, x.fullname, x.size ) }
+              @io.syswrite "#{t.iso8601}.#{t.usec} #{@hostname} #{@program}\n#{a.join("\n")}\n\n"
             end
+            sleep opt_period unless opt_period.nil?
+            opt_count = opt_count - 1
           end
         end
-      end
 
+      end
 
       class StatisticsLogger < Worker
         def initialize

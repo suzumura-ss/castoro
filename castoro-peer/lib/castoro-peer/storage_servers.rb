@@ -17,11 +17,8 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'yaml'
-require 'json'
-require 'castoro-peer/ifconfig'
+require 'singleton'
 require 'castoro-peer/configurations'
-require 'castoro-peer/log'
 
 module Castoro
   module Peer
@@ -29,44 +26,24 @@ module Castoro
     class StorageServers
       include Singleton
 
+      attr_reader :target, :alternative_hosts, :colleague_hosts
+
       def initialize
-        @index = 0
-        load
-      end
-
-      def load
         c = Configurations.instance
-        @host = c.HostnameForClient
-        storages = YAML::load_file( c.StorageHostsYaml )
-        groups = JSON::parse IO.read( c.StorageGroupsJson )
-
-        g = groups.select { |a| a.include? @host }
+        hostname = c.HostnameForClient
+        storages = c.StorageHostsData
+        groups = c.StorageGroupsData
+        g = groups.select { |a| a.include? hostname }
         g.flatten!
         n = g.size
         g.concat g.dup
-        i = g.index( @host )
+        i = g.index( hostname )
         hosts = g.slice(i, n)
         h = hosts.map { |x| storages[ x ] || x }
         h.shift
         @colleague_hosts = h.dup
-        @replication_target_host = h.shift
-        @replication_aliternative_hosts = h
-      end
-
-      def my_host
-        @host
-      end
-
-      def target
-        @replication_target_host
-      end
-      
-      def alternative_hosts
-        @replication_aliternative_hosts
-      end
-
-      def colleague_hosts
-        @colleague_hosts
+        @target = h.shift
+        @alternative_hosts = h
       end
     end
   end
