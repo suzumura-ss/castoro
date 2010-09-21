@@ -165,6 +165,9 @@ module Castoro
           raise RetryableError, "#{e.class} #{e.message} for #{@basket}"
         end
 
+        # Has to confirm if its parent directory exists
+        # If not, should create it before proceeding
+
         csm_request = Csm::Request::Catch.new( @path_r )
         begin
           @csm_executor.execute( csm_request )
@@ -325,7 +328,7 @@ module Castoro
           f = File.new( file, "w" )
           f.close
         rescue => e
-          Log.warn e, "#{file} #{@basket.to_s}"
+          Log.warning e, "#{file} #{@basket.to_s}"
         end
         queue = $ReplicationSenderQueue
         if ( queue )

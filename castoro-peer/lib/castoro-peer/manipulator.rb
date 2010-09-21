@@ -27,9 +27,9 @@ module Castoro
       def self.create_executor
         c = Configurations.instance
         if ( c.UseManipulatorDaemon )
-          DaemonIF.new( c.ManipulatorSocket )
+          DaemonInterface.new( c.ManipulatorSocket )
         else
-          CommandIF.new
+          CommandInterface.new
         end
       end
 

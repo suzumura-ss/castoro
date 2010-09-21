@@ -26,11 +26,11 @@ module Castoro
   module Peer
 
     class Csm
-      class DaemonIF
-        @@request_expire = 30.0
+      class DaemonInterface
+        @@timed_out = 30
 
-        def initialize( daemon_socket )
-          @daemon_socket = daemon_socket
+        def initialize( unix_socket_name )
+          @unix_socket_name = unix_socket_name
         end
 
         def execute( r )
@@ -42,79 +42,49 @@ module Castoro
 
           case r.subcommand
           when "mkdir"
-            opecode = "MKDIR"
+            opcode = "MKDIR"
             operand["source"] = r.path1
           when "mv"
-            opecode = "MV"
+            opcode = "MV"
             operand["source"] = r.path1
             operand["dest"]   = r.path2
           end
 
-          send_request( ["1.1","C",opecode,operand].to_json + "\r\n" )
-        end
+          command = ["1.1","C",opcode,operand].to_json
+          Log.debug( "CSM C: #{command}" ) if $DEBUG
+          response = send_command( "#{command}\r\n" )
+          Log.debug( "CSM R: #{response}" ) if $DEBUG
 
-        ##
-        # send execute request to manipulator daemon.
-        #
-        def send_request( request )
-          Log.debug ( "manipulator request: #{request}" ) if $DEBUG
-
-          # request.
-          response = connect_manipulator_daemon { |sock|
-            # Use write() here and do not use syswrite() which might block 
-            # due to some reasons of the destination process
-            sock.write request
-            ret = IO.select([sock], nil, nil, @@request_expire)
-            if ret
-              readable = ret[0]
-              readable[0].gets
-            end
-          }
-          unless response
-            Log.warning( "CSM Error: request expired.#{request.chomp}" )
-            raise CommandExecutionError, "request expired.#{request.chomp}"
+          version, direction, opcode, operand = JSON.parse response
+          error = operand["error"]
+          if ( error )
+            raise CommandExecutionError, "CSM daemon error: #{error["code"]} #{error["message"]}: #{command}"
           end
-
-          # response.
-          parse_response response
         end
 
         ##
-        # Connect to manipulator daemon.
+        # send a command to the manipulator daemon.
         #
-        def connect_manipulator_daemon
+        def send_command( command )
+          s = nil
           begin
-            s = UNIXSocket.open @daemon_socket
+            s = UNIXSocket.open @unix_socket_name
           rescue => e
-            Log.warning e, "CSM Daemon connect error #{@daemon_socket}"
-            raise
+            raise CommandExecutionError, "CSM daemon error: connection failed: #{e.class} #{e.message}: #{@unix_socket_name} #{@command}"
           end
-
-          begin
-            yield s
-          ensure
-            s.close if s
+          s.syswrite command
+          if ( IO.select( [s], nil, nil, @@timed_out ) )
+            return s.gets
+          else
+            raise CommandExecutionError, "CSM daemon error: response timed out: #{@@timed_out}s #{@command}"
           end
-        end
-
-        ##
-        # Parse response packet.
-        #
-        # === Args
-        #
-        # +response+::
-        #   response packet from manipulator daemon request.
-        #
-        def parse_response response
-          version, direction, opecode, operand = JSON.parse response
-          if (error = operand["error"])
-            Log.warning( "CSM Error: #{error["code"]}, #{error["message"]}" )
-            raise CommandExecutionError, "#{error["code"]}, #{error["message"]}"
-          end
+        ensure
+          s.close if s
         end
       end
 
-      class CommandIF
+
+      class CommandInterface
         @@csm = File.join(File.dirname(__FILE__), '..', '..', 'csm')
 
         def execute( r )
@@ -123,8 +93,7 @@ module Castoro
           output = `#{command} 2>&1`
           status = $?.exitstatus
           unless ( status == 0 )
-            Log.warning( "CSM Error: #{command} ; exit status: #{status}" )
-            raise CommandExecutionError, "#{command} ; exit status: #{status}"
+            raise CommandExecutionError, "CSM command error: #{command} ; exit status: #{status}"
           end
         end
       end

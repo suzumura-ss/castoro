@@ -1,6 +1,8 @@
-=== 0.0.17 2010-09-15
+=== 0.0.17 2010-09-21
 
-* Added, removed, and modified specs.
+* Corrected a typo Log.warn with Log.warning
+* Refactored: manipulator.rb manipulator_impl.rb cpeerd_workers.rb
+* Added, removed, and revised some specs.
 
 === 0.0.16 2010-09-14
 

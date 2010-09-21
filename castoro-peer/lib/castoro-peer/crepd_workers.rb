@@ -364,7 +364,7 @@ module Castoro
             @queue.enq "#{basket.to_s}.#{action}"
           end
         rescue => e
-          Log.warn e, "#{file} #{basket.to_s}"
+          Log.warning e, "#{file} #{basket.to_s}"
         end
 
         def graceful_stop

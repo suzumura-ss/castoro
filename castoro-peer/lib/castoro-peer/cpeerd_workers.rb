@@ -403,7 +403,7 @@ module Castoro
               ticket.command_sym = command_sym
               BasketStatusQueryDatabasePL.instance.enq ticket
             else
-              Log.notice( "#{command_sym.to_s}: ServerStatusError server status: #{ServerStatus.instance.status_name}: #{basket}" )
+              Log.warning( "#{command_sym.to_s}: ServerStatusError server status: #{ServerStatus.instance.status_name}: #{basket}" )
               raise ServerStatusError, "server status: #{ServerStatus.instance.status_name}"
             end
           else
@@ -434,6 +434,8 @@ module Castoro
               when :CREATE
                 case status
                 when S_ABCENSE
+                  # Has to confirm if its parent directory exists
+                  # If not, should create it before proceeding
                   Csm::Request::Create.new( b.path_w )
                 else
                   reason = case status
@@ -539,6 +541,7 @@ module Castoro
           ticket.push h
           ResponseSenderPL.instance.enq ticket
         rescue => e
+          Log.err e
           ticket.push e
           ResponseSenderPL.instance.enq ticket
         end
@@ -632,7 +635,7 @@ module Castoro
             f = File.new( file, "w" )
             f.close
           rescue => e
-            Log.warn e, "#{file} #{basket.to_s}"
+            Log.warning e, "#{file} #{basket.to_s}"
           end
 
           begin
@@ -642,7 +645,7 @@ module Castoro
             when 'delete'    ; @channel.send( 'DELETE',    args, @ip, @port )
             end
           rescue => e
-            Log.warn e, "#{action} #{basket.to_s}"
+            Log.warning e, "#{action} #{basket.to_s}"
           end
         end
       end
