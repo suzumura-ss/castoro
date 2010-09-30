@@ -218,6 +218,7 @@ module Castoro
       #
       def timeslide_multicast header, command
         req_thread = Thread.fork {
+          ThreadGroup::Default.add Thread.current
           interval = 0.0
           @destinations.each { |d|
             host, port = d.split(":")

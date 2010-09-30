@@ -69,7 +69,12 @@ module Castoro
     def start
       @locker.synchronize {
         raise WorkersError, "#{@name} already started." if alive?
-        @threads = (1..@count).map { Thread.fork { worker_loop } }
+        @threads = (1..@count).map {
+          Thread.fork {
+            ThreadGroup::Default.add Thread.self
+            worker_loop
+          }
+        }
       }
     end
 

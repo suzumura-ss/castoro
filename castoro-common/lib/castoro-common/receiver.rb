@@ -72,7 +72,12 @@ module Castoro
           raise ReceiverError, "receiver service already started." if alive?
           @tcp_server = TCPServer.new(@port)
 
-          @threads = (1..@thread_count).map { Thread.fork { listen_loop } }
+          @threads = (1..@thread_count).map {
+            Thread.fork {
+              ThreadGroup::Default.add Thread.self
+              listen_loop
+            }
+          }
         }
       end
 
@@ -213,7 +218,10 @@ module Castoro
           @socket.bind("0.0.0.0", @port)
           set_sock_opt @socket
 
-          @thread = Thread.fork { listen_loop }
+          @thread = Thread.fork {
+            ThreadGroup::Default.add Thread.self
+            listen_loop
+          }
         }
       end
 
