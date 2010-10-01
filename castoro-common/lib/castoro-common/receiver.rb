@@ -219,7 +219,7 @@ module Castoro
           set_sock_opt @socket
 
           @thread = Thread.fork {
-            ThreadGroup::Default.add Thread.self
+            ThreadGroup::Default.add Thread.current
             listen_loop
           }
         }
