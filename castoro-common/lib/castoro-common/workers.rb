@@ -71,7 +71,7 @@ module Castoro
         raise WorkersError, "#{@name} already started." if alive?
         @threads = (1..@count).map {
           Thread.fork {
-            ThreadGroup::Default.add Thread.self
+            ThreadGroup::Default.add Thread.current
             worker_loop
           }
         }

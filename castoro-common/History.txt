@@ -1,3 +1,7 @@
+=== 0.0.13 2010-10-01
+* Bugfix: Typo changed.
+* castoro-common-0.0.12.gem is removed.
+
 === 0.0.12 2010-09-30
 * Set Receiver/Worker threas into ThreadGroup::Default.
 

@@ -74,7 +74,7 @@ module Castoro
 
           @threads = (1..@thread_count).map {
             Thread.fork {
-              ThreadGroup::Default.add Thread.self
+              ThreadGroup::Default.add Thread.current
               listen_loop
             }
           }
@@ -219,7 +219,7 @@ module Castoro
           set_sock_opt @socket
 
           @thread = Thread.fork {
-            ThreadGroup::Default.add Thread.self
+            ThreadGroup::Default.add Thread.current
             listen_loop
           }
         }
