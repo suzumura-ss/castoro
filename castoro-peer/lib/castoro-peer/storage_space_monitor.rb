@@ -47,7 +47,11 @@ module Castoro
     class StorageSpaceMonitor
 
       # TODO: refactor necessary.
-      @@df = RUBY_PLATFORM.include?("solaris") ? "/usr/gnu/bin/df" : "/bin/df"
+      @@df = if RUBY_PLATFORM.include?("solaris")
+               "DF_BLOCK_SIZE=1 /usr/gnu/bin/df"
+             else
+               "DF_BLOCK_SIZE=1 /bin/df"
+             end
       @@monitoring_interval = 60.0
 
       ##
