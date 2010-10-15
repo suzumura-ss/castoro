@@ -1,3 +1,7 @@
+=== 0.0.10 2010-10-15
+
+* bugfix: CPU utilization rises very much in case of the UDP reception waiting state.
+
 === 0.0.9 2010-09-30
 * Define thread-group for TimeslideSender.
 
