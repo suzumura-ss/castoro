@@ -20,7 +20,6 @@
 require "castoro-client"
 
 require "logger"
-require "thread"
 require "monitor"
 require "timeout"
 require "yaml"
@@ -89,9 +88,9 @@ module Castoro
         @request_interval = request_interval.to_f
 
         @locker           = Monitor.new
-        @response_locker  = Mutex.new
-        @response_cv      = ConditionVariable.new
         @response_queue   = []
+        @response_queue.extend(MonitorMixin)
+        @response_cond    = @response_queue.new_cond
 
         @sid = 0
       end
@@ -244,9 +243,9 @@ module Castoro
       # push response to response queue.
       #
       def push value
-        @response_locker.synchronize {
+        @response_queue.synchronize {
           @response_queue << value
-          @response_cv.signal
+          @response_cond.signal
         }
       end
 
@@ -254,10 +253,8 @@ module Castoro
       # popped response from response queue.
       #
       def pop
-        @response_locker.synchronize {
-          while @response_queue.empty?
-            @response_cv.wait(@response_locker)
-          end
+        @response_queue.synchronize {
+          @response_cond.wait_while { @response_queue.empty? }
           @response_queue.shift
         }
       end
@@ -266,7 +263,7 @@ module Castoro
       # response_queue is cleared.
       #
       def clear
-        @response_locker.synchronize {
+        @response_queue.synchronize {
           @response_queue.clear
         }
       end
