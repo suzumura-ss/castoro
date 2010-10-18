@@ -55,6 +55,35 @@ module Castoro
     }
 
     ##
+    # #new, #open and #close are executed.
+    #
+    # === Args
+    #
+    # see #initialize
+    #
+    # === Example
+    #
+    # <pre>
+    # Castoro::Client.open(conf) { |cli|
+    #   # "cli" is opened client instance.
+    #   cli.get ...
+    # }
+    # # "cli" is closed after block is evaluated.
+    # </pre>
+    # 
+    def self.open options
+      raise ClientError, "Is is necessary to specify the block argument." unless block_given?
+      Client.new(options) { |cli|
+        cli.open
+        begin
+          yield cli if block_given?
+        ensure
+          cli.close
+        end
+      }
+    end
+
+    ##
     # Initialize
     #
     # === Args
@@ -121,6 +150,8 @@ module Castoro
       @tcp_request_expire = opt["tcp_request_expire"]
 
       @locker = Monitor.new
+
+      yield self if block_given?
     end
 
     ##

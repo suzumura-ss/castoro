@@ -1,3 +1,10 @@
+=== 0.0.11 2010-10-18
+
+* Changed exclusive control (ConditionVariable to MonitorMixin::ConditionVariable)
+* self-yield constructor was added to Client.
+* "rake spec" task supported for 1.9.2.
+** In "Rspec on 1.9.2", the spec file cannot be specified by the relative path.
+
 === 0.0.10 2010-10-15
 
 * bugfix: CPU utilization rises very much in case of the UDP reception waiting state.
