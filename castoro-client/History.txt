@@ -1,3 +1,10 @@
+=== 0.0.12 2010-10-21
+
+* Modified retry function of Castoro::Client#create.
+** Client retry to create to onther peer,
+   even in case of error raised while yielding or FINALIZE.
+* Added and modified specs for castoro-client.
+
 === 0.0.11 2010-10-18
 
 * Changed exclusive control (ConditionVariable to MonitorMixin::ConditionVariable)

@@ -20,8 +20,8 @@
 require File.dirname(__FILE__) + '/spec_helper.rb'
 
 describe Castoro::Client::TimeslideSender do
-  def included(expected)
-    simple_matcher "expected #{expected.inspect} to included" do |actual|
+  Spec::Matchers.define :included do |expected|
+    match do |actual|
       expected.include? actual
     end
   end

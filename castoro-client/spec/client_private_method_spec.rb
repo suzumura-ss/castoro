@@ -34,155 +34,344 @@ describe Castoro::Client do
     }
     @client = Castoro::Client.new options
     class << @client
-      public :send, :create_internal, :open_peer_connection
+      public :send, :create_internal, :delete_internal, :connect
     end
     @client.open
 
     @key = Castoro::BasketKey.new 1, 2, 3
+
+    @peer           = ["peer1"]
+    @remining_peers = ["peer2", "peer3"]
+    @create         = Castoro::Protocol::Command::Create.new @key, { "class" => "hints"}
+    @finalize       = Castoro::Protocol::Command::Finalize.new @key, "host", "path"
+    @cancel         = Castoro::Protocol::Command::Cancel.new @key, "host", "path"
+
+    #TCP sender mock
+    @sender = mock Castoro::Sender::TCP
+    @sender.stub!(:start).with(0.05)
+    @sender.stub!(:stop)
+    @sender.stub!(:alive?).and_return(true)
+    Castoro::Sender::TCP.stub!(:new).and_return @sender
   end
 
   context "when create_internal" do
-    before do
-      @peer     = ["peer"]
-      @command  = Castoro::Protocol::Command::Create.new @key, { "class" => "hints"}
-      @finalize = Castoro::Protocol::Command::Finalize.new @key, "host", "path"
-      @cancel   = Castoro::Protocol::Command::Cancel.new @key, "host", "path"
+    context "is accepted normally." do
+      it "should return true." do
+        @sender.should_not_receive(:stop)
+        @sender.should_receive(:send).with(@create, 5.00).once.and_return {
+          Castoro::Protocol::Response::Create::Peer.new nil, @key, "host", "path"
+        }
+        @sender.should_receive(:send).with(@finalize, 5.00).once.and_return{
+          Castoro::Protocol::Response::Finalize.new nil, @key
+        }
 
-      #TCP sender mock
-      @sender = mock Castoro::Sender::TCP
-      @sender.stub!(:start).with(0.05)
-      @sender.stub!(:stop)
-      @sender.stub!(:send).with(@command, 5.00).and_return {
-        Castoro::Protocol::Response::Create::Peer.new nil, @key, "host", "path"
-      }
-      @sender.stub!(:send).with(@finalize, 5.00).and_return{
-        Castoro::Protocol::Response::Finalize.new nil, @key
-      }
-      @sender.stub!(:send).with(@cancel, 5.00).and_return {
-        Castoro::Protocol::Response::Cancel.new nil, @key
-      }
-      @sender.stub!(:alive?).and_return(true)
-      Castoro::Sender::TCP.stub!(:new).with(@client.instance_variable_get(:@logger), "peer", 30111).and_return @sender
-    end
-
-    context "create command timeout." do
-      it "should raise Castoro::ClientNothingPeerError." do
-        @sender.stub!(:send).with(@command, 5.00)
-        Proc.new {
-          @client.create_internal @peer, @command
-        }.should raise_error(Castoro::ClientNothingPeerError)
+        @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|
+          host.should == "host"
+          path.should == "path"
+        }.should be_true
       end
     end
 
-    context "create command response not inteded." do
-      it "should raise Castoro::ClientNothingPeerError." do
-        @sender.stub!(:send).with(@command, 5.00).and_return {
-          Castoro::Protocol::Response::Create::Peer.new "error", @key, "host", "path"
-        }
+    context "create command timeout to all peers." do
+      it "should retry next peers recursively and raise Castoro::ClientTimeoutError." do
+        @sender.should_receive(:send).with(@create, 5.00).exactly(3)
+        @sender.should_receive(:stop).exactly(3)
         Proc.new {
-          @client.create_internal @peer, @command
-        }.should raise_error(Castoro::ClientNothingPeerError)
+          @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|}
+        }.should raise_error(Castoro::ClientTimeoutError)
       end
     end
 
-    context "create command failed." do
-      it "should raise Castoro::ClientNothingPeerError." do
-        @sender.stub!(:send).with(@command, 5.00).and_return {
-          Castoro::Protocol::Response::Create.new nil, @key
+    context "create command failed by Castoro::Peer::ClientAlreadyExistsError." do
+      it "should not retry next peer and should raise Castoro::ClientAlreadyExistsError." do
+        @sender.should_receive(:send).with(@create, 5.00).once.and_return {
+          Castoro::Protocol::Response::Create.new({"code" => "Castoro::Peer::AlreadyExistsError"}, @key)
+        }
+        @sender.should_receive(:stop).once
+        Proc.new {
+          @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|}
+        }.should raise_error(Castoro::ClientAlreadyExistsError)
+      end
+    end
+
+    context "create command response not inteded about all peers." do
+      it "should retry next peer recursively and raise Castoro::ClientError." do
+        @sender.should_receive(:send).with(@create, 5.00).exactly(3).and_return {
+          Castoro::Protocol::Response::Finalize.new nil, @key
+        }
+        @sender.should_receive(:stop).exactly(3)
+        Proc.new {
+          @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|}
+        }.should raise_error(Castoro::ClientError)
+      end
+    end
+
+    context "create command response not inteded and remining_peers = []." do
+      it "should raise Castoro::ClientError." do
+        @sender.should_receive(:send).with(@create, 5.00).once.and_return {
+          Castoro::Protocol::Response::Finalize.new nil, @key
+        }
+        @sender.should_receive(:stop).once
+        Proc.new {
+          @client.create_internal(@sender, @peer, [], @create){|host, path|}
+        }.should raise_error(Castoro::ClientError)
+      end
+    end
+
+    context "create command failed by other errors about all peers." do
+      it "should retry next peer recursively and raise Castoro::ClientError." do
+        @sender.should_receive(:send).with(@create, 5.00).exactly(3).and_return {
+          Castoro::Protocol::Response::Create::Peer.new("error", @key, "host", "path")
+        }
+        @sender.should_receive(:stop).exactly(3)
+        Proc.new {
+          @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|}
+        }.should raise_error(Castoro::ClientError)
+      end
+    end
+
+    context "create command failed by other errors and can't connect other peers." do
+      it "should raise Castoro::ClientError." do
+        @sender.should_receive(:send).with(@create, 5.00).once.and_return {
+          Castoro::Protocol::Response::Create::Peer.new("error", @key, "host", "path")
+        }
+        @sender.should_receive(:stop).once
+        @client.should_receive(:connect).and_return(false)
+        Proc.new {
+          @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|}
+        }.should raise_error(Castoro::ClientError)
+      end
+    end
+
+    context "if last peer raise ClientTimeoutError and others raise ClientError" do
+      it "should raise last error (ClientTimeoutError)." do
+        @sender.stub!(:send).and_return(Castoro::Protocol::Response::Delete.new(nil, @key),
+                                        Castoro::Protocol::Response::Create.new("error", @key),
+                                        nil)
+        @sender.should_receive(:stop).exactly(3)
+        Proc.new{
+          @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|}
+        }.should raise_error(Castoro::ClientTimeoutError)
+      end
+    end
+
+    context "create command failed to first peer but succeed to next peer" do
+      it "should return true." do
+        @sender.should_receive(:send).with(@create, 5.00).exactly(2).and_return(
+          Castoro::Protocol::Response::Create::Peer.new("error", @key, "host", "path"),
+          Castoro::Protocol::Response::Create::Peer.new( nil   , @key, "host", "path")
+        )
+        @sender.should_receive(:stop).once
+        @sender.should_receive(:send).with(@finalize, 5.00).once.and_return{
+          Castoro::Protocol::Response::Finalize.new nil, @key
+        }
+
+        @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
+      end
+    end
+
+    context "ClientNoRetryError raised while yielding." do
+      it "should raise Castoro::ClientTimeoutError without retry." do
+        @sender.should_receive(:send).with(@create, 5.00).once.and_return(
+          Castoro::Protocol::Response::Create::Peer.new( nil, @key, "host", "path")
+        )
+        @sender.should_receive(:send).with(@cancel, 5.00).once.and_return {
+          Castoro::Protocol::Response::Cancel.new nil, @key
         }
         Proc.new {
-          @client.create_internal @peer, @command
-        }.should raise_error(Castoro::ClientNothingPeerError)
+          @client.create_internal(@sender, @peer, @remining_peers, @create) {raise Castoro::ClientNoRetryError}
+        }.should raise_error(Castoro::ClientNoRetryError)
+      end
+    end
+
+    context "some other error raised while yielding." do
+      it "should retry next peer." do
+        finalize = Castoro::Protocol::Command::Finalize.new(@key, "host1", "path")
+        
+        @sender.should_receive(:send).with(@create, 5.00).once.and_return(
+          Castoro::Protocol::Response::Create::Peer.new( nil, @key, "host", "path"),
+          Castoro::Protocol::Response::Create::Peer.new( nil, @key, "host1", "path")
+        )
+        @sender.should_receive(:send).with(@cancel, 5.00).once.and_return {
+          Castoro::Protocol::Response::Cancel.new nil, @key
+        }
+        @sender.should_receive(:send).with(finalize, 5.00).once.and_return{
+          Castoro::Protocol::Response::Finalize.new nil, @key
+        }
+
+        @client.create_internal(@sender, @peer, @remining_peers, @create) {|host,path|
+          raise TimeoutError if host == "host"
+        }
       end
     end
 
     context "finalize command timeout." do
-      it "should raise Castoro::ClientTimeoutError with TCP sender#send should be called once." do
-        @sender.stub!(:send).with(@finalize, 5.00)
-        @sender.should_receive(:send).with(@finalize, 5.00).exactly(1)
+      it "should raise Castoro::ClientTimeoutError without retry." do
+        @sender.should_receive(:send).with(@create, 5.00).once.and_return(
+          Castoro::Protocol::Response::Create::Peer.new( nil, @key, "host", "path")
+        )
+        @sender.should_receive(:send).with(@finalize, 5.00).once
+        @sender.should_receive(:send).with(@cancel, 5.00).once.and_return {
+          Castoro::Protocol::Response::Cancel.new nil, @key
+        }
         Proc.new {
-          @client.create_internal(@peer, @command) { |host, path| }
+          @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
         }.should raise_error(Castoro::ClientTimeoutError)
       end
     end
 
     context "finalize Response not intended." do
-      it "should raise Castoro::ClientError with TCP sender#send should be called once." do
-        @sender.stub!(:send).with(@finalize, 5.00).and_return {
-          Castoro::Protocol::Response.new nil
+      it "should raise Castoro::ClientError without retry." do
+        @sender.should_receive(:send).with(@create, 5.00).once.and_return(
+          Castoro::Protocol::Response::Create::Peer.new( nil, @key, "host", "path")
+        )
+        @sender.should_receive(:send).with(@finalize, 5.00).once.and_return{
+          Castoro::Protocol::Response::Cancel.new nil, @key
         }
-        @sender.should_receive(:send).with(@finalize, 5.00).exactly(1)
+        @sender.should_receive(:send).with(@cancel, 5.00).once.and_return {
+          Castoro::Protocol::Response::Cancel.new nil, @key
+        }
         Proc.new {
-          @client.create_internal(@peer, @command) { |host, path| }
+          @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
         }.should raise_error(Castoro::ClientError)
       end
     end
 
     context "finalize command failed." do
-      it "should raise Castoro::ClientError with TCP sender#send should be called once." do
-        @sender.stub!(:send).with(@finalize, 5.00).and_return {
+      it "should raise Castoro::ClientError without retry." do
+        @sender.should_receive(:send).with(@create, 5.00).once.and_return(
+          Castoro::Protocol::Response::Create::Peer.new( nil, @key, "host", "path")
+        )
+        @sender.should_receive(:send).with(@finalize, 5.00).once.and_return{
           Castoro::Protocol::Response::Finalize.new "error", @key
         }
-        @sender.should_receive(:send).with(@finalize, 5.00).exactly(1)
+        @sender.should_receive(:send).with(@cancel, 5.00).once.and_return {
+          Castoro::Protocol::Response::Cancel.new nil, @key
+        }
         Proc.new {
-          @client.create_internal(@peer, @command) { |host, path| }
+          @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
         }.should raise_error(Castoro::ClientError)
       end
     end
 
     context "cancel command timeout." do
-      it "should raise Castoro::ClientTimeoutError with TCP sender#send should be called once." do
-        @sender.stub!(:send).with(@finalize, 5.00)
-        @sender.stub!(:send).with(@cancel, 5.00)
-        @sender.should_receive(:send).with(@cancel, 5.00).exactly(1)
+      it "should raise Castoro::ClientTimeoutError." do
+        @sender.should_receive(:send).with(@create, 5.00).once.and_return(
+          Castoro::Protocol::Response::Create::Peer.new( nil, @key, "host", "path")
+        )
+        @sender.should_receive(:send).with(@finalize, 5.00).once
+        @sender.should_receive(:send).with(@cancel, 5.00).once
         Proc.new {
-          @client.create_internal(@peer, @command) { |host, path| }
+          @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
         }.should raise_error(Castoro::ClientTimeoutError)
       end
     end
 
     context "cancel Response not intended." do
-      it "should raise Castoro::ClientTimeoutError with TCP sender#send should be called once." do
-        @sender.stub!(:send).with(@finalize, 5.00)
-        @sender.stub!(:send).with(@cancel, 5.00).and_return {
+      it "should raise Castoro::ClientTimeoutError." do
+        @sender.should_receive(:send).with(@create, 5.00).once.and_return(
+          Castoro::Protocol::Response::Create::Peer.new( nil, @key, "host", "path")
+        )
+        @sender.should_receive(:send).with(@finalize, 5.00).once
+        @sender.should_receive(:send).with(@cancel, 5.00).once.and_return {
           Castoro::Protocol::Response.new nil
         }
-        @sender.should_receive(:send).with(@cancel, 5.00).exactly(1)
         Proc.new {
-          @client.create_internal(@peer, @command) { |host, path| }
+          @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
         }.should raise_error(Castoro::ClientTimeoutError)
       end
     end
 
     context "cancel command failed." do
-      it "should raise Castoro::ClientTimeoutError with TCP sender#send should be called once." do
-        @sender.stub!(:send).with(@finalize, 5.00)
-        @sender.stub!(:send).with(@cancel, 5.00).and_return {
+      it "should raise Castoro::ClientTimeoutError." do
+        @sender.should_receive(:send).with(@create, 5.00).once.and_return(
+          Castoro::Protocol::Response::Create::Peer.new( nil, @key, "host", "path")
+        )
+        @sender.should_receive(:send).with(@finalize, 5.00).once
+        @sender.should_receive(:send).with(@cancel, 5.00).once.and_return {
           Castoro::Protocol::Response::Cancel.new "error", @key
         }
-        @sender.should_receive(:send).with(@cancel, 5.00).exactly(1)
         Proc.new {
-          @client.create_internal(@peer, @command) { |host, path| }
+          @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
         }.should raise_error(Castoro::ClientTimeoutError)
       end
     end
 
     context "cancel command exception." do
       it "should raise Castoro::ClientTimeoutError with logger#error and debug should be called 2times." do
-        @sender.stub!(:send).with(@finalize, 5.00)
-        @sender.stub!(:send).with(@cancel, 5.00).and_return { raise TimeoutError }
+        @sender.should_receive(:send).with(@create, 5.00).once.and_return(
+          Castoro::Protocol::Response::Create::Peer.new( nil, @key, "host", "path")
+        )
+        @sender.should_receive(:send).with(@finalize, 5.00).once
+        @sender.should_receive(:send).with(@cancel, 5.00).and_return { raise TimeoutError }
         @client.instance_variable_get(:@logger).should_receive(:error).exactly(2)
         @client.instance_variable_get(:@logger).should_receive(:debug).exactly(2)
         Proc.new {
-          @client.create_internal(@peer, @command) { |host, path| }
+          @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
         }.should raise_error(Castoro::ClientTimeoutError)
       end
     end
   end
 
-  context "when open_peer_connection" do
+  context "when delete_internal" do
+    context "is accepted normally." do
+      it "should return instance of Protocol::Response::Delete" do
+        @sender.should_receive(:send).with(@delete, 5.00).and_return {
+          Castoro::Protocol::Response::Delete.new nil, @key
+        }
+        @sender.should_not_receive(:stop)
+        @client.delete_internal @sender, @peer, @remining_peers, @delete
+      end
+    end
+
+    context "if delete command timeout" do
+      it "should raise ClientTimeoutError." do
+        @sender.stub!(:send).and_return(nil)
+        @sender.should_receive(:stop).once
+        Proc.new{
+          @client.delete_internal @sender, @peer, @remining_peers, @delete
+        }.should raise_error(Castoro::ClientTimeoutError)
+      end
+    end
+
+    context "if response is not intended" do
+      it "should raise ClientError." do
+        @sender.stub!(:send).and_return(Castoro::Protocol::Response::Create.new(nil, @key))
+        @sender.should_receive(:stop).once
+        Proc.new{
+          @client.delete_internal @sender, @peer, @remining_peers, @delete
+        }.should raise_error(Castoro::ClientError)
+      end
+    end
+
+    context "if delete command faild" do
+      it "should raise ClientError." do
+        @sender.stub!(:send).and_return(Castoro::Protocol::Response::Delete.new("error", @key))
+        @sender.should_receive(:stop).once
+        Proc.new{
+          @client.delete_internal @sender, @peer, @remining_peers, @delete
+        }.should raise_error(Castoro::ClientError)
+      end
+    end
+
+    context "if last peer raise ClientTimeoutError and others raise ClientError" do
+      it "should raise last error (ClientTimeoutError)." do
+        @sender.stub!(:send).and_return(Castoro::Protocol::Response::Create.new(nil, @key),
+                                        Castoro::Protocol::Response::Delete.new("error", @key),
+                                        nil)
+        @sender.should_receive(:stop).exactly(3)
+        Proc.new{
+          @client.delete_internal @sender, @peer, @remining_peers, @delete
+        }.should raise_error(Castoro::ClientTimeoutError)
+      end
+    end
+
+  end
+
+  context "when connect" do
     before do
-      @key  = Castoro::BasketKey.new(1, 2, 3)
+      @key   = Castoro::BasketKey.new(1, 2, 3)
+      @peers = [ "peer1", "peer2", "peer3" ]
 
       #TCP sender mock.
       #TCP sender to peer1
@@ -200,59 +389,44 @@ describe Castoro::Client do
       Castoro::Sender::TCP.stub!(:new).with(@client.instance_variable_get(:@logger), "peer2", 30111).and_return @sender2
     end
 
-    context "first response was error response, second response was normally response." do
-      it "error responsed TCP sender#alive? should be called once." do
-        peers = [ "peer2", "peer1" ]
-        @sender2.stub!(:start).with(0.05).and_return {
-          raise Castoro::SenderTimeoutError, "connection timeout."
-        }
-        @client.open_peer_connection(@key, peers, nil) { |s, p|
-          s.should == @sender1
-          p.should == "peer1"
-        }
-      end
-    end
-
-    context "second response was error response, second response was normally response." do
-      it "error responsed TCP sender#alive? should be called once." do
-        peers = [ "peer2", "peer1" ]
+    context "if first peer couldn't be connected" do
+      it "should try to connect next peer." do
         @sender1.stub!(:start).with(0.05).and_return {
           raise Castoro::SenderTimeoutError, "connection timeout."
         }
-        @client.open_peer_connection(@key, peers, nil) { |s, p|
-          s.should == @sender2
-          p.should == "peer2"
-        }
+        @sender2.should_receive(:stop).once
+        @client.connect(@peers) { |s, p, ps|
+          s.should  == @sender2
+          p.should  == "peer2"
+          ps.should == ["peer3"]
+        }.should be_true
       end
     end
 
-    context "peer_decide_proc was not given." do
-      it "TCP sender#start and send and stop should be called once." do
-        @sender1.should_receive(:start).exactly(1)
-        @sender1.should_receive(:stop).exactly(1)
-        @client.open_peer_connection @key, ["peer1"]
+    context "if first peer could be connected" do
+      it "should not try to connect next peer and return true." do
+        @sender1.should_receive(:stop).once
+        @client.connect(@peers) { |s, p, ps|
+          s.should  == @sender1
+          p.should  == "peer1"
+          ps.should == ["peer2", "peer3"]
+        }.should be_true
       end
     end
 
-    context "peer_decide_proc was given Proc instance." do
-      it "peer_decide_proc#call should be called once" do
-        peer_decide_proc = Proc.new { |sender, peer|
-          sender.should == @sender1
-          peer.should   == "peer1"
-        }
-        peer_decide_proc.should_receive(:call).with(@sender1, "peer1").exactly(1)
-        @client.open_peer_connection @key, ["peer1"], peer_decide_proc
-      end
-    end
-
-    context "There is no Peer that can be connected by TCP." do
-      it "should raise Castoro::ClientNothingPeerError." do
-        @sender1.stub!(:start).with(0.05).and_return {
+    context "all peers could not be connected " do
+      it "should return false." do
+        Castoro::Sender::TCP.stub!(:new).and_return @sender
+        @sender.stub!(:start).with(0.05).and_return {
           raise Castoro::SenderTimeoutError, "connection timeout."
         }
-        Proc.new {
-          @client.open_peer_connection @key, ["peer1"]
-        }.should raise_error(Castoro::ClientNothingPeerError)
+        @client.connect(@peers).should be_false
+      end
+    end
+
+    context "if peers = []" do
+      it "should return false." do
+        @client.connect([]).should be_false
       end
     end
   end
@@ -260,5 +434,13 @@ describe Castoro::Client do
   after do
     @client.close rescue nil
     @client = nil
+
+    @key            = nil
+    @peer           = nil
+    @remining_peers = nil
+    @create         = nil
+    @finalize       = nil
+    @cancel         = nil
+    @sender         = nil
   end
 end

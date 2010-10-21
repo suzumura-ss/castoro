@@ -33,6 +33,7 @@ require "monitor"
 module Castoro
   class ClientError < CastoroError; end
   class ClientTimeoutError < ClientError; end
+  class ClientNoRetryError < ClientError; end
   class ClientNothingPeerError < ClientError; end
   class ClientAlreadyExistsError < ClientError; end
 
@@ -63,16 +64,14 @@ module Castoro
     #
     # === Example
     #
-    # <pre>
-    # Castoro::Client.open(conf) { |cli|
-    #   # "cli" is opened client instance.
-    #   cli.get ...
-    # }
-    # # "cli" is closed after block is evaluated.
-    # </pre>
-    # 
+    #  Castoro::Client.open(conf) { |cli|
+    #    # "cli" is opened client instance.
+    #    cli.get ...
+    #  }
+    #  # "cli" is closed after block is evaluated.
+    #
     def self.open options
-      raise ClientError, "Is is necessary to specify the block argument." unless block_given?
+      raise ClientError, "It is necessary to specify the block argument." unless block_given?
       Client.new(options) { |cli|
         cli.open
         begin
@@ -181,6 +180,37 @@ module Castoro
     def opened?; @locker.synchronize { @sender.alive? } ; end
     def closed?; @locker.synchronize { !opened?       } ; end
 
+    def sid
+      @sender ? @sender.sid : nil
+    end
+
+    ##
+    # Get basket.
+    #
+    # === Args
+    #
+    # +key+::
+    #   The basket key.
+    #
+    # === Example
+    #
+    #  k = Castoro::BasketKey.new(123456, :original, 1)
+    #  res = client.get k
+    #  res
+    #  => {"peer1" => "/foo/bar/baz", "peer2" => "/hoge/fuga"}
+    #
+    def get key
+      @locker.synchronize {
+        raise ClientError, "Client is not opened." unless opened?
+
+        @logger.info { "[key:#{key}] send GET request to gateways" }
+        res = @sender.send Protocol::Command::Get.new(key)
+        raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Get
+        raise ClientError, "get command failed - #{res.inspect}." if res.error?
+        res.paths.to_hash
+      }
+    end
+
     ##
     # A safe contents addition procedure is offered.
     #
@@ -193,15 +223,88 @@ module Castoro
     #
     # === Example
     #
-    # <pre>
-    # k = Castoro::BasketKey.new(123456, :original, 1)
-    # client.create(k, "length" => 99999, "class" => :original) { |host, path|
-    #   # It accessed the mountpoint by using the value of host and path...
+    #  k = Castoro::BasketKey.new(123456, :original, 1)
+    #  client.create(k, "length" => 99999, "class" => :original) { |host, path|
+    #    # It accessed the mountpoint by using the value of host and path...
     #
-    #   # When the block ends normally, finalize is issued.
-    #   # When the block terminates abnormally, cancel is issued.
-    # }
-    # </pre>
+    #    # When the block ends normally, finalize is issued.
+    #    # When the block terminates abnormally, cancel is issued.
+    #  }
+    #
+    # === Flow & Errors
+    #
+    # <b>CREATE command try following flow to peers.</b>
+    #
+    # * but if no peers can be connected, client raise
+    #   - Castoro::ClientNothingPeerError "[key:#{key}] There is no Peer that can be connected by TCP."
+    #
+    # ==== Processing flow
+    #
+    # 1. Client connect to the specified peer and send CREATE command.
+    #
+    # 2. Then, if some kind of error raised, 
+    #    client retry to connect and send CREATE command to the next peer.
+    #
+    #    * but if no peers remined which can be used, raise the error and finish this process.
+    #    * In case of the error is caused by the basket already existing in peer, 
+    #      client raise the error and finish this process without retry.
+    #
+    #    <b>Possible Errors</b>
+    #
+    #    * When no response is returned to client for a given length of time, client raise
+    #      - ClientTimeoutError, "create command timeout - #{peer}"
+    #
+    #    * When the response of CREATE command is not intended one, client raise
+    #      - ClientError, "Response not intended. - #{res.class}"
+    #
+    #    * When the peer returned "Castoro::Peer::AlreadyExistsError", client raise
+    #      - ClientAlreadyExistsError, "[key:#{cmd.basket}] Basket already exists in peers - #{res.error["message"]}"
+    #
+    #    * When peer raise some other errors, client raise
+    #      - ClientError, "create command failed - #{res.inspect}, #{peer}."
+    #
+    # 3. When CREATE command is accepted correctly, client try to yield (application code).
+    #
+    # 4. Then, if some kind of error raised while yielding, 
+    #    client send CANCEL command to the peer and retry to the next peer.
+    #
+    #    * but if no peers remined which can be used, raise the error and finish this process.
+    #    * In case of the error is for canceling this process,
+    #      client raise the error to the application and finish this process without retry.
+    #
+    #    <b>Possible Errors</b>
+    #
+    #    * When the error which the application raise is for canceling (Castoro::ClientNoRetryError), 
+    #      client raise the error.
+    #
+    #    * When the application raise some other errors, client raise the error.
+    # 
+    # 5. When succeeded in yielding, client send FINALIZE command to peer.
+    #
+    # 6. Then, if some kind of error raised, client send CANCEL command to the peer 
+    #    and raise the error and finish this process without retry.
+    #
+    #    <b>Possible Errors</b>
+    #
+    #    * When no response is returned to client for a given length of time, client raise
+    #      - ClientTimeoutError, "finalize command timeout - #{peer}"
+    #
+    #    * When the response of FINALIZE command is not intended one, client raise
+    #      - ClientError, "Response not intended. - #{res.class}"
+    #
+    #    * When peer raise some other errors, client raise
+    #      - ClientError, "finalize command failed - #{res.inspect}, #{peer}."
+    #
+    # ==== Error handling example in the client application
+    #
+    #  begin
+    #    Castoro::Client.open(conf) { |cli|
+    #      cli.create...
+    #    }
+    #  rescue => e
+    #    # e.class   == "Castoro::ClientTimeoutError"
+    #    # e.message == "create command timeout - host123"
+    #  end
     #
     def create key, hints = {}, &block
       @locker.synchronize {
@@ -220,7 +323,12 @@ module Castoro
         raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Create::Gateway
         raise ClientError, "gateway connection failed - #{res.inspect}" if res.error?
 
-        create_internal res.hosts, cmd, &block
+        peers = res.hosts
+        connected = connect(peers) { |connection, peer, remining_peers| 
+          create_internal(connection, peer, remining_peers, cmd, &block) 
+        }
+
+        raise ClientNothingPeerError, "[key:#{key}] There is no Peer that can be connected by TCP." unless connected
       }
     end
 
@@ -236,17 +344,15 @@ module Castoro
     #
     # === Example
     #
-    # <pre>
-    # peer = "std100"
-    # k = Castoro::BasketKey.new(123456, :original, 1)
+    #  peer = "std100"
+    #  k = Castoro::BasketKey.new(123456, :original, 1)
+    #  
+    #  client.create_direct(peer, k, "length" => 99999, "class" => :original) { |host, path|
+    #    # It accessed the mountpoint by using the value of host and path...
     # 
-    # client.create_direct(peer, k, "length" => 99999, "class" => :original) { |host, path|
-    #   # It accessed the mountpoint by using the value of host and path...
-    #
-    #   # When the block ends normally, finalize is issued.
-    #   # When the block terminates abnormally, cancel is issued.
-    # }
-    # </pre>
+    #    # When the block ends normally, finalize is issued.
+    #    # When the block terminates abnormally, cancel is issued.
+    #  }
     #
     def create_direct peer, key, hints = {}, &block
       @locker.synchronize {
@@ -259,7 +365,12 @@ module Castoro
         # craete command.
         cmd = Protocol::Command::Create.new key, hints
 
-        create_internal [peer].flatten, cmd, &block
+        peers = [peer].flatten
+        connected = connect(peers) { |connection, peer, remining_peers| 
+          create_internal(connection, peer, remining_peers, cmd, &block) 
+        }
+
+        raise ClientNothingPeerError, "[key:#{key}] There is no Peer that can be connected by TCP." unless connected
       }
     end
 
@@ -273,10 +384,8 @@ module Castoro
     #
     # === Example
     #
-    # <pre>
-    # k = Castoro::BasketKey.new(123456, :original, 1)
-    # client.delete k
-    # </pre>
+    #  k = Castoro::BasketKey.new(123456, :original, 1)
+    #  client.delete k
     #
     def delete key
       @locker.synchronize {
@@ -289,86 +398,47 @@ module Castoro
         # shuffle.
         (sid % peers.length).times { peers.push(peers.shift) }
 
-        peer_decide_proc = Proc.new { |sender, peer|
-          # DELETE
-          cmd = Protocol::Command::Delete.new key
-          @logger.info { "[key:#{cmd.basket}] send DELETE request to peer<#{peer}>" }
-          res = sender.send cmd, @tcp_request_expire
-          raise ClientTimeoutError, "delete command timeout - #{peer}" if res.nil?
-          raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Delete
-          raise ClientError, "delete command failed - #{res.inspect}, #{peer}." if res.error?
-        }
+        cmd = Protocol::Command::Delete.new key
 
-        # choice tcp connection from available one peer(s).
-        open_peer_connection(key, peers, peer_decide_proc)
+        connected = connect(peers) { |connection, peer, remining_peers| 
+          delete_internal(connection, peer, remining_peers, cmd)
+        }
+        
+        raise ClientNothingPeerError, "[key:#{key}] There is no Peer that can be connected by TCP." unless connected
+        
         nil
       }
     end
 
-    ##
-    # Get basket.
-    #
-    # === Args
-    #
-    # +key+::
-    #   The basket key.
-    #
-    # === Example
-    #
-    # <pre>
-    # k = Castoro::BasketKey.new(123456, :original, 1)
-    # res = client.get k
-    # res
-    # => {"peer1" => "/foo/bar/baz", "peer2" => "/hoge/fuga"}
-    # </pre>
-    def get key
-      @locker.synchronize {
-        raise ClientError, "Client is not opened." unless opened?
+    private
 
-        @logger.info { "[key:#{key}] send GET request to gateways" }
-        res = @sender.send Protocol::Command::Get.new(key)
-        raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Get
-        raise ClientError, "get command failed - #{res.inspect}." if res.error?
-        res.paths.to_hash
-      }
-    end
+    def create_internal connection, peer, remining_peers, cmd, &block
 
-    def sid
-      @sender ? @sender.sid : nil
-    end
+      # CREATE
+      @logger.info { "[key:#{cmd.basket}] send CREATE request to peer<#{peer}>" }
+      res = connection.send cmd, @tcp_request_expire
+      raise ClientTimeoutError, "create command timeout - #{peer}" if res.nil?
+      raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Create
 
-  private
-
-    def create_internal peers, cmd
-
-      host, path = nil, nil
-
-      peer_decide_proc = Proc.new { |sender, peer|
-        # CREATE
-        @logger.info { "[key:#{cmd.basket}] send CREATE request to peer<#{peer}>" }
-        res = sender.send cmd, @tcp_request_expire
-        raise ClientTimeoutError, "create command timeout - #{peer}" if res.nil?
-        raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Create
-
-        if res.error?
-          if res.error["code"] == "Castoro::Peer::AlreadyExistsError"
-            raise ClientAlreadyExistsError, "[key:#{cmd.basket}] Basket already exists in peers - #{res.error["message"]}"
-          else
-            raise ClientError, "create command failed - #{res.inspect}, #{peer}."
-          end
+      if res.error?
+        if res.error["code"] == "Castoro::Peer::AlreadyExistsError"
+          raise ClientAlreadyExistsError, "[key:#{cmd.basket}] Basket already exists in peers - #{res.error["message"]}"
+        else
+          raise ClientError, "create command failed - #{res.inspect}, #{peer}."
         end
+      end
 
-        host, path = res.host, res.path
-      }
+      host, path = res.host, res.path
 
       # choice tcp connection from available one peer(s).
-      open_peer_connection(cmd.basket, peers, peer_decide_proc) { |sender, peer|
-        begin
-          yield host, path
+      begin
+        # yield
+        yield host, path
 
+        begin
           # FINALIZE
           @logger.info { "[key:#{cmd.basket}] send FINALIZE request to peer<#{peer}>" }
-          res = sender.send Protocol::Command::Finalize.new(cmd.basket, host, path), @tcp_request_expire
+          res = connection.send Protocol::Command::Finalize.new(cmd.basket, host, path), @tcp_request_expire
           raise ClientTimeoutError, "finalize command timeout - #{peer}" if res.nil?
           raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Finalize
           raise ClientError, "finalize command failed - #{res.inspect}, #{peer}." if res.error?
@@ -380,23 +450,49 @@ module Castoro
           @logger.error { e.message }
           @logger.debug { e.backtrace.join("\n\t") }
 
-          begin
-            # CANCEL
-            @logger.info { "[key:#{cmd.basket}] send CANCEL request to peer<#{peer}>" }
-            res = sender.send Protocol::Command::Cancel.new(cmd.basket, host, path), @tcp_request_expire
-            @logger.info { "cancel command timeout - #{peer}" } if res.nil?
-            @logger.info { "Response not intended. - #{res.class}" } unless res.kind_of? Protocol::Response::Cancel
-            @logger.info { "cancel command failed - #{res.inspect}, #{peer}." } if res.error?
-          rescue => e
-            @logger.error { e.message }
-            @logger.debug { e.backtrace.join("\n\t") }
-          end
-
+          # Retrying is controlled by clearing remining_peers.
+          remining_peers.clear
           raise
         end
 
-        res
-      }
+      rescue => e
+        begin
+          # CANCEL
+          @logger.info { "[key:#{cmd.basket}] send CANCEL request to peer<#{peer}>" }
+          res = connection.send Protocol::Command::Cancel.new(cmd.basket, host, path), @tcp_request_expire
+          @logger.info { "cancel command timeout - #{peer}" } if res.nil?
+          @logger.info { "Response not intended. - #{res.class}" } unless res.kind_of? Protocol::Response::Cancel
+          @logger.info { "cancel command failed - #{res.inspect}, #{peer}." } if res.error?
+        rescue => cancel_error
+          @logger.error { cancel_error.message }
+          @logger.debug { cancel_error.backtrace.join("\n\t") }
+        end
+
+        remining_peers.clear if e.class == ClientNoRetryError
+        raise
+      end
+
+    rescue => e
+      connection.stop
+
+      raise if e.class == ClientAlreadyExistsError
+      raise if remining_peers.empty?
+      raise unless connect(remining_peers) { |c, p, ps| create_internal(c, p, ps, cmd, &block) }
+    end
+
+    def delete_internal connection, peer, remining_peers, cmd
+      @logger.info { "[key:#{cmd.basket}] send DELETE request to peer<#{peer}>" }
+      res = connection.send cmd, @tcp_request_expire
+        
+      raise ClientTimeoutError, "delete command timeout - #{peer}" if res.nil?
+      raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Delete
+      raise ClientError, "delete command failed - #{res.inspect}, #{peer}." if res.error?
+      
+    rescue => e
+      connection.stop
+
+      raise if remining_peers.empty?
+      raise unless connect(remining_peers) { |c, p, ps| delete_internal(c, p, ps, cmd) }
     end
 
     ##
@@ -404,44 +500,33 @@ module Castoro
     #
     # === Args
     #
-    # +basket+::
-    #   The basket key.
     # +peers+::
     #   Selection candidate of Peer.
-    # +peer_decide_proc+::
-    #   Selection condition of Peer.
     #
-    def open_peer_connection basket, peers, peer_decide_proc = nil
-      sender, peer = nil, nil
-      ( peers * (1 + @tcp_connect_retry.to_i) ).each { |p|
-        s = nil
-        begin
-          # connect.
-          s = Sender::TCP.new @logger, p, @peer_port
-          s.start @tcp_connect_expire
+    def connect peers
+      until peers.empty?
+        peer = peers.shift
 
-          peer_decide_proc.call(s, p) if peer_decide_proc
-
-          sender, peer = s, p
-          break
-
-        rescue => e
-          if s and s.alive?
-            s.stop rescue nil
+        connection = begin
+                       # connect.
+                       s = Sender::TCP.new @logger, peer, @peer_port
+                       s.start @tcp_connect_expire
+                       s
+                     rescue; nil
+                     end
+        
+        if connection
+          begin
+            yield connection, peer, peers
+          ensure
+            connection.stop if connection.alive?
           end
-          raise if e.class == ClientAlreadyExistsError
-        end
-      }
-      raise ClientNothingPeerError, "[key:#{basket}] There is no Peer that can be connected by TCP." unless sender
 
-      begin
-        if block_given?
-          @logger.info { "[key:#{basket}] peer connection was decided <#{peer}>" }
-          yield sender, peer
+          return true
         end
-      ensure
-        sender.stop
       end
+
+      false
     end
 
   end
