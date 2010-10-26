@@ -28,8 +28,8 @@ end
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'castoro-common'
 
-def be_synonymas_with(expected)
-  simple_matcher "expected #{expected.inspect} to included" do |actual|
+Spec::Matchers.define :be_synonymas_with do |expected|
+  match do |actual|
     act = JSON.parse(actual.to_s)
     exp = JSON.parse(expected.to_s)
 
@@ -43,4 +43,3 @@ def be_synonymas_with(expected)
     act.length.should == exp.length
   end
 end
-

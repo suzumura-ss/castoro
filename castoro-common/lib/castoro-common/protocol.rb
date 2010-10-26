@@ -87,6 +87,8 @@ module Castoro
         Protocol::Command::Alive.new(operand["host"], operand["status"], operand["available"])
       when "STATUS"
         Protocol::Command::Status.new()
+      when "DUMP"
+        Protocol::Command::Dump.new()
       when "MKDIR"
         Protocol::Command::Mkdir.new(operand["mode"], operand["user"], operand["group"], operand["source"])
       when "MV"
@@ -345,6 +347,12 @@ module Castoro
     end
     def error_response error = {}
       Protocol::Response::Status.new(error)
+    end
+  end
+
+  class Protocol::Command::Dump < Protocol::Command
+    def to_s
+      [ "1.1", "C", "DUMP", {}].to_json + "\r\n"
     end
   end
 

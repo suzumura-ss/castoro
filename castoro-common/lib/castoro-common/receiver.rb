@@ -186,7 +186,7 @@ module Castoro
       #   # ip      String
       #
       #   # when the packet is received, it reaches this line.
-      #   l.info { "received from #{ip}:#{port}\r\n#{header}#{data}" }
+      #   l.info { "received from #{ip}:#{port}\n#{header}#{data}" }
       #
       # }
       # 
@@ -250,21 +250,20 @@ module Castoro
       #
       def alive?; !!@thread; end
 
-    private
+      private
 
       def listen_loop
         until Thread.current[:dying]
-          if (res = IO::select([@socket], nil, nil, 1))
-            sock = res[0][0]
+          if IO::select([@socket], nil, nil, 1.0)
             begin
-              data, sockaddr = sock.recvfrom(1024)
+              data, sockaddr = @socket.recvfrom(1024)
               port, ip = sockaddr[1].to_i, sockaddr[3].to_s
             rescue Errno::ECONNRESET => e
               @logger.error { e.message }
               @logger.debug { e.backtrace.join("\n\t") }
               next
             end
-            @logger.debug { "#{@port} / received data from #{ip}:#{port}\r\n#{data}" }
+            @logger.debug { "#{@port} / received data from #{ip}:#{port}\n#{data.chomp}" }
 
             # call subscriber proc.
             begin

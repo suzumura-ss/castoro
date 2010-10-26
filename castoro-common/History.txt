@@ -1,3 +1,10 @@
+
+=== 0.0.14
+
+* Changed dependency json (1.2.3 --> >=1.2.3)
+* Added Dump command.
+* Added Sender accessors #target, #host and #port.
+
 === 0.0.13 2010-10-01
 * Bugfix: Typo changed.
 * castoro-common-0.0.12.gem is removed.
