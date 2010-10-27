@@ -1,4 +1,10 @@
 
+=== 0.0.7 2010-10-27
+
+* bugfix: Permission masking to the file was invalid.
+* "rake spec" task supported for 1.9.2.
+** In "Rspec on 1.9.2", the spec file cannot be specified by the relative path.
+
 === 0.0.6 2010-08-25
 
 * Correction of license sentence

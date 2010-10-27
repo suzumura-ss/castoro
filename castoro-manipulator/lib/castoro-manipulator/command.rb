@@ -28,6 +28,8 @@ module Castoro
 
     class Command
 
+      FILE_PERMISSION_MASK = 0666
+
       def self.new_recursive_mkdir source, mode, user, group
         # The instance is decorate to
         # the reverse order of the file operation.
@@ -62,7 +64,7 @@ module Castoro
         cmd = Command.new
         Dir[File.join(source, "*")].each { |file|
           f = File.join(dest, File.basename(file))
-          cmd = Command::Chmod.new(cmd, f, mode)
+          cmd = Command::Chmod.new(cmd, f, mode & FILE_PERMISSION_MASK)
           cmd = Command::Chown.new(cmd, f, user, group)
         }
         cmd = Command::Chmod.new(cmd, dest, mode)

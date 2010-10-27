@@ -25,7 +25,7 @@ require 'rake/rdoctask'
 
 spec = Gem::Specification.new do |s|
   s.name = 'castoro-manipulator'
-  s.version = '0.0.6'
+  s.version = '0.0.7'
   s.has_rdoc = true
   s.extra_rdoc_files = ['README.textile']
   s.summary = "This(it) is (storage) manipulator for Castoro which is distributed abstraction filesystem."
