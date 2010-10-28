@@ -53,29 +53,29 @@ module Castoro
       if options[:daemon]
         raise "PID file already exists - #{options[:pid]}" if File.exist?(options[:pid])
 
-        logdir = File.dirname(options[:log])
-        FileUtils.mkdir_p logdir unless File.directory?(logdir)
-        FileUtils.touch options[:log]
+        # create logger.
+        logger = if config["logger"]
+                   eval(config["logger"].to_s).call(options[:log])
+                 else
+                   eval(Castoro::Gateway::DEFAULT_SETTINGS["logger"]).call(options[:log])
+                 end
 
-        piddir = File.dirname(options[:pid])
-        FileUtils.mkdir_p piddir unless File.directory?(piddir)
+        # daemonize and create pidfile.
         FileUtils.touch options[:pid]
-
         fork {
           Process.setsid
           fork {
             Dir.chdir("/")
-            File.umask(0)
-            STDIN.reopen  "/dev/null", "r+"
-            STDOUT.reopen options[:log], "a"; STDOUT.sync = true
-            STDERR.reopen options[:log], "a"; STDERR.sync = true
+            STDIN.reopen "/dev/null", "r+"
+            STDOUT.reopen "/dev/null", "a"
+            STDERR.reopen "/dev/null", "a"
 
-            init_gateway config, options[:pid]
+            init_gateway config, logger, options[:pid]
             sleep
           }
         }
       else
-        init_gateway config
+        init_gateway config, Logger.new(STDOUT)
       end
 
     rescue => e
@@ -147,8 +147,7 @@ module Castoro
 
     private
 
-    def self.init_gateway config, pid_file = nil
-      logger = Logger.new(STDOUT)
+    def self.init_gateway config, logger, pid_file = nil
       gateway = Gateway.new(config, logger)
 
       # signal.
@@ -185,3 +184,4 @@ module Castoro
     end
   end
 end
+

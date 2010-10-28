@@ -31,6 +31,7 @@ module Castoro
   class Gateway
 
     DEFAULT_SETTINGS = {
+      "logger" => " Proc.new { |logfile| Logger.new(logfile) } ",
       "user" => "castoro",
       "workers" => 5,
       "loglevel" => Logger::INFO,

@@ -1,4 +1,9 @@
 
+=== 0.0.13
+
+* refactored script_runner.rb
+* creation procedure of logger is able to inject from configuration file.
+
 === 0.0.12 2010-09-16
 
 * "rake spec" task supported for 1.9.2.

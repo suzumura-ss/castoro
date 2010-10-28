@@ -128,6 +128,7 @@ h3. example
 <pre>
 ---
 default:
+  logger: " Proc.new { |file| Logger.new(file, 'monthly') } "
   user: castoro
   workers: 5
   loglevel: 1
@@ -146,6 +147,11 @@ default:
   peer:
     multicast_port: 30112
 </pre>
+
+h3. logger
+
+String that can be evaluated by eval,
+Proc object that returns Logger.
 
 h3. user
 
