@@ -20,7 +20,6 @@
 require 'castoro-peer/pre_threaded_tcp_server'
 require 'castoro-peer/worker'
 require 'castoro-peer/log'
-require 'castoro-peer/storage_servers'
 require 'castoro-peer/server_status'
 require 'castoro-peer/maintenace_server'
 require 'castoro-peer/crepd_sender'
@@ -252,13 +251,13 @@ module Castoro
 
           basket = Basket.new( content_id, type_id, revision_number )
 
-          if ( alternative )
-            alternative_host_candidates = []
-          else
-            alternative_host_candidates = StorageServers.instance.alternative_hosts.dup
-          end
+          alternative_host_candidates = if alternative
+                                          []
+                                        else
+                                          Configurations.instance.StorageServers.alternative_hosts.dup
+                                        end
 
-          host = StorageServers.instance.target
+          host = Configurations.instance.StorageServers.target
           alternative_host = nil
           done = false
 

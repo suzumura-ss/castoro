@@ -15,3 +15,39 @@ cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-peer-0.0.1/config/
 cd init.d/
 make install # => copy to /etc/init.d/*
 
+h3. configuration files.
+
+The following files are necessary to start.
+
+* /etc/castoro/peer.conf
+* /etc/castoro/peer_groups.conf
+
+h3. details of peer_groups.conf
+
+based on yaml format.
+
+<pre>
+---
+aliases:
+  peer1: peer1rep
+  peer2: peer2rep
+  peer3: peer3rep
+  peer4: peer4rep
+  peer5: peer5rep
+  peer6: peer6rep
+  peer7: peer7rep
+  peer8: peer8rep
+  peer9: peer9rep
+groups:
+  - [ peer1, peer2, peer3 ]
+  - [ peer4, peer5, peer6 ]
+  - [ peer7, peer8, peer9 ]
+</pre>
+
+* aliases
+** peer aliases is defined.
+** it should be a hostname to which peer can be recognized mutually.
+* groups
+** The peer group is defined.
+** The peer does replicate to the peer of the same group.
+

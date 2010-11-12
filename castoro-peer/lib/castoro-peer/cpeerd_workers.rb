@@ -26,7 +26,6 @@ require 'castoro-peer/channel'
 require 'castoro-peer/manipulator'
 require 'castoro-peer/log'
 require 'castoro-peer/pipeline'
-require 'castoro-peer/storage_servers'
 require 'castoro-peer/server_status'
 require 'castoro-peer/maintenace_server'
 

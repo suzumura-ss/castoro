@@ -17,7 +17,6 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'singleton'
 require 'socket'
 require "ipaddr"
 
@@ -25,100 +24,91 @@ module Castoro
   module Peer
 
     class IfConfig
-      include Singleton
 
-      IFCONFIG_COMMAND = '/sbin/ifconfig -a'
+      DEFAULT_OPTIONS = {
+        :enum_if_proc => Proc.new {
+                           ret = []
+                           IO.popen '/sbin/ifconfig -a' do |pipe|
+                             while line = pipe.gets do
+                               ret << $1 if line =~ /inet\D+(\d+\.\d+\.\d+\.\d+)/
+                             end
+                           end
+                           ret
+                         },
+      }
 
-      def initialize
-        super
-        @monitor = nil
-        @mutex = Mutex.new
-        load
+      ##
+      # initialize.
+      #
+      def initialize options = {}
+        @options                   = DEFAULT_OPTIONS.merge options
+        @default_hostname          = Socket::gethostname
+        @default_interface_address = IPSocket::getaddress @default_hostname
+        @interface_addresses       = @options[:enum_if_proc].call
       end
 
-      def load
-        @mutex.synchronize {
-          @interface_addresses = get_all_interface_addresses
-        }
+      ##
+      # default hostname
+      #
+      attr_reader :default_hostname
+
+      ##
+      # default interface address
+      #
+      attr_reader :default_interface_address
+
+      ##
+      # It is returned whether to possess the specified address. 
+      #
+      # === Args
+      #
+      # +interface_address+::
+      #   interface address
+      #
+      def has_interface? interface_address
+        @interface_addresses.include? interface_address
       end
 
-      alias_method :reload, :load
-
-      def default_interface_address
-        IPSocket::getaddress( Socket::gethostname )
-      end
-
-      def default_hostname
-        # @hostname = Socket::gethostname unless defined? @hostname
-        # @hostname
-        Socket::gethostname
-      end
-
-      def has_interface?( interface_address )
-        @mutex.synchronize {
-          return @interface_addresses.include?( interface_address )
-        }
-      end
-
+      ##
+      # ipaddress in the specified range of the address is returned.
+      #
+      # === Args
+      #
+      # +network_address+::
+      #
+      # === Exception
+      #
+      # * When satisfied Internet Protocol address doesn't exist.
+      # * When two or more satisfied Internet Protocol addresses exist.
+      # 
+      # === Examples
+      #
+      #  # It is assumed that the following addresses are possessed.
+      #  #   * 192.168.1.1
+      #  #   * 192.168.2.22
+      #  #   * 192.168.3.123
+      #
+      #  ifcfg = IfConfig.new
+      #  p ifcfg.multicast_interface_by_network_address("192.168.2.0/24") #=> "192.168.2.22"
+      #  p ifcfg.multicast_interface_by_network_address("192.168.1.0/24") #=> "192.168.1.1"
+      #  p ifcfg.multicast_interface_by_network_address("192.168.2.0/23") #=> raise 'Too many candidates ..'
+      #  p ifcfg.multicast_interface_by_network_address("192.168.4.0/24") #=> raise 'No candidate found ..'
+      #
       def multicast_interface_by_network_address( network_address )
         n = IPAddr.new( network_address )
-        @mutex.synchronize {
-          a = @interface_addresses.select { |inet| n.include?( IPAddr.new( inet ) ) }
-          if ( 1 < a.count )
-            s = 'Too may candidates for the multicast network interface in the given network address'
-            raise ArgumentError, "#{s}: #{network_address}: candidates: " + a.join(' ')
-          elsif ( 0 == a.count )
-            s = 'No candidate found for the multicast network interface in the given network address'
-            raise ArgumentError, "#{s}: #{network_address}"
-          end
-          return a.shift
-        }
+        a = @interface_addresses.select { |inet| n.include?( IPAddr.new( inet ) ) }
+
+        if a.empty?
+          s = 'No candidate found for the multicast network interface in the given network address'
+          raise ArgumentError, "#{s}: #{network_address}"
+        elsif a.size > 1
+          s = 'Too many candidates for the multicast network interface in the given network address'
+          raise ArgumentError, "#{s}: #{network_address}: candidates: " + a.join(' ')
+        end
+
+        a.first
       end
 
-      protected
-
-      def get_all_interface_addresses
-        a = []
-        IO.popen IFCONFIG_COMMAND do |pipe|
-          while line = pipe.gets do
-            a << $1 if line =~ /inet\D+(\d+\.\d+\.\d+\.\d+)/  # This works for both CentOS and Solaris
-          end
-        end
-        a
-      end
-
-    end
-  end
-end
-
-if $0 == __FILE__
-  module Castoro
-    module Peer
-      x = IfConfig.instance
-      p x.default_interface_address
-      p x.has_interface?( '127.0.0.1' )
-      p x.has_interface?( '192.168.1.1' )
-      p x.has_interface?( '192.168.223.20' )
-      t = Thread.new {
-        x.reload
-        begin 
-          p x.multicast_interface_by_network_address( '0.0.0.0/0' )
-        rescue => e
-          p e
-        end
-        begin 
-          p x.multicast_interface_by_network_address( '192.168.223.0/24' )
-          p x.multicast_interface_by_network_address( '192.168.223.0/255.255.255.0' )
-        rescue => e
-          p e
-        end
-        begin 
-          p x.multicast_interface_by_network_address( '192.168.224.0/24' )
-        rescue => e
-          p e
-        end
-      }
-      t.join
     end
   end
 end

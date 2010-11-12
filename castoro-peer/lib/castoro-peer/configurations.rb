@@ -120,7 +120,7 @@ module Castoro
     class ConfigurationFile
       def initialize
         @file = nil
-        @ifconfig = IfConfig.instance
+        @ifconfig = IfConfig.new
         @default_entries = Hash.new
         [
          :HostnameForClient,
@@ -138,12 +138,10 @@ module Castoro
          :ReplicationTCPCommunicationPort,
 
          :CmondMaintenancePort,
-         :CgetdMaintenancePort,
          :CpeerdMaintenancePort,
          :CrepdMaintenancePort,
 
          :CmondHealthCheckPort,
-         :CgetdHealthCheckPort,
          :CpeerdHealthCheckPort,
          :CrepdHealthCheckPort,
 
@@ -177,8 +175,7 @@ module Castoro
          :Dir_c_group,
          :Dir_c_perm,
 
-         :StorageHostsFile,
-         :StorageGroupsFile,
+         :PeerGroupsFile,
 
          :EffectiveUser,
 
@@ -194,8 +191,9 @@ module Castoro
         @file = file
         @entries = @default_entries.dup
         do_load
-        load_storage_hosts_file
-        load_storage_groups_file
+
+        load_storage_servers
+
         validate
         @entries
       end
@@ -229,16 +227,12 @@ module Castoro
         @entries[ :BasketBaseDir ] or raise ConfigurationError, "BasketBaseDir is not sepecfied in #{@file}"
         
         check_existence( :BasketBaseDir )
-        @entries[ :StorageHostsFile ] or raise ConfigurationError, "StorageHostsFile is not sepecfied in #{@file}"
-        @entries[ :StorageGroupsFile ] or raise ConfigurationError, "StorageGroupsFile is not sepecfied in #{@file}"
 
         @entries[ :CmondMaintenancePort ] or raise ConfigurationError, "CmondMaintenancePort is not sepecfied in #{@file}"
-        @entries[ :CgetdMaintenancePort ] or raise ConfigurationError, "CgetdMaintenancePort is not sepecfied in #{@file}"
         @entries[ :CpeerdMaintenancePort ] or raise ConfigurationError, "CpeerdMaintenancePort is not sepecfied in #{@file}"
         @entries[ :CrepdMaintenancePort ] or raise ConfigurationError, "CrepdMaintenancePort is not sepecfied in #{@file}"
 
         @entries[ :CmondHealthCheckPort ] or raise ConfigurationError, "CmondHealthCheckPort is not sepecfied in #{@file}"
-        @entries[ :CgetdHealthCheckPort ] or raise ConfigurationError, "CgetdHealthCheckPort is not sepecfied in #{@file}"
         @entries[ :CpeerdHealthCheckPort ] or raise ConfigurationError, "CpeerdHealthCheckPort is not sepecfied in #{@file}"
         @entries[ :CrepdHealthCheckPort ] or raise ConfigurationError, "CrepdHealthCheckPort is not sepecfied in #{@file}"
         
@@ -251,8 +245,8 @@ module Castoro
         check_existence( :ManipulatorSocket ) if @entries[ :UseManipulatorDaemon ]
       end
 
-      def check_existence( symbol )
-        path = @entries[ symbol ]
+      def check_existence( symbol, default_file = nil )
+        path = @entries[ symbol ] || default_file
         File.exist? path  or raise ConfigurationError, "A path #{symbol} in #{@file} does not exist: #{path}"
       end
 
@@ -283,14 +277,35 @@ module Castoro
         end
       end
 
-      def load_storage_hosts_file
-        check_existence( :StorageHostsFile )
-        @entries[ :StorageHostsData ] = YAML::load_file( @entries[ :StorageHostsFile ] )
-      end
-      
-      def load_storage_groups_file
-        check_existence( :StorageGroupsFile )
-        @entries[ :StorageGroupsData ] = JSON::parse IO.read( @entries[ :StorageGroupsFile ] )
+      def load_storage_servers
+        check_existence( :PeerGroupsFile, "/etc/castoro/peer_groups.conf" )
+
+        hostname    = @entries[:HostnameForClient]
+        peer_groups = YAML.load_file @entries[:PeerGroupsFile]
+        storages    = peer_groups["aliases"]
+        groups      = peer_groups["groups"]
+
+        g = groups.select { |a| a.include? hostname }
+        g.flatten!
+        n = g.size
+        g.concat g.dup
+        i = g.index hostname
+        hosts = g.slice(i, n)
+        h = hosts.map { |x| storages[x] || x }
+        h.shift
+
+        @entries[:StorageServers] = {
+          :colleague_hosts => h.dup,
+          :target => h.shift,
+          :alternative_hosts => h,
+        }
+
+        # StorageServers accessors.
+        class << @entries[:StorageServers]
+          define_method(:colleague_hosts)   { self[:colleague_hosts]   }
+          define_method(:target)            { self[:target]            }
+          define_method(:alternative_hosts) { self[:alternative_hosts] }
+        end
       end
     end
 

@@ -17,65 +17,55 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'thread'
-require 'singleton'
+require "monitor"
 
-module Castoro
+module Castoro # :nodoc:
 
-  class SequentialNGenerator
-    include Singleton
+  class SequenceGenerator
 
-    attr_accessor :maximum
+    DEFAULT_OPTIONS = {
+      :increment => 1,
+      :decorate_proc => Proc.new { |seq| seq },
+    }
 
-    def initialize( maximum = 999 )
-      @maximum = maximum
-      @x = 0
-      @m = Mutex.new
+    ##
+    # initialize.
+    #
+    def initialize numeric_scale, options = {}
+      @options  = DEFAULT_OPTIONS.merge options
+      @max_seed = 10 ** numeric_scale - 1
+
+      @seed = 0
+      @m = Monitor.new
     end
 
+    ##
+    # generate sequence number
+    #
     def generate
-      @m.synchronize {
-        @x = 0 if @maximum <= @x
-        @x += 1
+      ret = @m.synchronize {
+        @seed = 0 if @max_seed <= @seed
+        @seed += @options[:increment]
       }
+      @options[:decorate_proc].call ret
     end
+
   end
 
+  class SessionIdGenerator < SequenceGenerator
 
-  class SessionIdGenerator < SequentialNGenerator
+    ##
+    # initialize.
+    #
     def initialize
-      super( 100000000 - 1 )
+      scale = 8
+      cardinal = 10 ** scale
+      super scale, decorate_proc: Proc.new { |seq|
+                                    (Time.now.to_i % cardinal) * cardinal + seq
+                                  }
     end
 
-    def generate
-      lower_digit = super
-      upper_digit = Time.now.to_i % 100000000
-      upper_digit * 100000000 + lower_digit
-    end
   end
 
 end
 
-
-if $0 == __FILE__
-  15.times { p Castoro::SessionIdGenerator.instance.generate; sleep 0.3 }
-end
-
-__END__
-
-$ ruby number_generator.rb
-6976964000000001
-6976964000000002
-6976964100000003
-6976964100000004
-6976964100000005
-6976964100000006
-6976964200000007
-6976964200000008
-6976964200000009
-6976964300000010
-6976964300000011
-6976964300000012
-6976964400000013
-6976964400000014
-6976964400000015

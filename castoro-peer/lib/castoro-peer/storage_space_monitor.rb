@@ -17,7 +17,7 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'thread'
+require 'sync'
 
 module Castoro
   module Peer
@@ -28,21 +28,19 @@ module Castoro
     #
     # === Example
     #
-    # <pre>
-    # # init.
-    # m = Castoro::Peer::StorageSpaceMonitor.new "/expdsk"
+    #  # init.
+    #  m = Castoro::Peer::StorageSpaceMonitor.new "/expdsk"
     #
-    # # start
-    # m.start
+    #  # start
+    #  m.start
     #
-    # 10.times {
-    #   puts m.space_bytes # => The disk free space is displayed.
-    #   sleep 3
-    # }
+    #  10.times {
+    #    puts m.space_bytes # => The disk free space is displayed.
+    #    sleep 3
+    #  }
     #
-    # # stop
-    # m.stop 
-    # </pre>
+    #  # stop
+    #  m.stop 
     #
     class StorageSpaceMonitor
 
@@ -66,7 +64,7 @@ module Castoro
         raise "directory not found - #{directory}" unless File.directory?(directory.to_s)
 
         @directory = directory.to_s
-        @locker = Mutex.new
+        @locker = Sync.new
       end
 
       ##
@@ -75,7 +73,7 @@ module Castoro
       # start monitor service.
       #
       def start
-        @locker.synchronize {
+        @locker.synchronize(:EX) {
           raise 'monitor already started.' if alive?
 
           # first calculate.
@@ -92,8 +90,8 @@ module Castoro
       # stop monitor service.
       #
       def stop
-        @locker.synchronize {
-          raise 'monitor already started.' unless alive?
+        @locker.synchronize(:EX) {
+          raise 'monitor already stopped.' unless alive?
           
           @thread[:dying] = true
           @thread.wakeup rescue nil
@@ -108,9 +106,10 @@ module Castoro
       # Accessor of storage space (bytes)
       #
       def space_bytes
-        raise 'monitor does not started.' unless alive?
-
-        @space_bytes
+        @locker.synchronize(:SH) {
+          raise 'monitor does not started.' unless alive?
+          @space_bytes
+        }
       end
 
       ##
@@ -118,7 +117,9 @@ module Castoro
       #
       # Return the state of alive or not alive.
       #
-      def alive?; !! @thread; end
+      def alive?
+        @locker.synchronize(:SH) { !! @thread }
+      end
 
       private
 
@@ -130,7 +131,8 @@ module Castoro
       #
       def monitor_loop
         until Thread.current[:dying]
-          @space_bytes = calculate_space_bytes
+          space_bytes = calculate_space_bytes
+          @locker.synchronize(:EX) { @space_bytes = space_bytes }
           sleep @@monitoring_interval
         end
       end

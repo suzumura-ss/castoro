@@ -3,20 +3,21 @@ require File.dirname(__FILE__) + '/spec_helper.rb'
 require 'castoro-peer/channel'
 require 'castoro-peer/extended_udp_socket'
 
-INVALID_REQUEST1  = '["1.1", "D", "CREATE", {"foo":"bar"}]'            + "\r\n"
-INVALID_REQUEST2  = '["1.3", "C", "CREATE", {"foo":"bar"}]'            + "\r\n"
-INVALID_REQUEST3  = '[ 1.1 , "C", "CREATE", {"foo":"bar"}]'            + "\r\n"
-INVALID_REQUEST4  = '["1.1", "C", "create", {"foo":"bar"}]'            + "\r\n"
-INVALID_REQUEST5  = '["1.1", "C", "CREATE", {"foo":"bar"}, "hoge"]'    + "\r\n"
-INVALID_REQUEST6  = '["1.1", "C", "CREATE"]'                           + "\r\n"
-INVALID_REQUEST7  = '["1.1", "C", "CREATE",100]'                       + "\r\n"
-INVALID_REQUEST8  = '["1.1", "R", "CREATE", {"foo":"bar"}]'            + "\r\n"
-INVALID_REQUEST9  = 'String'
-INVALID_REQUEST10 = 100
-REQUEST1          = '["1.1", "C", "FINALIZE", {"foo":"bar"}]'          + "\r\n"
-REQUEST2          = '["1.1", "C", "CREATE",{ "foo":"bar","hoge":100}]' + "\r\n"
-
 describe Castoro::Peer::TcpServerChannel do
+  before do
+    @invalid_request1  = '["1.1", "D", "CREATE", {"foo":"bar"}]'            + "\r\n"
+    @invalid_request2  = '["1.3", "C", "CREATE", {"foo":"bar"}]'            + "\r\n"
+    @invalid_request3  = '[ 1.1 , "C", "CREATE", {"foo":"bar"}]'            + "\r\n"
+    @invalid_request4  = '["1.1", "C", "create", {"foo":"bar"}]'            + "\r\n"
+    @invalid_request5  = '["1.1", "C", "CREATE", {"foo":"bar"}, "hoge"]'    + "\r\n"
+    @invalid_request6  = '["1.1", "C", "CREATE"]'                           + "\r\n"
+    @invalid_request7  = '["1.1", "C", "CREATE",100]'                       + "\r\n"
+    @invalid_request8  = '["1.1", "R", "CREATE", {"foo":"bar"}]'            + "\r\n"
+    @invalid_request9  = 'String'
+    @invalid_request10 = 100
+    @request1          = '["1.1", "C", "FINALIZE", {"foo":"bar"}]'          + "\r\n"
+    @request2          = '["1.1", "C", "CREATE",{ "foo":"bar","hoge":100}]' + "\r\n"
+  end
 
   it 'PROTOCOL_VERSION should "1.1"' do
     Castoro::Peer::PROTOCOL_VERSION.should == "1.1"
@@ -62,87 +63,87 @@ describe Castoro::Peer::TcpServerChannel do
       end
     end
     
-    context "#{INVALID_REQUEST1}" do
+    context "#{@invalid_request1}" do
       it 'should raise BadRequestError.' do
-        @channel.instance_variable_set(:@data, INVALID_REQUEST1)
+        @channel.instance_variable_set(:@data, @invalid_request1)
         Proc.new{
           @channel.parse
         }.should raise_error(Castoro::Peer::BadRequestError)
       end
     end
     
-    context "#{INVALID_REQUEST2}" do
+    context "#{@invalid_request2}" do
       it 'should raise BadRequestError.' do
-        @channel.instance_variable_set(:@data, INVALID_REQUEST2)
+        @channel.instance_variable_set(:@data, @invalid_request2)
         Proc.new{
           @channel.parse
         }.should raise_error(Castoro::Peer::BadRequestError)
       end
     end
 
-    context "#{INVALID_REQUEST3}" do
+    context "#{@invalid_request3}" do
       it 'should raise BadRequestError.' do
-        @channel.instance_variable_set(:@data, INVALID_REQUEST3)
+        @channel.instance_variable_set(:@data, @invalid_request3)
         Proc.new{
           @channel.parse
         }.should raise_error(Castoro::Peer::BadRequestError)
       end
     end
 
-    context "#{INVALID_REQUEST4}" do
+    context "#{@invalid_request4}" do
       it 'should raise BadRequestError.' do
         pending 'now do not need to check command to be correct.'
-        @channel.instance_variable_set(:@data, INVALID_REQUEST3)
+        @channel.instance_variable_set(:@data, @invalid_request3)
         Proc.new{
           @channel.parse
         }.should raise_error(Castoro::Peer::BadRequestError)
       end
     end
 
-    context "#{INVALID_REQUEST5}" do
+    context "#{@invalid_request5}" do
       it 'should raise BadRequestError.' do
-        @channel.instance_variable_set(:@data, INVALID_REQUEST5)
+        @channel.instance_variable_set(:@data, @invalid_request5)
         Proc.new{
           @channel.parse
         }.should raise_error(Castoro::Peer::BadRequestError)
       end
     end
 
-    context "#{INVALID_REQUEST6}" do
+    context "#{@invalid_request6}" do
       it 'should raise BadRequestError.' do
-        @channel.instance_variable_set(:@data, INVALID_REQUEST6)
+        @channel.instance_variable_set(:@data, @invalid_request6)
         Proc.new{
           @channel.parse
         }.should raise_error(Castoro::Peer::BadRequestError)
       end
     end
 
-    context "#{INVALID_REQUEST7}" do
+    context "#{@invalid_request7}" do
       it 'do not need to check fourth argument to be Hash.' do
       end
     end
 
-    context "#{INVALID_REQUEST8}" do
+    context "#{@invalid_request8}" do
       it 'should raise BadRequestError.' do
-        @channel.instance_variable_set(:@data, INVALID_REQUEST8)
+        @channel.instance_variable_set(:@data, @invalid_request8)
         Proc.new{
           @channel.parse
         }.should raise_error(Castoro::Peer::BadRequestError)
       end
     end
 
-    context "#{INVALID_REQUEST9}" do
+    context "#{@invalid_request9}" do
       it 'should raise Error.' do
-        @channel.instance_variable_set(:@data, INVALID_REQUEST9)
+        @channel.instance_variable_set(:@data, @invalid_request9)
         Proc.new{
           @channel.parse
         }.should raise_error
       end
     end
 
-    context "#{INVALID_REQUEST10}" do
+    context "#{@invalid_request10}" do
       it 'should raise Error.' do
-        @channel.instance_variable_set(:@data, INVALID_REQUEST10)
+        @channel.instance_variable_set(:@data, @invalid_request10)
         Proc.new{
           @channel.parse
         }.should raise_error
@@ -150,17 +151,17 @@ describe Castoro::Peer::TcpServerChannel do
     end
 
 
-    context "#{REQUEST1}" do
+    context "#{@request1}" do
       it 'should return command and hash.' do
-        @channel.instance_variable_set(:@data, REQUEST1)
+        @channel.instance_variable_set(:@data, @request1)
         @channel.parse.should == ["FINALIZE",{"foo"=>"bar"}]
         @channel.instance_variable_get(:@command).should == "FINALIZE"
       end
     end
 
-    context "#{REQUEST2}" do
+    context "#{@request2}" do
       it 'should return command and hash.' do
-        @channel.instance_variable_set(:@data, REQUEST2)
+        @channel.instance_variable_set(:@data, @request2)
         @channel.parse.should == ["CREATE",{"foo"=>"bar","hoge"=>100}]
         @channel.instance_variable_get(:@command).should == "CREATE"
       end
@@ -246,7 +247,7 @@ describe Castoro::Peer::TcpServerChannel do
       @socket.stub!(:syswrite)
       Socket.stub!(:unpack_sockaddr_in).and_return("30150", "192.168.0.1")
       Castoro::Peer::ExtendedUDPSocket.stub!(:new).and_return(@socket)
-      @channel.instance_variable_set(:@data, REQUEST1)
+      @channel.instance_variable_set(:@data, @request1)
     end
 
     it 'should be called Castoro::Peer::ExtendedUDPSocket#syswrite.' do

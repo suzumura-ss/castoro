@@ -20,7 +20,6 @@
 require 'castoro-peer/pre_threaded_tcp_server'
 require 'castoro-peer/worker'
 require 'castoro-peer/log'
-require 'castoro-peer/storage_servers'
 require 'castoro-peer/server_status'
 require 'castoro-peer/extended_udp_socket'
 require 'castoro-peer/extended_tcp_socket'
@@ -85,7 +84,7 @@ module Castoro
         @a = AlivePacketSender.new( c.MulticastAddress, c.WatchDogCommandPort, @s )
         @p = CxxxdCommnicationWorker.new( '127.0.0.1', c.CpeerdHealthCheckPort )
         @r = CxxxdCommnicationWorker.new( '127.0.0.1', c.CrepdHealthCheckPort )
-        @colleague_hosts = StorageServers.instance.colleague_hosts
+        @colleague_hosts = c.StorageServers.colleague_hosts
         @colleague_hosts.each { |h| @w << CxxxdCommnicationWorker.new( h, c.CmondHealthCheckPort ) }
         @d = nil
         @z = SupervisorWorker.new( @p, @r, @d, @w, @a )
