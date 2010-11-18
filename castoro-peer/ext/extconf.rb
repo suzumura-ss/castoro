@@ -17,26 +17,51 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-BINDIR = File.dirname(`which ruby`)
+makefiles = {}
+makefiles[:linux] = <<__MAKEFILE__
 
-File.open("Makefile", "w") {|f|
-  f.puts <<__MAKEFILE__
+TARGET  = csm
+OBJS    = csm.o
+
+CFLAGS  = -Wall -g -DFILE_OFFSET_BITS=64
+LDFLAGS =
+LIBS    =
+
+$(TARGET): $(OBJS)
+	$(CXX) -o $@ $(CFLAGS) $(OBJS) $(LDFLAGS) $(LIBS)
+
+.cxx.o:
+	$(CXX) -o $@ $(CFLAGS) -c $<
+
+install: $(TARGET)
+	install -m 4775 $(TARGET) ../
+
+clean:
+	rm -f $(TARGET) $(OBJS)
+
+.SUFFIXES: .cxx .o
+
+.PHONY: all install clean
+
+__MAKEFILE__
+
+makefiles[:solaris] = <<__MAKEFILE__
 
 TARGET   = csm
 OBJS     = csm.o
 
-CXX	= /opt/sunstudio12.1/bin/CC
-GETCONF	= /bin/getconf
-CP	= /bin/cp
-CHMOD	= /bin/chmod
+CXX      = /opt/sunstudio12.1/bin/CC
+GETCONF  = /bin/getconf
+CP       = /bin/cp
+CHMOD    = /bin/chmod
 
 # Ensure to use commands in the only directory /usr/bin
-PATH    = /usr/bin
+PATH     = /usr/bin
 
 # See 'man lfcompile64' - transitional compilation environment
-CFLAGS  = -D_LARGEFILE64_SOURCE `$(GETCONF) LFS64_CFLAGS`
-LDFLAGS = `$(GETCONF) LFS64_LDFLAGS`
-LIBS    = `$(GETCONF) LFS64_LIBS`
+CFLAGS   = `$(GETCONF) LFS64_CFLAGS`
+LDFLAGS  = `$(GETCONF) LFS64_LDFLAGS`
+LIBS     = `$(GETCONF) LFS64_LIBS`
 
 all: 
 	PATH=$(PATH) $(MAKE) $(TARGET)
@@ -59,4 +84,9 @@ clean:
 .PHONY: all install clean
 
 __MAKEFILE__
+
+File.open("Makefile", "w") { |f|
+  platform = RUBY_PLATFORM.include?("solaris") ? :solaris : :linux
+  f.puts makefiles[platform]
 }
+

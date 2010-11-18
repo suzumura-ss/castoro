@@ -1,0 +1,25 @@
+<% require 'socket' %>
+---
+effective_user: hoge
+
+hostname_for_client: peer01
+multicast_network: 192.168.184.0/24
+
+dir_w_user: hoge
+dir_w_group: hoge
+dir_a_group: hoge
+dir_d_group: hoge
+dir_c_group: hoge
+
+groups:
+  - [ peer01, peer02, peer03 ]
+  - [ peer04, peer05, peer06 ]
+
+aliases:
+  peer01: peer01.repl
+  peer02: peer02.repl
+  peer03: peer03.repl
+  peer04: peer04.repl
+  peer05: peer05.repl
+  peer06: peer06.repl
+

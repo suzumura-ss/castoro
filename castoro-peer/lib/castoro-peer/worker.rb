@@ -18,7 +18,6 @@
 #
 
 require 'thread'
-require 'singleton'
 
 require 'castoro-peer/log'
 require 'castoro-peer/custom_condition_variable'
@@ -29,7 +28,7 @@ module Castoro
     class Worker
       def initialize( *argv )
         # Please, please do not put any unrelated class in this file 
-        # such as @config = Configurations.instance
+        # such as @config = $CONFIG
         # This class is a general class for not only Castoro but also 
         # other application software
         @mutex = Mutex.new
@@ -145,19 +144,14 @@ module Castoro
       end
     end
 
-    class SingletonWorker < Worker
-      include Singleton
-    end
-
   end
 end
-
 
 if $0 == __FILE__
   module Castoro
     module Peer
 
-      class SampleSingletonWorker < SingletonWorker
+      class SampleWorker < Worker
         def initialize
           super
           @count = 0
@@ -179,7 +173,7 @@ if $0 == __FILE__
         end
       end
 
-      x = SampleSingletonWorker.instance
+      x = SampleWorker.new
       x.start
       x.graceful_stop
       sleep 1
@@ -191,31 +185,3 @@ if $0 == __FILE__
 end
 
 __END__
-
-$ ruby -e 'b=Time.new; sleep 0.00001; e=Time.new; p [ (e-b) * 1000 ]'
-[10.077387]
-
-$ time ruby -e '100.times { sleep 0.00001 }'
-real	0m1.182s
-user	0m0.014s
-sys	0m0.017s
-
-$ time ruby -e '100.times { sleep 0.0001 }'
-real	0m1.184s
-user	0m0.016s
-sys	0m0.026s
-
-$ time ruby -e '100.times { sleep 0.001 }'
-real	0m1.149s
-user	0m0.015s
-sys	0m0.023s
-
-$ time ruby -e '100.times { sleep 0.01 }'
-real	0m1.177s
-user	0m0.014s
-sys	0m0.051s
-
-$ time ruby -e '100.times { sleep 0.02 }'
-real	0m2.172s
-user	0m0.016s
-sys	0m0.023s

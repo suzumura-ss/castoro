@@ -170,7 +170,7 @@ protected:
   void parse() {
     int c;
     extern char *optarg;
-    extern int optind, opterr, optopt;
+    extern int optind, optopt;
 
     while ((c = getopt(argc, argv, "vu:g:m:")) != -1) {
       switch(c) {
@@ -231,7 +231,6 @@ protected:
   {
     char* p = path;
     char* end = path + strlen( path );
-    char* q = NULL;
     while (p && ++p < end) {
       p = strchr(p, '/');
       if (p && p < end) {
@@ -350,8 +349,7 @@ protected:
     if (argc != 1)
       throw xia( 130, "Invalid number of parameters\n" );
 
-    char* path = validation( *argv );
-    // cout << "rmdir " << path << "\n";
+    validation( *argv );
 
     throw xia( 139, "rmdir is not implemented." );
   }

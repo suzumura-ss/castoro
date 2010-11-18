@@ -20,8 +20,6 @@
 module Castoro
   module Peer
 
-    class ConfigurationError < StandardError ; end
-
     class BadRequestError < StandardError ; end
     class BadResponseError < StandardError ; end
     class ServerStatusError < StandardError ; end

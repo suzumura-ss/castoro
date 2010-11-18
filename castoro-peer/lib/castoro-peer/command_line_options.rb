@@ -18,6 +18,7 @@
 #
 
 require 'getoptlong'
+require 'castoro-peer/version'
 require 'castoro-peer/configurations'
 
 module Castoro
@@ -26,6 +27,10 @@ module Castoro
     class CommandLineOptions < GetoptLong
       def initialize
         @program_name = $0.sub(/.*\//, '')
+
+        @run_as_daemon = true
+        @config_file   = Castoro::Peer::Configurations::DEFAULT_FILE
+
         super(
               [ '--help',                '-h', NO_ARGUMENT ],
               [ '--version',             '-V', NO_ARGUMENT ],
@@ -41,22 +46,22 @@ module Castoro
             usage
             exit 0
           when '--version'
-            puts "#{@program_name} - Version #{PROGRAM_VERSION}"
+            puts "#{@program_name} - Version #{Version::PROGRAM_VERSION}"
             exit 0
           when '--verbose'
             $VERBOSE = true
           when '--debug'
             $DEBUG = true
           when '--foreground'
-            $RUN_AS_DAEMON = false
+            @run_as_daemon = false
           when '--configuration-file'
-            Configurations.file = arg
+            @config_file = arg
           end
         end
       end
 
       def usage
-        puts "#{@program_name} - Version #{PROGRAM_VERSION}"
+        puts "#{@program_name} - Version #{Version::PROGRAM_VERSION}"
         puts ""
         puts " Usage: #{@program_name} [options]"
         puts ""
@@ -69,6 +74,9 @@ module Castoro
         puts "   -c configuration_file, --configuration-file=configuration_file"
         puts ""
       end
+
+      attr_reader :config_file
+      def run_as_daemon?; !! @run_as_daemon; end
     end
 
   end

@@ -18,7 +18,6 @@
 #
 
 require 'castoro-peer/main'
-require 'castoro-peer/server_status'
 require 'castoro-peer/cpeerd_workers'
 
 module Castoro
@@ -27,7 +26,7 @@ module Castoro
     class CpeerdMain < Main
       def initialize
         super
-        @w = CpeerdWorkers.instance
+        @w = CpeerdWorkers.new @config
       end
 
       def start
@@ -52,6 +51,8 @@ end
 ################################################################################
 
 if $0 == __FILE__
+  require 'castoro-peer/server_status'
+
   $LOAD_PATH.dup.each { |x|
     $LOAD_PATH.delete x if x.match '\/gems\/'
   }

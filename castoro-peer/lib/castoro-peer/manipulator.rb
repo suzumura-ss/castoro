@@ -24,10 +24,10 @@ module Castoro
   module Peer
 
     class Csm
-      def self.create_executor
-        c = Configurations.instance
-        if ( c.UseManipulatorDaemon )
-          DaemonInterface.new( c.ManipulatorSocket )
+
+      def self.create_executor socket_file
+        if socket_file
+          DaemonInterface.new socket_file
         else
           CommandInterface.new
         end
@@ -35,7 +35,7 @@ module Castoro
 
       class Request
         SUB_COMMANDS = [ "mkdir", "mv"  ]
-        @@c = Configurations.instance
+        @@configurations = nil
 
         attr_reader :subcommand, :user, :group, :mode, :path1, :path2
 
@@ -45,40 +45,40 @@ module Castoro
           # raise InternalServerError, "CsmRequest: Invalid mode, it should be an octal number: #{mode}" unless mode =~ /^0[0-7]{3,4}$/
           # raise InternalServerError, "CsmRequest: mv does not require path2: #{path2}" if subcommand == "mv" and path2 == ""
           @subcommand = subcommand
-          @user       = @@c.send user
-          @group      = @@c.send group
-          @mode       = @@c.send mode
+          @user       = @@configurations[user]
+          @group      = @@configurations[group]
+          @mode       = @@configurations[mode]
           @path1      = path1
           @path2      = path2
         end
 
         class Create < Request
           def initialize( path_w )
-            super( 'mkdir', :Dir_w_user, :Dir_w_group, :Dir_w_perm, path_w )
+            super( 'mkdir', :dir_w_user, :dir_w_group, :dir_w_perm, path_w )
           end
         end
 
         class Clone < Request
           def initialize( path_a, path_w )
-            super( 'copy', :Dir_w_user, :Dir_w_group, :Dir_w_perm, path_a, path_w )
+            super( 'copy', :dir_w_user, :dir_w_group, :dir_w_perm, path_a, path_w )
           end
         end
 
         class Delete < Request
           def initialize( path_a, path_d )
-            super( 'mv', :Dir_d_user, :Dir_d_group, :Dir_d_perm, path_a, path_d )
+            super( 'mv', :dir_d_user, :dir_d_group, :dir_d_perm, path_a, path_d )
           end
         end
 
         class Cancel < Request
           def initialize( path_w, path_c )
-            super( 'mv', :Dir_c_user, :Dir_c_group, :Dir_c_perm, path_w, path_c )
+            super( 'mv', :dir_c_user, :dir_c_group, :dir_c_perm, path_w, path_c )
           end
         end
 
         class Finalize < Request
           def initialize( path_w, path_a )
-            super( 'mv', :Dir_a_user, :Dir_a_group, :Dir_a_perm, path_w, path_a )
+            super( 'mv', :dir_a_user, :dir_a_group, :dir_a_perm, path_w, path_a )
           end
         end
 

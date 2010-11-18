@@ -17,19 +17,23 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'castoro-peer/configurations'
-
 module Castoro
   module Peer
 
-    S_ABCENSE     = 1
-    S_WORKING     = 2
-    S_REPLICATING = 3
-    S_ARCHIVED    = 4
-    S_DELETED     = 5
-    S_CONFLICT    = 6
-
     class Basket
+
+      S_ABCENSE     = 1
+      S_WORKING     = 2
+      S_REPLICATING = 3
+      S_ARCHIVED    = 4
+      S_DELETED     = 5
+      S_CONFLICT    = 6
+
+      ##
+      # basket base directory.
+      #
+      @@base_dir = nil
+
       attr_reader :content_id, :type_id, :revision_number
 
       def self.new_from_text( s )
@@ -41,7 +45,7 @@ module Castoro
         content_id.nil? or type_id.nil? or revision_number.nil? and
           raise ArgumentError, "Basket.new( #{content_id}, #{type_id}, #{revision_number} )"
         @content_id, @type_id, @revision_number = content_id, type_id, revision_number
-        @base_dir = "#{Configurations.instance.BasketBaseDir}/#{type_id.to_s}"
+        @base_dir = "#{@@base_dir}/#{type_id.to_s}"
 
         t = Time.new
         @time_dir = t.strftime("%Y%m%dT%H")
@@ -57,39 +61,35 @@ module Castoro
       end
 
       def to_s
-        ( defined? @x_to_s ) ? @x_to_s : ( @x_to_s = "#{@content_id}.#{@type_id}.#{@revision_number}" )
+        @to_s ||= "#{@content_id}.#{@type_id}.#{@revision_number}"
       end
 
       def path_w
-        ( defined? @w ) ? @w : ( @w = mktemp( "#{@base_dir}/baskets/w/#{@time_dir}/#{@body_dir}" ) )
+        @w ||= mktemp( "#{@base_dir}/baskets/w/#{@time_dir}/#{@body_dir}" )
       end
 
       def path_r
-        ( defined? @r ) ? @r : ( @r = mktemp( "#{@base_dir}/baskets/r/#{@time_dir}/#{@body_dir}" ) )
+        @r ||= mktemp( "#{@base_dir}/baskets/r/#{@time_dir}/#{@body_dir}" )
       end
 
       def path_a
-        ( defined? @a ) ? @a : ( @a = "#{@base_dir}/baskets/a/#{@hash_dir}/#{@body_dir}" )
+        @a ||= "#{@base_dir}/baskets/a/#{@hash_dir}/#{@body_dir}"
       end
 
       def path_d
-        ( defined? @d ) ? @d : ( @d = mktemp( "#{@base_dir}/baskets/d/#{@time_dir}/#{@body_dir}" ) )
+        @d ||= mktemp( "#{@base_dir}/baskets/d/#{@time_dir}/#{@body_dir}" )
       end
 
-      def path_c( path = nil )
-        unless ( defined? @c )
-          unless ( path.nil? )
-            path.match( /\/([^\/]+)$/ )
-            x = $1
-            @c = "#{@base_dir}/offline/canceled/#{@time_dir}/#{x}"
-            if ( File.exist? @c )
-              @c = mktemp( @c )
-            end
-          else
-            @c = mktemp( "#{@base_dir}/offline/canceled/#{@time_dir}/#{@body_dir}" )
-          end
-        end
-        @c
+      def path_c path = nil
+        @c ||= if path.nil?
+                 mktemp( "#{@base_dir}/offline/canceled/#{@time_dir}/#{@body_dir}" )
+               else
+                 path.match( /\/([^\/]+)$/ )
+                 x = $1
+                 c = "#{@base_dir}/offline/canceled/#{@time_dir}/#{x}"
+                 mktemp( c ) if ( File.exist? c )
+                 c
+               end
       end
 
       private
@@ -108,12 +108,11 @@ module Castoro
         raise InternalServerError, "mktemp failed: #{path} for #{to_s}"
       end
 
-      def big_number
+      def big_number #:nodoc:
         Process.pid * Thread.current.object_id
       end
     end
 
   end
 end
-
 

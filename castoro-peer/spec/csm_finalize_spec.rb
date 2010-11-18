@@ -24,10 +24,14 @@ require 'castoro-peer/manipulator'
 
 describe Castoro::Peer::Csm::Request::Finalize do
   before do
+    @conf = mock(Castoro::Peer::Configurations)
+    @conf.stub!(:[]).with(:dir_a_user).and_return('root')
+    @conf.stub!(:[]).with(:dir_a_group).and_return('castoro')
+    @conf.stub!(:[]).with(:dir_a_perm).and_return('0555')
+    Castoro::Peer::Csm::Request.class_variable_set :@@configurations, @conf
+
     @path1 = "/src/path"
     @path2 = "/dst/path"
-
-    @conf  = Castoro::Peer::Configurations.instance
   end
   
   context 'when initialize' do
@@ -87,9 +91,9 @@ describe Castoro::Peer::Csm::Request::Finalize do
 
       it 'should instance valiables be set correctly.' do
         @csm_req.instance_variable_get(:@subcommand).should == "mv"
-        @csm_req.instance_variable_get(:@user).should == @conf.Dir_a_user
-        @csm_req.instance_variable_get(:@group).should == @conf.Dir_a_group
-        @csm_req.instance_variable_get(:@mode).should == @conf.Dir_a_perm
+        @csm_req.instance_variable_get(:@user).should == @conf[:dir_a_user]
+        @csm_req.instance_variable_get(:@group).should == @conf[:dir_a_group]
+        @csm_req.instance_variable_get(:@mode).should == @conf[:dir_a_perm]
         @csm_req.instance_variable_get(:@path1).should == @path1
         @csm_req.instance_variable_get(:@path2).should == @path2
       end

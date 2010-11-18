@@ -1,4 +1,15 @@
 
+=== 0.0.20 2010-11-18
+
+* refactored configurations files.
+** it integrated it into peer.conf
+** it made it to the YAML format.
+** attribute name was made a snakecase.
+* changed shebang. /usr/bin/env ruby
+* added version.rb
+* refactored extconf.rb
+** The difference of the platform is absorbed.
+
 === 0.0.19
 
 * refactoring and added spec for IfConfig, StorageSpaceMonitor and others.

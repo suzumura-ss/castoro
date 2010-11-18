@@ -24,5 +24,4 @@ require 'castoro-peer/cmond'
 
 m = Castoro::Peer::CmondMain.instance
 Castoro::Peer::ServerStatus.instance.status_name = 'offline'
-Castoro::Peer::RemoteControl.set_mode_of_every_local_target
 m.main_loop

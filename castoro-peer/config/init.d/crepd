@@ -19,35 +19,23 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+start_script=crepd
+stop_script=crepd-stop
 config=/etc/castoro/peer.conf
-port=`/bin/awk '/^CrepdMaintenancePort/ {print $2}' $config`
-script=crepd
-
-export PATH=/usr/bin:/usr/sbin:/sbin:/usr/local/bin
-
-unset command
-if [ -x /usr/local/bin/$script ]; then command=/usr/local/bin/$script; fi
-if [ -x /usr/bin/$script ]; then command=/usr/bin/$script; fi
-if [ -z "$command" ]; then echo $script is not found; exit 1; fi
-
-unset ruby
-if [ -x /usr/local/bin/ruby ]; then ruby=/usr/local/bin/ruby; fi
-if [ -x /usr/bin/ruby ]; then ruby=/usr/bin/ruby; fi
-if [ -z "$ruby" ]; then echo ruby is not found; exit 1; fi
 
 case "$1" in
-    'start')
-	$command -c $config
-	;;
+  'start')
+    ${start_script} -c $config
+    ;;
 
-    'stop')
-	echo "$script is going to shutdown ... "
-	$ruby -e "require 'socket'; begin s=TCPSocket.new 'localhost', $port; s.puts 'shutdown'; s.gets; rescue => e; puts e.message; end"
-	;;
+  'stop')
+    ${stop_script} -c $config
+    ;;
 
-    *)
-	echo "Usage: $0 { start | stop }"
-	exit 1
-	;;
+  *)
+    echo "Usage: $0 { start | stop }"
+    exit 1
+    ;;
 esac
+
 exit 0

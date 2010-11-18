@@ -20,52 +20,54 @@
 require "monitor"
 
 module Castoro # :nodoc:
+  module Peer # :nodoc:
 
-  class SequenceGenerator
+    class SequenceGenerator
 
-    DEFAULT_OPTIONS = {
-      :increment => 1,
-      :decorate_proc => Proc.new { |seq| seq },
-    }
-
-    ##
-    # initialize.
-    #
-    def initialize numeric_scale, options = {}
-      @options  = DEFAULT_OPTIONS.merge options
-      @max_seed = 10 ** numeric_scale - 1
-
-      @seed = 0
-      @m = Monitor.new
-    end
-
-    ##
-    # generate sequence number
-    #
-    def generate
-      ret = @m.synchronize {
-        @seed = 0 if @max_seed <= @seed
-        @seed += @options[:increment]
+      DEFAULT_OPTIONS = {
+        :increment => 1,
+        :decorate_proc => Proc.new { |seq| seq },
       }
-      @options[:decorate_proc].call ret
+
+      ##
+      # initialize.
+      #
+      def initialize numeric_scale, options = {}
+        @options  = DEFAULT_OPTIONS.merge options
+        @max_seed = 10 ** numeric_scale - 1
+
+        @seed = 0
+        @m = Monitor.new
+      end
+
+      ##
+      # generate sequence number
+      #
+      def generate
+        ret = @m.synchronize {
+          @seed = 0 if @max_seed <= @seed
+          @seed += @options[:increment]
+        }
+        @options[:decorate_proc].call ret
+      end
+
+    end
+
+    class SessionIdGenerator < SequenceGenerator
+
+      ##
+      # initialize.
+      #
+      def initialize
+        scale = 8
+        cardinal = 10 ** scale
+        super scale, decorate_proc: Proc.new { |seq|
+                                      (Time.now.to_i % cardinal) * cardinal + seq
+                                    }
+      end
+
     end
 
   end
-
-  class SessionIdGenerator < SequenceGenerator
-
-    ##
-    # initialize.
-    #
-    def initialize
-      scale = 8
-      cardinal = 10 ** scale
-      super scale, decorate_proc: Proc.new { |seq|
-                                    (Time.now.to_i % cardinal) * cardinal + seq
-                                  }
-    end
-
-  end
-
 end
 

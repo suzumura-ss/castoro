@@ -63,33 +63,30 @@ module Castoro
         end
       end
 
-      def self.set_mode_of_every_local_target
-        c = Configurations.instance
+      def self.set_mode_of_every_local_target peerd_port, crepd_port
         Thread.new {
-          self.set_mode( '127.0.0.1', c.CpeerdMaintenancePort )
+          self.set_mode '127.0.0.1', cpeerd_port
         }
         Thread.new {
-          self.set_mode( '127.0.0.1', c.CrepdMaintenancePort )
+          self.set_mode '127.0.0.1', crepd_port
         }
       end
     end
 
     class CmondWorkers
-      include Singleton
 
-      def initialize
-        c = Configurations.instance
+      def initialize config
+        c = @config = config
         @w = []
-        @s = StorageSpaceMonitor.new( c.BasketBaseDir )
-        @a = AlivePacketSender.new( c.MulticastAddress, c.WatchDogCommandPort, @s )
-        @p = CxxxdCommnicationWorker.new( '127.0.0.1', c.CpeerdHealthCheckPort )
-        @r = CxxxdCommnicationWorker.new( '127.0.0.1', c.CrepdHealthCheckPort )
-        @colleague_hosts = c.StorageServers.colleague_hosts
-        @colleague_hosts.each { |h| @w << CxxxdCommnicationWorker.new( h, c.CmondHealthCheckPort ) }
-        @d = nil
-        @z = SupervisorWorker.new( @p, @r, @d, @w, @a )
-        @m = CmondTcpMaintenaceServer.new( c.CmondMaintenancePort, @p, @r, @d, @w, @a )
-        @h = TCPHealthCheckPatientServer.new( c.CmondHealthCheckPort )
+        @s = StorageSpaceMonitor.new( c[:basket_base_dir] )
+        @a = AlivePacketSender.new( c[:multicast_address], c[:watchdog_command_port], @s, c[:hostname_for_client], c[:period_of_alive_packet_sender], c[:multicast_if] )
+        @p = CxxxdCommnicationWorker.new( '127.0.0.1', c[:cpeerd_healthcheck_port] )
+        @r = CxxxdCommnicationWorker.new( '127.0.0.1', c[:crepd_healthcheck_port] )
+        @colleague_hosts = c.storage_servers.colleague_hosts
+        @colleague_hosts.each { |h| @w << CxxxdCommnicationWorker.new( h, c[:cmond_healthcheck_port] ) }
+        @z = SupervisorWorker.new( @p, @r, @w, @a, c[:cpeerd_maintenance_port], c[:crepd_maintenance_port] )
+        @m = CmondTcpMaintenaceServer.new( c, c[:cmond_maintenance_port], @p, @r, @w, @a )
+        @h = TCPHealthCheckPatientServer.new( c, c[:cmond_healthcheck_port] )
       end
 
       def start_workers
@@ -237,8 +234,9 @@ module Castoro
    ########################################################################
 
       class SupervisorWorker < Worker
-        def initialize( p, r, d, w, alive_packet_sender )
-          @p, @r, @d, @w, @alive_packet_sender = p, r, d, w, alive_packet_sender
+        def initialize( p, r, w, alive_packet_sender, cpeerd_port, crepd_port )
+          @p, @r, @w, @alive_packet_sender = p, r, w, alive_packet_sender
+          @cpeerd_port, @crepd_port = cpeerd_port, crepd_port
           super
           @error = false
           # @lsat_min = ServerStatus::ACTIVE
@@ -280,7 +278,6 @@ module Castoro
               if ( error )
                 Log.err( "#{@p.host}:#{@p.port} cpeerd error: #{@p.error}" ) if @p.error
                 Log.err( "#{@r.host}:#{@r.port} crepd error: #{@r.error}" ) if @r.error
-                # Log.warning( "#{@d.host}:#{@d.port} MySQL error: #{@d.error}" ) if @d.error
                 @w.each { |x| 
                   Log.err( "#{x.host}:#{x.port} cmond error: #{x.error}" ) if x.error
                 }
@@ -294,7 +291,7 @@ module Castoro
               if ( $AUTO_PILOT )
                 ServerStatus.instance.status = min
                 sleep 0.01
-                RemoteControl.set_mode_of_every_local_target
+                RemoteControl.set_mode_of_every_local_target @cpeerd_port, @crepd_port
                 @alive_packet_sender.send_alive_packet
               else
                 Log.notice( "STATUS change (from #{ServerStatus.instance.status_name} to #{min}) is requested, but auto is disabled" )
@@ -320,12 +317,12 @@ module Castoro
    ########################################################################
 
       class AlivePacketSender < Worker
-        def initialize( ip, port, space_monitor )
+        def initialize( ip, port, space_monitor, host, period, multicast_if )
           @ip, @port, @space_monitor = ip, port, space_monitor
           super
-          @channel   = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
-          @host      = Configurations.instance.HostnameForClient
-          @period    = Configurations.instance.PeriodOfAlivePacketSender
+          @channel   = UdpMulticastClientChannel.new( ExtendedUDPSocket.new multicast_if )
+          @host      = host
+          @period    = period
           @mutex     = Mutex.new
         end
 
@@ -355,12 +352,11 @@ module Castoro
    ########################################################################
 
       class CmondTcpMaintenaceServer < TcpMaintenaceServer
-        def initialize( port, p, r, d, w, alive_packet_sender )
-          @p, @r, @d, @w, @alive_packet_sender = p, r, d, w, alive_packet_sender
-          super( port )
-          c = Configurations.instance
-          @cpeerd_maintenance_port = c.CpeerdMaintenancePort
-          @crepd_maintenance_port  = c.CrepdMaintenancePort
+        def initialize( config, port, p, r, w, alive_packet_sender )
+          @p, @r, @w, @alive_packet_sender = p, r, w, alive_packet_sender
+          super( config, port )
+          @cpeerd_port = config[:cpeerd_maintenance_port]
+          @crepd_port  = config[:crepd_maintenance_port]
         end
 
         def do_help
@@ -396,7 +392,7 @@ module Castoro
           if (para)
             para.downcase!
             ServerStatus.instance.status_name = para
-            RemoteControl.set_mode_of_every_local_target
+            RemoteControl.set_mode_of_every_local_target @cpeerd_port, @crepd_port
           end
           x = ServerStatus.instance.status_name
           @io.syswrite( "run mode: #{x}\n" )
@@ -411,7 +407,7 @@ module Castoro
             if (para)
               para.downcase!
               ServerStatus.instance.status_name = para
-              RemoteControl.set_mode_of_every_local_target
+              RemoteControl.set_mode_of_every_local_target @cpeerd_port, @crepd_port
             end
             x = ServerStatus.instance.status_name
             @io.syswrite( "run mode: #{x}\n" )
@@ -451,7 +447,6 @@ module Castoro
 
               @io.syswrite( sprintf " %-10s cpeerd: %-12s %-4s  %s\n", @p.host, ServerStatus.status_to_s(@p.mode), @p.auto, @p.error )
               @io.syswrite( sprintf " %-10s crepd : %-12s %-4s  %s\n", @r.host, ServerStatus.status_to_s(@r.mode), @r.auto, @r.error )
-              # Todo: p [ @d.mode, @d.auto, @d.error ]
               @w.each { |x|
                 @io.syswrite( sprintf " %-10s cmond : %-12s %-4s  %s\n", x.host, ServerStatus.status_to_s(x.mode), x.auto, x.error )
               }

@@ -147,8 +147,8 @@ module Castoro
       @@generator ||= SessionIdGenerator.new
 
       def initialize( socket )
-        @socket = socket
-        @reply_ip = Configurations.instance[ :MulticastIf ]
+        @socket     = socket
+        @reply_ip   = socket.if_addr
         @reply_port = 0
       end
 

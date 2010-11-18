@@ -21,11 +21,11 @@ require File.dirname(__FILE__) + '/spec_helper.rb'
 
 require 'castoro-peer/session_id'
 
-describe Castoro::SessionIdGenerator.new do
+describe Castoro::Peer::SessionIdGenerator.new do
   before do
     Time.stub!(:now).and_return(12345)
 
-    @gen = ::Castoro::SessionIdGenerator.new
+    @gen = ::Castoro::Peer::SessionIdGenerator.new
   end
 
   it "should return unique number." do

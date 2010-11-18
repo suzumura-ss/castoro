@@ -23,13 +23,10 @@ module Castoro
     module SignalHandler
 
       def regist_signal_handler
-        [:start_request, :stop_request, :reload_request, :shutdown_request].each { |m|
+        [:start_request, :stop_request, :shutdown_request].each { |m|
           raise "self does not fill the methods." unless self.respond_to? m
         }
 
-        [:HUP].each { |sig|
-          Signal.trap(sig) { self.reload_request   }
-        }
         [:INT, :QUIT, :TERM].each { |sig|
           Signal.trap(sig) { self.shutdown_request }
         }

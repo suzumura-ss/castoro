@@ -27,16 +27,11 @@ require 'castoro-peer/daemon'
 require 'castoro-peer/signal_handler'
 require 'castoro-peer/custom_condition_variable'
 
+require 'castoro-peer/basket'
+require 'castoro-peer/manipulator'
+
 module Castoro
   module Peer
-
-    PROGRAM_VERSION = 'peer-0.0.17 - 2010-09-21'
-
-    $RUN_AS_DAEMON = true
-
-    # Todo: $FATAL_ERROR_OCCURRED could be reported through a method 
-    $FATAL_ERROR_OCCURRED = false
-    $VERBOSE = false
 
     class Main
       include Singleton
@@ -50,22 +45,24 @@ module Castoro
         @shutdown_requested = false
         @start_requested    = false
         @stop_requested     = false
-        @reload_requested   = false
 
-        CommandLineOptions.new
-        if $RUN_AS_DAEMON
-          Log.output = nil
-        end
-        Configurations.instance
+        @options            = CommandLineOptions.new
+
+        Log.output = nil if @options.run_as_daemon?
+        @config = Configurations.new(@options.config_file)
+
+        # refactor renessary.
+        Basket.class_variable_set :@@base_dir, @config[:basket_base_dir]
+        Csm::Request.class_variable_set :@@configurations, @config
 
         if ( Process.euid == 0 )
-          # Todo: notifies with an understandable error message if EffectiveUser is not set
-          pwnam = Etc.getpwnam( Configurations.instance.EffectiveUser )
+          # Todo: notifies with an understandable error message if effective_user is not set
+          pwnam = Etc.getpwnam @config[:effective_user]
           Process.egid = pwnam.gid
           Process.euid = pwnam.uid
         end
 
-        if $RUN_AS_DAEMON
+        if @options.run_as_daemon?
           Daemon.daemonize
           Daemon.create_pid_file
         end
@@ -79,7 +76,7 @@ module Castoro
         STDOUT.flush
         STDERR.flush
 
-        if $RUN_AS_DAEMON
+        if @options.run_as_daemon?
           Daemon.close_stdio
         end
         Log.notice( "Started." )
@@ -128,19 +125,6 @@ module Castoro
           end
         end
 
-        if ( @reload_requested )
-          @reload_requested = false
-          Log.notice( "Reloading..." )
-          if ( @started )
-            stop
-            sleep 0.1
-            Configurations.instance.reload
-            sleep 0.1
-            start
-          else
-            Configurations.instance.reload
-          end
-        end
       end
 
       def main_loop
@@ -148,7 +132,7 @@ module Castoro
         @started = true
         while ( true )
           @mutex.synchronize {
-            until ( @shutdown_requested || @start_requested || @stop_requested || @reload_requested ) do
+            until ( @shutdown_requested || @start_requested || @stop_requested ) do
               @cv.wait( @mutex )
               sleep 1
             end
@@ -195,14 +179,6 @@ module Castoro
       def stop_request
         Log.notice "Stop requested."
         deal_with_request { @stop_requested = true }
-      end
-
-      ##
-      # set flags for reload request.
-      #
-      def reload_request
-        Log.notice "Reload requested."
-        deal_with_request { @reload_requested = true }
       end
 
       private

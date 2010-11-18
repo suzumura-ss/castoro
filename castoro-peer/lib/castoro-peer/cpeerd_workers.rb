@@ -152,7 +152,6 @@ module Castoro
 ########################################################################
 
     class CpeerdWorkers
-      include Singleton
 
       STATISTICS_TARGETS = [
                             CommandReceiverTicketPool,
@@ -167,31 +166,33 @@ module Castoro
                             ReplicationPL,
                            ]
 
-      def initialize
-        c = Configurations.instance
+      def initialize config
+        c = @config = config
         @w = []
-        @w << UdpCommandReceiver.new( ExpressCommandReceiverPL.instance, c.PeerMulticastUDPCommandPort )
-        @w << UdpCommandReceiver.new( ExpressCommandReceiverPL.instance, c.PeerUnicastUDPCommandPort )
+        @w << UdpCommandReceiver.new( ExpressCommandReceiverPL.instance, c[:peer_multicast_udp_command_port], c[:multicast_address], c[:multicast_if] )
+        @w << UdpCommandReceiver.new( ExpressCommandReceiverPL.instance, c[:peer_unicast_udp_command_port], c[:multicast_address], c[:multicast_if] )
 
-        # Todo: neither INSERT nor DROP is interested here
-        # #@w << UdpCommandReceiver.new( RegularCommandReceiverPL.instance, c.GatewayUDPCommandPort )
-
-        # Todo: ALIVE is not interested here
-        # @w << UdpCommandReceiver.new( RegularCommandReceiverPL.instance, c.WatchDogCommandPort )
-
-        @w << TcpCommandAcceptor.new( TcpAcceptorPL.instance, c.PeerTCPCommandPort )
+        @w << TcpCommandAcceptor.new( TcpAcceptorPL.instance, c[:peer_tcp_command_port] )
         5.times { @w << TcpCommandReceiver.new( TcpAcceptorPL.instance, RegularCommandReceiverPL.instance ) }
-        c.NumberOfExpressCommandProcessor.times   { @w << CommandProcessor.new( ExpressCommandReceiverPL.instance ) }
-        c.NumberOfRegularCommandProcessor.times   { @w << CommandProcessor.new( RegularCommandReceiverPL.instance ) }
-        c.NumberOfBasketStatusQueryDB.times { @w << BasketStatusQueryDB.new() }
-        c.NumberOfCsmController.times      { @w << CsmController.new() }
-        c.NumberOfUdpResponseSender.times  { @w << UdpResponseSender.new( UdpResponseSenderPL.instance ) }
-        c.NumberOfTcpResponseSender.times  { @w << TcpResponseSender.new( TcpResponseSenderPL.instance ) }
-        c.NumberOfMulticastCommandSender.times { @w << MulticastCommandSender.new( c.MulticastAddress, c.GatewayUDPCommandPort ) }
-        c.NumberOfReplicationDBClient.times  { @w << ReplicationDBClient.new() }
-        @w << StatisticsLogger.new()
-        @m = CpeerdTcpMaintenaceServer.new( c.CpeerdMaintenancePort )
-        @h = TCPHealthCheckPatientServer.new( c.CpeerdHealthCheckPort )
+        c[:number_of_express_command_processor].times {
+          @w << CommandProcessor.new( ExpressCommandReceiverPL.instance, c[:hostname_for_client] )
+        }
+        c[:number_of_regular_command_processor].times {
+          @w << CommandProcessor.new( RegularCommandReceiverPL.instance, c[:hostname_for_client] )
+        }
+        c[:number_of_basket_status_query_db].times { @w << BasketStatusQueryDB.new() }
+        c[:number_of_csm_controller].times      { @w << CsmController.new( c ) }
+        c[:number_of_udp_response_sender].times  { @w << UdpResponseSender.new( UdpResponseSenderPL.instance, c[:multicast_if] ) }
+        c[:number_of_tcp_response_sender].times  { @w << TcpResponseSender.new( TcpResponseSenderPL.instance ) }
+        c[:number_of_multicast_command_sender].times {
+          @w << MulticastCommandSender.new( c[:multicast_address], c[:gateway_udp_command_port], c[:multicast_if] )
+        }
+        c[:number_of_replication_db_client].times {
+          @w << ReplicationDBClient.new( c[:replication_udp_command_port], c[:multicast_if] )
+        }
+        @w << StatisticsLogger.new( c[:period_of_statistics_logger] )
+        @m = CpeerdTcpMaintenaceServer.new( c, c[:cpeerd_maintenance_port], c[:hostname_for_client] )
+        @h = TCPHealthCheckPatientServer.new( c, c[:cpeerd_healthcheck_port] )
       end
 
       def start_workers
@@ -220,10 +221,10 @@ module Castoro
    ########################################################################
 
       class UdpCommandReceiver < Worker
-        def initialize( pipeline, port )
+        def initialize( pipeline, port, multicast_address, multicast_if )
           @pipeline = pipeline
-          @socket = ExtendedUDPSocket.new
-          @socket.bind( Configurations.instance.MulticastAddress, port )
+          @socket = ExtendedUDPSocket.new multicast_if
+          @socket.bind( multicast_address, port )
           super
         end
 
@@ -329,10 +330,10 @@ module Castoro
 
 
       class CommandProcessor < Worker
-        def initialize( pipeline )
+        def initialize( pipeline, hostname_for_client )
           @pipeline = pipeline
           super
-          @hostname = Configurations.instance.HostnameForClient
+          @hostname = hostname_for_client
         end
 
         def serve
@@ -423,25 +424,25 @@ module Castoro
           ticket = BasketStatusQueryDatabasePL.instance.deq
           b = ticket.basket
           path_x = ticket.args[ 'path' ]
-          status = S_ABCENSE
+          status = Basket::S_ABCENSE
           if ( File.exist?( b.path_a ) )
-            status = S_ARCHIVED
+            status = Basket::S_ARCHIVED
           elsif ( path_x and File.exist?( path_x ) )
-            status = S_WORKING
+            status = Basket::S_WORKING
           end
           a = case ticket.command_sym
               when :CREATE
                 case status
-                when S_ABCENSE
+                when Basket::S_ABCENSE
                   # Has to confirm if its parent directory exists
                   # If not, should create it before proceeding
                   Csm::Request::Create.new( b.path_w )
                 else
                   reason = case status
-                           when S_ABCENSE;  'Internal server error: Something goes wrongly.'
-                           when S_WORKING;  b.path_w
-                           when S_ARCHIVED; b.path_a
-                           when S_DELETED;  b.path_d  # It is okay with the same basket id being created.
+                           when Basket::S_ABCENSE;  'Internal server error: Something goes wrongly.'
+                           when Basket::S_WORKING;  b.path_w
+                           when Basket::S_ARCHIVED; b.path_a
+                           when Basket::S_DELETED;  b.path_d  # It is okay with the same basket id being created.
                            else
                              raise UnknownBasketStatusInternalServerError, status
                            end
@@ -449,22 +450,22 @@ module Castoro
                   raise AlreadyExistsError, reason
                 end
               when :CLONE
-                status == S_ARCHIVED or raise NotFoundError, b.path_a
+                status == Basket::S_ARCHIVED or raise NotFoundError, b.path_a
                 Csm::Request::Clone.new( b.path_a, b.path_w )
               when :DELETE
-                status == S_ARCHIVED or raise NotFoundError, b.path_a
+                status == Basket::S_ARCHIVED or raise NotFoundError, b.path_a
                 Csm::Request::Delete.new( b.path_a, b.path_d )
               when :CANCEL
                 case status
-                when S_WORKING, :S_ABCENSE
+                when Basket::S_WORKING
                   File.exist? path_x or raise NotFoundError, path_x
                   Csm::Request::Cancel.new( path_x, b.path_c( path_x ) )
                 else
                   reason = case status
-                           when S_ABCENSE;  'The basket does not exist.'
-                           when S_WORKING;  'Something goes wrongly.'
-                           when S_ARCHIVED; "The basket has been already finilized: #{b.path_a}"
-                           when S_DELETED;  "The basket has been already deleted: #{b.path_d}"
+                           when Basket::S_ABCENSE;  'The basket does not exist.'
+                           when Basket::S_WORKING;  'Something goes wrongly.'
+                           when Basket::S_ARCHIVED; "The basket has been already finilized: #{b.path_a}"
+                           when Basket::S_DELETED;  "The basket has been already deleted: #{b.path_d}"
                            else
                              raise UnknownBasketStatusInternalServerError, status
                            end
@@ -472,7 +473,7 @@ module Castoro
                 end
               when :FINALIZE
                 case status
-                when S_ARCHIVED
+                when Basket::S_ARCHIVED
                   ticket.message = "FINALIZE failed: AlreadyExistsError: #{b} #{b.path_a}"
                   raise AlreadyExistsError, b.path_a
                 end
@@ -499,9 +500,9 @@ module Castoro
 
       # Todo: CsmController could be also disolved into CommandProcessor
       class CsmController < Worker
-        def initialize
-          super
-          @csm_executor = Csm.create_executor
+        def initialize config
+          super()
+          @csm_executor = Csm.create_executor (config[:use_manipulator_daemon] && config[:manipulator_socket])
         end
 
         def serve
@@ -587,9 +588,9 @@ module Castoro
       end
 
       class UdpResponseSender < ResponseSender
-        def initialize( pipeline )
-          @socket = ExtendedUDPSocket.new
-          super
+        def initialize( pipeline, multicast_if )
+          @socket = ExtendedUDPSocket.new multicast_if
+          super pipeline
         end
       end
 
@@ -603,8 +604,8 @@ module Castoro
 
 
       class MulticastCommandSender < Worker
-        def initialize( ip, port )
-          @channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
+        def initialize( ip, port, multicast_if )
+          @channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new multicast_if )
           @ip, @port = ip, port
           super
         end
@@ -619,12 +620,12 @@ module Castoro
 
 
       class ReplicationDBClient < Worker
-        def initialize
+        def initialize replication_udp_command_port, multicast_if
           Dir.exists? DIR_WAITING or raise StandardError, "no directory exists: #{DIR_WAITING}"
           super
           @ip = '127.0.0.1'
-          @port = Configurations.instance.ReplicationUDPCommandPort
-          @channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
+          @port = replication_udp_command_port
+          @channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new multicast_if )
         end
 
         def serve
@@ -651,9 +652,9 @@ module Castoro
 
 
       class CpeerdTcpMaintenaceServer < TcpMaintenaceServer
-        def initialize( port )
-          super
-          @hostname = Configurations.instance.HostnameForClient
+        def initialize( config, port, hostname_for_client )
+          super config, port
+          @hostname = hostname_for_client
         end
 
         def do_help
@@ -715,9 +716,9 @@ module Castoro
       end
 
       class StatisticsLogger < Worker
-        def initialize
+        def initialize period
           super
-          @period = Configurations.instance.PeriodOfStatisticsLogger
+          @period = period
         end
 
         def serve

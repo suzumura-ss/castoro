@@ -17,327 +17,271 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'singleton'
 require 'yaml'
-require 'json'
+require 'erb'
+require 'ipaddr'
+
 require 'castoro-peer/log'
 require 'castoro-peer/ifconfig'
-require 'castoro-peer/errors'
 
 module Castoro
   module Peer
 
+    class ConfigurationError < StandardError ; end
+
     class Configurations
-      include Singleton
 
-      CONFIGURATION_FILE_CANDIDATES = [ 
-                                       'peer.conf',
-                                       'peer-dev-env.conf',
-                                       '/etc/castoro/peer.conf',
-                                      ]
+      DEFAULT_FILE = '/etc/castoro/peer.conf'.freeze
 
-      def Configurations.file=( file )
-        @@initial_file = file
-      end
-          
-      def default_configuration_file
-        files = CONFIGURATION_FILE_CANDIDATES
-        files.map { |f|
-          File.exist? f and return f
-        }
-        raise StandardError, "No configuration file is found. Default files are #{files.join(' ')}"
-      end
+      DEFAULT_SETTINGS = {
+        'hostname_for_client'                 => nil,
+        'multicast_address'                   => '239.192.1.1',
+        'multicast_if'                        => nil,
 
-      def initialize
-        @mutex = Mutex.new
-        @entries = nil
-        @file = @@initial_file if defined? @@initial_file
-        @file = default_configuration_file if @file.nil?
-        @config_file = ConfigurationFile.new
-        self.load
-      end
+        'gateway_udp_command_port'            => 30109,
+        'peer_tcp_command_port'               => 30111,
+        'peer_unicast_udp_command_port'       => 30111,
+        'peer_multicast_udp_command_port'     => 30112,
+        'watchdog_command_port'               => 30113,
+        'replication_tcp_command_port'        => 30149,
+        'replication_udp_command_port'        => 30149,
+        'replication_tcp_communication_port'  => 30148,
 
-      def []( item )
-        @mutex.synchronize {
-          @entries.include? item or raise ConfigurationError, "Unknown configuration item #{item}"
-          @entries[ item ]
-        }
-      end
+        'cmond_maintenance_port'              => 30100,
+        'cpeerd_maintenance_port'             => 30102,
+        'crepd_maintenance_port'              => 30103,
+        'cmond_healthcheck_port'              => 30105,
+        'cpeerd_healthcheck_port'             => 30107,
+        'crepd_healthcheck_port'              => 30108,
 
-      def load( file = nil )
-        @mutex.synchronize {
-          f = file || @file
-          f = "#{Dir.getwd}/#{f}" unless f.match(/\A\//)
-          Log.notice( "Loading configration file: #{f}" )
-          # print "#{caller.join("\n")}\n"
-          @entries = @config_file.load( f )  # exceptions might be raised
-          @file = f
-          # Log.notice( "Configuration data in #{@file}: #{@entries.inspect}" )
-          define_readers()
-          @entries
-        }
-      end
+        'basket_base_dir'                     => '/expdsk',
 
-      def reload( file = nil )
-        @mutex.synchronize {
-          f = file || @file
-          f = "#{Dir.getwd}/#{f}" unless f.match(/\A\//)
-          Log.notice( "Reloading configration file: #{f}" )
-          @entries = @config_file.load( f )
-          Log.notice( "Configuration data in #{f}: #{@entries.inspect}" )
-          define_readers()
-          @entries
-        }
-      rescue => e
-        s = 'Keep running with the previously loaded configurations. ' + 
-          'New configurations are ignored due to an error in the file'
-        Log.err( "#{s}: #{file}: #{e.class} #{e.message}" )
-        raise
-      end
+        'number_of_express_command_processor' => 10,
+        'number_of_regular_command_processor' => 10,
+        'number_of_basket_status_query_db'    => 10,
+        'number_of_csm_controller'            => 3,
+        'number_of_udp_response_sender'       => 10,
+        'number_of_tcp_response_sender'       => 10,
+        'number_of_multicast_command_sender'  => 3,
+        'number_of_replication_db_client'     => 1,
+        'number_of_replication_sender'        => 3,
 
-      private
+        'period_of_alive_packet_sender'       => 4,
+        'period_of_statistics_logger'         => 60,
 
-      def define_readers
-        @entries.keys.map { |item|
-          Configurations.class_eval {
-            if ( method_defined? item )
-              remove_method( item )
-            end
-            define_method( item ) {
-              @mutex.synchronize {
-                @entries.include? item or raise ConfigurationError, "Unknown configuration item #{item}"
-                @entries[ item ]
-              }
-            }
-          }
-        }
-      end
+        'dir_w_user'                          => 'castoro',
+        'dir_w_group'                         => 'castoro',
+        'dir_w_perm'                          => '0777',
 
-      @file = nil
-    end
+        'dir_a_user'                          => 'root',
+        'dir_a_group'                         => 'castoro',
+        'dir_a_perm'                          => '0555',
 
+        'dir_d_user'                          => 'root',
+        'dir_d_group'                         => 'castoro',
+        'dir_d_perm'                          => '0555',
 
-    class ConfigurationFile
-      def initialize
-        @file = nil
-        @ifconfig = IfConfig.new
-        @default_entries = Hash.new
-        [
-         :HostnameForClient,
-         :MulticastAddress,
-         :MulticastNetwork,
-         :MulticastIf,
+        'dir_c_user'                          => 'root',
+        'dir_c_group'                         => 'castoro',
+        'dir_c_perm'                          => '0555',
 
-         :GatewayUDPCommandPort,
-         :PeerTCPCommandPort,
-         :PeerUnicastUDPCommandPort,
-         :PeerMulticastUDPCommandPort,
-         :WatchDogCommandPort,
-         :ReplicationTCPCommandPort,
-         :ReplicationUDPCommandPort,
-         :ReplicationTCPCommunicationPort,
+        'effective_user'                      => 'castoro',
 
-         :CmondMaintenancePort,
-         :CpeerdMaintenancePort,
-         :CrepdMaintenancePort,
+        'replication_transmission_datasize'   => 1048576,
 
-         :CmondHealthCheckPort,
-         :CpeerdHealthCheckPort,
-         :CrepdHealthCheckPort,
+        'use_manipulator_daemon'              => true,
+        'manipulator_socket'                  => '/var/castoro/manipulator.sock',
 
-         :BasketBaseDir,
-         :NumberOfExpressCommandProcessor,
-         :NumberOfRegularCommandProcessor,
-         :NumberOfBasketStatusQueryDB,
-         :NumberOfCsmController,
-         :NumberOfUdpResponseSender,
-         :NumberOfTcpResponseSender,
-         :NumberOfMulticastCommandSender,
-         :NumberOfReplicationDBClient,
-         :PeriodOfAlivePacketSender,
-         :PeriodOfStatisticsLogger,
+        'aliases'                             => {},
+        'groups'                              => [],
+      }.freeze
 
-         :NumberOfReplicationSender,
+      ##
+      # initialize.
+      #
+      # === Args
+      #
+      # +file+::
+      #   fullpath for configuration file.
+      #
+      def initialize file
+        @file = (file || DEFAULT_FILE).freeze
 
-         :Dir_w_user,
-         :Dir_w_group,
-         :Dir_w_perm,
-
-         :Dir_a_user,
-         :Dir_a_group,
-         :Dir_a_perm,
-
-         :Dir_d_user,
-         :Dir_d_group,
-         :Dir_d_perm,
-
-         :Dir_c_user,
-         :Dir_c_group,
-         :Dir_c_perm,
-
-         :PeerGroupsFile,
-
-         :EffectiveUser,
-
-         :ReplicationTransmissionDataUnitSize,
-
-         :UseManipulatorDaemon,
-         :ManipulatorSocket,
-
-        ].each { |item| @default_entries[ item ] = nil }
-      end
-
-      def load( file )
-        @file = file
-        @entries = @default_entries.dup
-        do_load
-
-        load_storage_servers
-
-        validate
-        @entries
-      end
-
-      private
-
-      def validate
-        i = @entries[ :MulticastIf ]
-        n = @entries[ :MulticastNetwork ]
-        if ( i and n )
-          Log.warning 'MulticastNetwork is ignored because MulticastIf is already given in the configuration file: #{@file}'
-          n = nil
-        elsif ( i.nil? and n )
-          i = @ifconfig.multicast_interface_by_network_address( n )
-        elsif ( i.nil? and n.nil? )
-          i = @ifconfig.default_interface_address
-        else
-          # good
-        end
-        unless ( @ifconfig.has_interface?( i ) )
-          raise ConfigurationError, "The interface address described in #{@file} does not exist in this machine: #{i}"
-        end
-        @entries[ :MulticastIf ] = i
-        @entries[ :MulticastNetwork ] = n
-
-        unless ( @entries[ :HostnameForClient ] )
-          @entries[ :HostnameForClient ] = @ifconfig.default_hostname
-        end
-        @entries[ :HostnameForClient ].sub!(/\..*/, '')
-
-        @entries[ :BasketBaseDir ] or raise ConfigurationError, "BasketBaseDir is not sepecfied in #{@file}"
-        
-        check_existence( :BasketBaseDir )
-
-        @entries[ :CmondMaintenancePort ] or raise ConfigurationError, "CmondMaintenancePort is not sepecfied in #{@file}"
-        @entries[ :CpeerdMaintenancePort ] or raise ConfigurationError, "CpeerdMaintenancePort is not sepecfied in #{@file}"
-        @entries[ :CrepdMaintenancePort ] or raise ConfigurationError, "CrepdMaintenancePort is not sepecfied in #{@file}"
-
-        @entries[ :CmondHealthCheckPort ] or raise ConfigurationError, "CmondHealthCheckPort is not sepecfied in #{@file}"
-        @entries[ :CpeerdHealthCheckPort ] or raise ConfigurationError, "CpeerdHealthCheckPort is not sepecfied in #{@file}"
-        @entries[ :CrepdHealthCheckPort ] or raise ConfigurationError, "CrepdHealthCheckPort is not sepecfied in #{@file}"
-        
-        @entries[ :ReplicationTransmissionDataUnitSize ] or raise ConfigurationError, "ReplicationTransmissionDataUnitSize is not specified in #{@file}"
-        unless ( 0 < @entries[ :ReplicationTransmissionDataUnitSize ] )
-          raise ConfigurationError, "ReplicationTransmissionDataUnitSize in #{@file} is not a positive number: #{@entries[ :ReplicationTransmissionDataUnitSize ]}"
-        end
-
-        @entries[ :UseManipulatorDaemon ] = ["yes", "true", "on"].include? @entries[ :UseManipulatorDaemon ]
-        check_existence( :ManipulatorSocket ) if @entries[ :UseManipulatorDaemon ]
-      end
-
-      def check_existence( symbol, default_file = nil )
-        path = @entries[ symbol ] || default_file
-        File.exist? path  or raise ConfigurationError, "A path #{symbol} in #{@file} does not exist: #{path}"
-      end
-
-      def do_load
-        File.open( @file , File::RDONLY ) do |f|
-          while line = f.gets do
-            next if line =~ /\A\#/
-            next if line =~ /\A\s*\Z/
-            line.chomp!
-            # p line
-            if ( line =~ /\A\s*(.+?)\s+(.*?)\s*\Z/ )
-              item, value = $1, $2
-              symbol = item.to_sym
-              # p [ item, value ]
-              if ( @entries.has_key? symbol )
-                if ( item.match(/\A(NumberOf|PeriodOf)/i) or item.match(/(Port|Size)\Z/i) )
-                  @entries[ symbol ] = value.to_i
-                else
-                  @entries[ symbol ] = value
-                end
-              else
-                raise ConfigurationError, "#{@file}:#{$.}: Unknown parameter: #{line}"
-              end
-            else
-              raise ConfigurationError, "#{@file}:#{$.}: Invalid line: #{line}"
-            end
+        c  = YAML.load(ERB.new(IO.read(@file)).result) || {}
+        @h = DEFAULT_SETTINGS.merge c
+        class << @h
+          alias :apply  :[]
+          alias :update :[]=
+          def []  key
+            self.apply key.to_s
+          end
+          def []= key, val
+            self.update key.to_s, val
           end
         end
+
+        validate
+
+        @storage_servers = define_storage_servers
       end
 
-      def load_storage_servers
-        check_existence( :PeerGroupsFile, "/etc/castoro/peer_groups.conf" )
+      ##
+      # the indexer.
+      #
+      # === Args
+      #
+      # +key+::
+      #   key of configurations.
+      #
+      def [] key; @h[key]; end
 
-        hostname    = @entries[:HostnameForClient]
-        peer_groups = YAML.load_file @entries[:PeerGroupsFile]
-        storages    = peer_groups["aliases"]
-        groups      = peer_groups["groups"]
+      ##
+      # accessor for replication hosts infomation.
+      #
+      attr_reader :storage_servers
+
+      private
+
+      def define_storage_servers #:nodoc:
+
+        hostname = @h[:hostname_for_client]
+        groups   = @h[:groups]  || []
+        aliases  = @h[:aliases] || {}
 
         g = groups.select { |a| a.include? hostname }
+        raise ConfigurationError, "hostname does not exist in replication groups." if g.empty?
+
         g.flatten!
         n = g.size
         g.concat g.dup
         i = g.index hostname
-        hosts = g.slice(i, n)
-        h = hosts.map { |x| storages[x] || x }
+        hosts = g.slice i, n
+        h = hosts.map { |x| aliases[x] || x }
         h.shift
 
-        @entries[:StorageServers] = {
-          :colleague_hosts => h.dup,
-          :target => h.shift,
-          :alternative_hosts => h,
-        }
+        colleague_hosts   = h.dup
+        target            = h.shift
+        alternative_hosts = h
 
-        # StorageServers accessors.
-        class << @entries[:StorageServers]
-          define_method(:colleague_hosts)   { self[:colleague_hosts]   }
-          define_method(:target)            { self[:target]            }
-          define_method(:alternative_hosts) { self[:alternative_hosts] }
-        end
+        ret = Object.new
+        ret.instance_variable_set :@colleague_hosts  , colleague_hosts.freeze
+        ret.instance_variable_set :@target           , target.freeze
+        ret.instance_variable_set :@alternative_hosts, alternative_hosts.freeze
+        class << ret; attr_reader :colleague_hosts, :target, :alternative_hosts; end
+        ret.freeze
+
+        ret
       end
+
+      def validate #:nodoc:
+        ifconfig = IfConfig.new
+
+        i = @h[:multicast_if]
+        n = @h[:multicast_network]
+        i = if i and n
+              Log.warning "multicast_network is ignored because multicast_if is already given in the configuration file: #{@file}"
+              i
+            elsif i.nil? and n
+              ifconfig.multicast_interface_by_network_address n
+            elsif i.nil? and n.nil?
+              ifconfig.default_interface_address
+            else
+              i
+            end
+        unless ifconfig.has_interface? i
+          raise ConfigurationError, "The interface address described in #{@file} does not exist in this machine: #{i}"
+        end
+        @h[:multicast_if] = i
+
+        @h[:hostname_for_client] ||= ifconfig.default_hostname
+        @h[:hostname_for_client].sub!(/\..*/, '')
+
+        ipaddress_check :multicast_address
+
+        file_existence_check :basket_base_dir
+
+        port_num_check :gateway_udp_command_port
+        port_num_check :peer_tcp_command_port
+        port_num_check :peer_unicast_udp_command_port
+        port_num_check :peer_multicast_udp_command_port
+        port_num_check :watchdog_command_port
+        port_num_check :replication_tcp_command_port
+        port_num_check :replication_udp_command_port
+        port_num_check :replication_tcp_communication_port
+
+        port_num_check :cmond_maintenance_port
+        port_num_check :cpeerd_maintenance_port
+        port_num_check :crepd_maintenance_port
+        port_num_check :cmond_healthcheck_port
+        port_num_check :cpeerd_healthcheck_port
+        port_num_check :crepd_healthcheck_port
+
+        positive_num_check :number_of_express_command_processor
+        positive_num_check :number_of_regular_command_processor
+        positive_num_check :number_of_basket_status_query_db
+        positive_num_check :number_of_csm_controller
+        positive_num_check :number_of_udp_response_sender
+        positive_num_check :number_of_tcp_response_sender
+        positive_num_check :number_of_multicast_command_sender
+        positive_num_check :number_of_replication_db_client
+        positive_num_check :number_of_replication_sender
+
+        positive_num_check :period_of_alive_packet_sender
+        positive_num_check :period_of_statistics_logger
+
+        positive_num_check :replication_transmission_datasize
+
+        file_existence_check :manipulator_socket if @h[:use_manipulator_daemon]
+
+        user_check  :dir_w_user
+        user_check  :dir_a_user
+        user_check  :dir_d_user
+        user_check  :dir_c_user
+
+        group_check :dir_w_group
+        group_check :dir_a_group
+        group_check :dir_d_group
+        group_check :dir_c_group
+
+      end
+
+      def required_check key #:nodoc:
+        @h[key] or raise ConfigurationError, "#{key} is not specified in #{@file}"
+      end
+
+      def positive_num_check key #:nodoc:
+        required_check key
+        raise ConfigurationError, "#{key} in #{@file} is not a positive number: #{@h[key]}" unless @h[key] > 0
+      end
+
+      def port_num_check key #:nodoc:
+        positive_num_check key
+        # well-known port cannnot be set.
+        raise ConfigurationError, "#{key} in #{@file} is invalid port number: #{@h[key]}" unless (1023 < @h[key] and @h[key] < 65536)
+      end
+
+      def file_existence_check key #:nodoc:
+        required_check key
+        File.exist? @h[key] or raise ConfigurationError, "A path #{key} in #{@file} does not exist: #{@h[key]}"
+      end
+
+      def ipaddress_check key #:nodoc:
+        required_check key
+        IPAddr.new(@h[key]) rescue raise ConfigurationError, "#{key} in #{@file} is invalid ipaddress: #{@h[key]}"
+      end
+
+      def user_check key #:nodoc:
+        required_check key
+        Etc.getpwnam(@h[key]) rescue raise ConfigurationError "#{key} in #{@file} is invalid user: #{@h[key]}"
+      end
+
+      def group_check key #:nodoc:
+        required_check key
+        Etc.getgrnam(@h[key]) rescue raise ConfigurationError "#{key} in #{@file} is invalid group: #{@h[key]}"
+      end
+
     end
 
   end
 end
 
-if $0 == __FILE__
-  module Castoro
-    module Peer
-      f = './peer-dev-env.conf'
-      Configurations.file = f
-
-      x = Configurations.instance
-      p x.MulticastNetwork
-      p x[ :MulticastNetwork ]
-      p x.MulticastIf
-      p x[ :MulticastIf ]
-
-      x.load()
-      p x[ :MulticastNetwork ]
-      p x[ :MulticastIf ]
-      x.load( f )
-      p x[ :MulticastNetwork ]
-      p x[ :MulticastIf ]
-      x.reload
-      p x[ :MulticastNetwork ]
-      p x[ :MulticastIf ]
-    end
-  end
-end
-
-__END__
-
-time ruby -I ../..  -e "require 'configurations'; 1000000.times{ x=Castoro::Peer::Configurations.instance.MulticastNetwork }"
-time ruby -I ../..  -e "require 'configurations'; c=Castoro::Peer::Configurations.instance; 1000000.times{ x=c.MulticastNetwork }"

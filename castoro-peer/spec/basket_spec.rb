@@ -22,42 +22,40 @@ require File.dirname(__FILE__) + '/spec_helper.rb'
 require 'castoro-peer/basket'
 
 describe Castoro::Peer::Basket do
-
-  it "S_ABCENSE should 1" do
-    Castoro::Peer::S_ABCENSE.should == 1
-  end
-
-  it "S_WORKING should 2" do
-    Castoro::Peer::S_WORKING.should == 2
-  end
-
-  it "S_REPLICATING should 3" do
-    Castoro::Peer::S_REPLICATING.should == 3
-  end
-
-  it "S_ARCHIVED should 4" do
-    Castoro::Peer::S_ARCHIVED.should == 4
-  end
-
-  it "S_DELETED should 5" do
-    Castoro::Peer::S_DELETED.should == 5
-  end
-
-  it "S_CONFLICT should 6" do
-    Castoro::Peer::S_CONFLICT.should == 6
-  end
-
   before do
+    Castoro::Peer::Basket.class_variable_set :@@base_dir, "/hoge"
+
     @times_of_directory_test = 100
-    @config = mock(Castoro::Peer::Configurations)
-    @config.stub!(:BasketBaseDir).and_return("/expdsk")
-    Castoro::Peer::Configurations.stub!(:instance).and_return(@config)
 
     @time = mock(Time)
     @time.stub!(:strftime).with("%Y%m%dT%H").and_return("20100812T11")
     @time.stub!(:strftime).with("%Y%m%dT%H%M%S").and_return("20100812T112141")
     @time.stub!(:usec).and_return(123456)
     Time.stub!(:new).and_return(@time)
+  end
+
+  it "S_ABCENSE should 1" do
+    Castoro::Peer::Basket::S_ABCENSE.should == 1
+  end
+
+  it "S_WORKING should 2" do
+    Castoro::Peer::Basket::S_WORKING.should == 2
+  end
+
+  it "S_REPLICATING should 3" do
+    Castoro::Peer::Basket::S_REPLICATING.should == 3
+  end
+
+  it "S_ARCHIVED should 4" do
+    Castoro::Peer::Basket::S_ARCHIVED.should == 4
+  end
+
+  it "S_DELETED should 5" do
+    Castoro::Peer::Basket::S_DELETED.should == 5
+  end
+
+  it "S_CONFLICT should 6" do
+    Castoro::Peer::Basket::S_CONFLICT.should == 6
   end
 
   context "When 987654321 set to content_id, and 1 set to type_id and 2 set to revision_number." do
@@ -90,33 +88,33 @@ describe Castoro::Peer::Basket do
         }
       end
 
-      it "Working directory should == '/expdsk/1/baskets/w/20100812T11/987654321.1.2.20100812T112141.123.810624'" do
+      it "Working directory should == '/hoge/1/baskets/w/20100812T11/987654321.1.2.20100812T112141.123.810624'" do
         @times_of_directory_test.times {
-          @b.path_w.should == "/expdsk/1/baskets/w/20100812T11/987654321.1.2.20100812T112141.123.810624"
+          @b.path_w.should == "/hoge/1/baskets/w/20100812T11/987654321.1.2.20100812T112141.123.810624"
         }
       end
 
       it "Replication directory should == ''" do
         @times_of_directory_test.times {
-          @b.path_r.should == "/expdsk/1/baskets/r/20100812T11/987654321.1.2.20100812T112141.123.810624"
+          @b.path_r.should == "/hoge/1/baskets/r/20100812T11/987654321.1.2.20100812T112141.123.810624"
         }
       end
 
-      it "Archived directory should == '/expdsk/1/baskets/a/0/987/654/987654321.1.2'" do
+      it "Archived directory should == '/hoge/1/baskets/a/0/987/654/987654321.1.2'" do
         @times_of_directory_test.times {
-          @b.path_a.should == "/expdsk/1/baskets/a/0/987/654/987654321.1.2"
+          @b.path_a.should == "/hoge/1/baskets/a/0/987/654/987654321.1.2"
         }
       end
 
-      it "Deleted directory should == '/expdsk/1/baskets/d/20100812T11/987654321.1.2.20100812T112141.123.810624'" do
+      it "Deleted directory should == '/hoge/1/baskets/d/20100812T11/987654321.1.2.20100812T112141.123.810624'" do
         @times_of_directory_test.times {
-          @b.path_d.should == "/expdsk/1/baskets/d/20100812T11/987654321.1.2.20100812T112141.123.810624"
+          @b.path_d.should == "/hoge/1/baskets/d/20100812T11/987654321.1.2.20100812T112141.123.810624"
         }
       end
 
-      it "Canceled directory should == '/expdsk/1/offline/canceled/20100812T11/987654321.1.2.20100812T112141.123.810624'" do
+      it "Canceled directory should == '/hoge/1/offline/canceled/20100812T11/987654321.1.2.20100812T112141.123.810624'" do
         @times_of_directory_test.times {
-          @b.path_c.should == "/expdsk/1/offline/canceled/20100812T11/987654321.1.2.20100812T112141.123.810624"
+          @b.path_c.should == "/hoge/1/offline/canceled/20100812T11/987654321.1.2.20100812T112141.123.810624"
         }
       end
     end

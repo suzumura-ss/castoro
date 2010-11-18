@@ -18,7 +18,6 @@
 #
 
 require 'castoro-peer/main'
-require 'castoro-peer/server_status'
 require 'castoro-peer/crepd_workers'
 require 'castoro-peer/crepd_receiver'
 
@@ -28,8 +27,8 @@ module Castoro
     class CrepdMain < Main
       def initialize
         super
-        @w = ReplicationWorkers.instance
-        @r = TCPReplicationServer.new
+        @w = ReplicationWorkers.new @config
+        @r = TCPReplicationServer.new @config, @config[:replication_tcp_communication_port]
       end
 
       def start
@@ -41,9 +40,7 @@ module Castoro
 
       def stop
         @w.stop_workers
-#        p [@r]
         @r.graceful_stop
-#        p [@w]
         @w.stop_maintenance_server
         super
       end
@@ -58,6 +55,8 @@ end
 ################################################################################
 
 if $0 == __FILE__
+  require 'castoro-peer/server_status'
+
   $LOAD_PATH.dup.each { |x|
     $LOAD_PATH.delete x if x.match '\/gems\/'
   }
