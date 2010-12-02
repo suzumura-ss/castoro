@@ -1,4 +1,14 @@
 
+=== 0.0.8 2010-12-02
+
+* fixed: issue #4
+* refactor: a large amount of object generation was avoided.
+* added script samples (resources/*
+* changed: README.textile
+** a configuration was made detailed.
+* added required_ruby_version (>= 1.9)
+* added functional spec code.
+
 === 0.0.7 2010-10-27
 
 * bugfix: Permission masking to the file was invalid.

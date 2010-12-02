@@ -17,12 +17,8 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require "rubygems"
-
-require "castoro-manipulator"
-
-module Castoro
-  class Manipulator
+module Castoro #:nodoc:
+  module Manipulator #:nodoc:
 
     class Workers < Castoro::Workers
 
@@ -33,7 +29,8 @@ module Castoro
       #
       def initialize logger, count, facade, base_dir
         super logger, count
-        @facade, @base_dir = facade, base_dir
+        @facade = facade
+        @executor = Executor.new @logger, :base_directory => base_dir
       end
 
       private
@@ -42,6 +39,9 @@ module Castoro
       # work action.
       #
       def work
+
+        ok_response_mkdir = Protocol::Response::Mkdir.new(nil)
+        ok_response_move  = Protocol::Response::Mv.new(nil)
         
         # client loop..
         @facade.client_loop { |socket, received|
@@ -52,32 +52,15 @@ module Castoro
             case cmd
             when Protocol::Command::Mkdir
 
-              # mkdir execute.
-              unless cmd.source =~ /^#{@base_dir}.*$/
-                raise ManipulatorError, "Invalid source directory - #{cmd.source}"
-              end
-              @logger.info { "MKDIR #{cmd.mode},#{cmd.user},#{cmd.group},#{cmd.source}" }
-              Command.new_recursive_mkdir(cmd.source, cmd.mode, cmd.user, cmd.group).invoke
-
-              # response.
-              res = Protocol::Response::Mkdir.new(nil)
-              send_response(socket, res)
+              # mkdir execute and response.
+              @executor.mkdir cmd.mode, cmd.user, cmd.group, cmd.source
+              send_response(socket, ok_response_mkdir)
 
             when Protocol::Command::Mv
 
-              # mv execute.
-              unless cmd.source =~ /^#{@base_dir}.*$/
-                raise ManipulatorError, "Invalid source directory - #{cmd.source}"
-              end
-              unless cmd.dest =~ /^#{@base_dir}.*$/
-                raise ManipulatorError, "Invalid dest directory - #{cmd.dest}"
-              end
-              @logger.info { "MOVE  #{cmd.mode},#{cmd.user},#{cmd.group},#{cmd.source},#{cmd.dest}" }
-              Command.new_recursive_move(cmd.source, cmd.dest, cmd.mode, cmd.user, cmd.group).invoke
-
-              # response.
-              res = Protocol::Response::Mv.new(nil)
-              send_response(socket, res)
+              # mv execute and response.
+              @executor.move cmd.mode, cmd.user, cmd.group, cmd.source, cmd.dest
+              send_response(socket, ok_response_move)
 
             else
               raise ManipulatorError, "only Mkdir, Mv and Nop are accepted."
@@ -91,3 +74,4 @@ module Castoro
     end
   end
 end
+

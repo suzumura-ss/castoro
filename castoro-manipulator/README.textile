@@ -116,24 +116,13 @@ default:
   base_directory: /expdsk
 </pre>
 
-h3. user
+h3. manipulator.conf attributes
 
-Effective user for manipulator program.
-
-h3. workers
-
-count of worker processes.
-
-h3. loglevel
-
-logger level. must set to be between 0 and 5.
-It conforms to the enumeration value of Logger::Severity.
-
-h3. socket
-
-fullpath of UNIX socket file.
-
-h3. base_directory
-
-manipulate base directory.
+|name of attribute|type|default|details|
+|logger|String|<code>" Proc.new { |logfile| Logger.new(logfile) } "</code>|logger instance generate procedure.|
+|user|String|castoro|effective user for manipulator program.|
+|workers|Integer|5|count of worker processes.|
+|loglevel|Integer|1 (Logger::INFO)|logger level. must set to be between 0 and 5.|
+|socket|String|/var/castoro/manipulator.sock|fullpath of UNIX socket file.|
+|base_directory|String|/expdsk|manipulate base directory.|
 

@@ -134,7 +134,9 @@ parser = OptionParser.new { |parser|
         opt[:conf] = Pathname.new(File.join(Pathname.pwd, v)).to_s
       end
     }
+
   end
+
 }
 
 begin
@@ -144,5 +146,5 @@ rescue
   exit 1
 end
 
-Castoro::ScriptRunner.send(command, opt)
+Castoro::Manipulator::ScriptRunner.send(command, opt)
 

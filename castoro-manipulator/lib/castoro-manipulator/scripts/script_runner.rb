@@ -27,136 +27,150 @@ require "timeout"
 require "etc"
 
 module Castoro
-  class ScriptRunner
-    @@stop_timeout = 10
+  module Manipulator
 
-    def self.start options
-      puts "*** Starting Castoro::Manipulator daemon..."
+    class ScriptRunner
+      @@stop_timeout = 10
 
-      config = YAML::load(ERB.new(IO.read(options[:conf])).result)
+      def self.start options
+        STDERR.puts "*** Starting Castoro::Manipulator daemon..."
 
-      raise "Envorinment not found - #{options[:env]}" unless config.include?(options[:env])
-      config = config[options[:env]]
+        config = YAML::load(ERB.new(IO.read(options[:conf])).result)
 
-      user = config["user"] || Castoro::Manipulator::DEFAULT_SETTINGS["user"]
+        raise "Envorinment not found - #{options[:env]}" unless config.include?(options[:env])
+        config = config[options[:env]]
 
-      uid = begin
-              user.kind_of?(Integer) ? Etc.getpwuid(user.to_i).uid : Etc.getpwnam(user.to_s).uid
-            rescue ArgumentError
-              raise "can't find user for #{user}"
-            end
+        user = config["user"] || Manipulator::DEFAULT_SETTINGS["user"]
 
-#      raise "Don't run as root user." if uid == 0
+        uid = begin
+                user.kind_of?(Integer) ? Etc.getpwuid(user.to_i).uid : Etc.getpwnam(user.to_s).uid
+              rescue ArgumentError
+                raise "can't find user for #{user}"
+              end
 
-      Process::Sys.seteuid(uid)
+#        raise "Don't run as root user." if uid == 0
 
-      if options[:daemon]
-        raise "PID file already exists - #{options[:pid]}" if File.exist?(options[:pid])
+        Process::Sys.seteuid(uid)
 
-        logdir = File.dirname(options[:log])
-        FileUtils.mkdir_p logdir unless File.directory?(logdir)
-        FileUtils.touch options[:log]
+        if options[:daemon]
+          raise "PID file already exists - #{options[:pid]}" if File.exist?(options[:pid])
 
-        piddir = File.dirname(options[:pid])
-        FileUtils.mkdir_p piddir unless File.directory?(piddir)
-        FileUtils.touch options[:pid]
+          # create logger.
+          logger = if config["logger"]
+                     eval(config["logger"].to_s).call(options[:log])
+                   else
+                     eval(Manipulator::DEFAULT_SETTINGS["logger"]).call(options[:log])
+                   end
 
-        # daemonize.
-        Process.daemon
+          # daemonize and create pidfile.
+          FileUtils.touch options[:pid]
+          fork {
+            Process.setsid
+            fork {
+              Dir.chdir("/")
+              STDIN.reopen  "/dev/null", "r+"
+              STDOUT.reopen "/dev/null", "a"
+              STDERR.reopen "/dev/null", "a"
 
-        STDOUT.reopen options[:log], "a+"; STDOUT.sync = true
-        STDERR.reopen options[:log], "a+"; STDERR.sync = true
+              dispose_proc = Proc.new { File.unlink options[:pid] if File.exist?(options[:pid]) }
 
-        # start manipulator.
-        init config, options[:pid]
-        sleep
+              # pidfile.
+              File.open(options[:pid], "w") { |f| f.puts $$ } if options[:pid]
+              Kernel.at_exit &dispose_proc
 
-      else
-        # start manipulator.
-        init config
+              begin
+                manipulator = Castoro::Manipulator::Manipulator.new(config, logger)
+                set_signalhandler manipulator, &dispose_proc
+                manipulator.start
+                while manipulator.alive?; sleep 3; end
+                sleep
+              rescue => e
+                logger.error { e.message }
+                logger.debug { e.backtrace.join("\n\t") }
+                exit 1
+              end
+            }
+          }
+        else
+          manipulator = Castoro::Manipulator::Manipulator.new(config, Logger.new(STDOUT))
+          set_signalhandler manipulator
+          manipulator.start
+          while manipulator.alive?; sleep 3; end
+        end
+
+      rescue => e
+        STDERR.puts "--- Castoro::Manipulator error! - #{e.message}"
+        STDERR.puts e.backtrace.join("\n\t") if options[:verbose]
+        exit 1
+
+      ensure
+        STDERR.puts "*** done."
       end
 
-    rescue => e
-      puts "--- Castoro::Manipulator error! - #{e.message}"
-      puts e.backtrace.join("\n\t") if options[:verbose]
-      exit 1
-
-    ensure
-      puts "*** done."
-    end
-
-    def self.stop options
-      puts "*** Stopping Castoro::Manipulator daemon..."
-      raise "PID file not found - #{options[:pid]}" unless File.exist?(options[:pid])
-      timeout(@@stop_timeout) {
-        send_signal(options[:pid], options[:force] ? :TERM : :HUP)
-        while File.exist?(options[:pid]); end
-      }
-
-    rescue => e
-      puts "--- Castoro::Manipulator error! - #{e.message}"
-      puts e.backtrace.join("\n\t") if options[:verbose]
-      exit 1
-
-    ensure
-      puts "*** done."
-    end
-
-    def self.setup options
-      puts "*** Setting Castoro::Manipulator config..."
-      puts "--- setup configuration file to #{options[:conf]}..."
-
-      if File.exist?(options[:conf])
-        raise "Config file already exists - #{options[:conf]}" unless options[:force]
-      end
-
-      confdir = File.dirname(options[:conf])
-      FileUtils.mkdir_p confdir unless File.directory?(confdir)
-      open(options[:conf], "w") { |f|
-        f.puts Castoro::Manipulator::SETTING_TEMPLATE
-      }
-      
-    rescue => e
-      puts "--- Castoro::Manipulator error! - #{e.message}"
-      puts e.backtrace.join("\n\t") if options[:verbose]
-      exit 1
-    end
-
-    private
-
-    def self.init config, pid_file = nil
-      logger = Logger.new(STDOUT)
-      manipulator = Manipulator.new(config, logger)
-
-      # signal.
-      stopping = false
-      [:INT, :HUP, :TERM].each { |sig|
-        trap(sig) { |s|
-          unless stopping
-            stopping = true
-            manipulator.stop (s == :TERM)
-            FileUtils.rm pid_file if pid_file and File.exist? pid_file
-            exit! 0
-          end
+      def self.stop options
+        STDERR.puts "*** Stopping Castoro::Manipulator daemon..."
+        raise "PID file not found - #{options[:pid]}" unless File.exist?(options[:pid])
+        timeout(@@stop_timeout) {
+          send_signal(options[:pid], options[:force] ? :TERM : :HUP)
+          while File.exist?(options[:pid]); end
         }
-      }
 
-      # start manipulator
-      manipulator.start
+      rescue => e
+        STDERR.puts "--- Castoro::Manipulator error! - #{e.message}"
+        STDERR.puts e.backtrace.join("\n\t") if options[:verbose]
+        exit 1
 
-      # write pid to file.
-      File.open(pid_file, "w") { |f| f.puts $$ } if pid_file
+      ensure
+        STDERR.puts "*** done."
+      end
 
-      # sleep.
-      while manipulator.alive?; sleep 3; end
-    end
+      def self.setup options
+        STDERR.puts "*** Setting Castoro::Manipulator config..."
+        STDERR.puts "--- setup configuration file to #{options[:conf]}..."
 
-    def self.send_signal pid_file, signal
-      # SIGINT signal is sent to dispatcher daemon(s9.
-      pid = File.open(pid_file, "r") { |f| f.read }.to_i
+        if File.exist?(options[:conf])
+          raise "Config file already exists - #{options[:conf]}" unless options[:force]
+        end
 
-      Process.kill(signal, pid)
-      Process.waitpid2(pid) rescue nil
+        confdir = File.dirname(options[:conf])
+        FileUtils.mkdir_p confdir unless File.directory?(confdir)
+        open(options[:conf], "w") { |f|
+          f.puts Manipulator::SETTING_TEMPLATE
+        }
+      
+      rescue => e
+        STDERR.puts "--- Castoro::Manipulator error! - #{e.message}"
+        STDERR.puts e.backtrace.join("\n\t") if options[:verbose]
+        exit 1
+
+      rescue
+        STDERR.puts "*** done."
+      end
+
+      private
+
+      def self.set_signalhandler manipulator
+        stopping = false
+        [:INT, :HUP, :TERM].each { |sig|
+          trap(sig) { |s|
+            unless stopping
+              stopping = true
+              manipulator.stop(s == :TERM)
+              yield if block_given?
+              exit! 0
+            end
+          }
+        }
+      end
+
+      def self.send_signal pid_file, signal
+        # SIGINT signal is sent to dispatcher daemon(s9.
+        pid = File.open(pid_file, "r") { |f| f.read }.to_i
+
+        Process.kill(signal, pid)
+        Process.waitpid2(pid) rescue nil
+      end
+
     end
 
   end

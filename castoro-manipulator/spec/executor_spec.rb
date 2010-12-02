@@ -17,16 +17,8 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require "rubygems"
+require File.dirname(__FILE__) + '/spec_helper.rb'
 
-require "castoro-common"
+describe Castoro::Manipulator::Executor do
 
-module Castoro #:nodoc:
-  module Manipulator #:nodoc:
-    autoload :Executor        , "castoro-manipulator/executor"
-    autoload :Manipulator     , "castoro-manipulator/manipulator"
-    autoload :ManipulatorError, "castoro-manipulator/manipulator"
-    autoload :Version         , "castoro-manipulator/version"
-    autoload :Workers         , "castoro-manipulator/workers"
-  end
 end
