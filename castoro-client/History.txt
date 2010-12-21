@@ -1,3 +1,8 @@
+=== 0.0.13 2010-12-15
+
+* Implemented function to check existance of the contents after finalize timeout.
+** It is executed when cancel command failed by Castoro::Peer::PreconditionFailedError.
+
 === 0.0.12 2010-10-21
 
 * Modified retry function of Castoro::Client#create.

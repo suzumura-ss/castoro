@@ -235,7 +235,7 @@ module Castoro
     #
     # <b>CREATE command try following flow to peers.</b>
     #
-    # * but if no peers can be connected, client raise
+    # * But if no peers can be connected, client raise
     #   - Castoro::ClientNothingPeerError "[key:#{key}] There is no Peer that can be connected by TCP."
     #
     # ==== Processing flow
@@ -245,7 +245,7 @@ module Castoro
     # 2. Then, if some kind of error raised, 
     #    client retry to connect and send CREATE command to the next peer.
     #
-    #    * but if no peers remined which can be used, raise the error and finish this process.
+    #    * But if no peers remined which can be used, raise the error and finish this process.
     #    * In case of the error is caused by the basket already existing in peer, 
     #      client raise the error and finish this process without retry.
     #
@@ -268,7 +268,7 @@ module Castoro
     # 4. Then, if some kind of error raised while yielding, 
     #    client send CANCEL command to the peer and retry to the next peer.
     #
-    #    * but if no peers remined which can be used, raise the error and finish this process.
+    #    * But if no peers remined which can be used, raise the error and finish this process.
     #    * In case of the error is for canceling this process,
     #      client raise the error to the application and finish this process without retry.
     #
@@ -283,6 +283,10 @@ module Castoro
     #
     # 6. Then, if some kind of error raised, client send CANCEL command to the peer 
     #    and raise the error and finish this process without retry.
+    #
+    #    * But if FINALIZE command was time out and CANCEL command failed by
+    #      Castoro::Peer::PreconditionFailedError, client send GET command to check
+    #      contents existance. And then if contents already created, client finish without error.
     #
     #    <b>Possible Errors</b>
     #
@@ -439,7 +443,9 @@ module Castoro
           # FINALIZE
           @logger.info { "[key:#{cmd.basket}] send FINALIZE request to peer<#{peer}>" }
           res = connection.send Protocol::Command::Finalize.new(cmd.basket, host, path), @tcp_request_expire
-          raise ClientTimeoutError, "finalize command timeout - #{peer}" if res.nil?
+
+          finalize_timedout = res.nil?
+          raise ClientTimeoutError, "finalize command timeout - #{peer}" if finalize_timedout
           raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Finalize
           raise ClientError, "finalize command failed - #{res.inspect}, #{peer}." if res.error?
 
@@ -456,20 +462,42 @@ module Castoro
         end
 
       rescue => e
+        finalize_completed = false
         begin
           # CANCEL
           @logger.info { "[key:#{cmd.basket}] send CANCEL request to peer<#{peer}>" }
           res = connection.send Protocol::Command::Cancel.new(cmd.basket, host, path), @tcp_request_expire
-          @logger.info { "cancel command timeout - #{peer}" } if res.nil?
-          @logger.info { "Response not intended. - #{res.class}" } unless res.kind_of? Protocol::Response::Cancel
-          @logger.info { "cancel command failed - #{res.inspect}, #{peer}." } if res.error?
+          if res.nil?
+            @logger.info { "cancel command timeout - #{peer}" }
+          elsif !(res.kind_of? Protocol::Response::Cancel)
+            @logger.info { "Response not intended. - #{res.class}" }
+          elsif res.error?
+            @logger.info { "cancel command failed - #{res.inspect}, #{peer}." }
+            if finalize_timedout && res.error["code"] == "Castoro::Peer::PreconditionFailedError"
+              # Check whether Finalize completed or not, by sending GET commnad over TCP.
+              @logger.info { "[key:#{cmd.basket}] send GET request to peer<#{peer}>" }
+              res = connection.send Protocol::Command::Get.new(cmd.basket), @tcp_request_expire
+              if res.nil?
+                @logger.info { "get command timeout - #{peer}" }
+              elsif !(res.kind_of? Protocol::Response::Get)
+                @logger.info { "Response not intended. - #{res.class}" }
+              elsif res.error?
+                @logger.info { "get command failed - #{res.inspect}." }
+              else
+                @logger.info { "Finalize have completed." }
+                finalize_completed = true
+              end
+            end
+          end
         rescue => cancel_error
           @logger.error { cancel_error.message }
           @logger.debug { cancel_error.backtrace.join("\n\t") }
         end
 
-        remining_peers.clear if e.class == ClientNoRetryError
-        raise
+        unless finalize_completed
+          remining_peers.clear if e.class == ClientNoRetryError
+          raise
+        end
       end
 
     rescue => e
