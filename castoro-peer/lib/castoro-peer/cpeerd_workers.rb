@@ -694,7 +694,7 @@ module Castoro
           opt_short = false
           opt_period = nil
           opt_count = 1
-          while ( opt = a.shift )
+          while ( opt = @a.shift )
             opt_short = true if opt == "-s"
             opt_period = opt.to_i if opt_period.nil? and opt.match(/[0-9]/)
             opt_count  = opt.to_i if ! opt_period.nil? and opt.match(/[0-9]/)
