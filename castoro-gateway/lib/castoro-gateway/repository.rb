@@ -56,7 +56,7 @@ module Castoro
         peers = @cache.find_peers command.hints
 
         if peers.empty?
-          @logger.info { "[key:#{command.basket}] It failed in the selection of Peer." }
+          @logger.warn { "[key:#{command.basket}] It failed in the selection of Peer." }
           command.error_response :message => "It failed in the selection of Peer."
         else
           @logger.info { "[key:#{command.basket}] fetch peers <#{peers}>" }
@@ -110,6 +110,18 @@ module Castoro
       def status
         @cache.status
       end
+
+      ##
+      # cache record is dumped.
+      #
+      # === Args
+      #
+      # +io+::
+      #   IO object that receives dump result.
+      #
+      def dump io
+        @cache.dump io
+      end 
 
     private
 

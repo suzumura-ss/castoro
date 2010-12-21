@@ -60,6 +60,10 @@ describe Castoro::Gateway do
         @g.instance_variable_get(:@repository).should be_kind_of Castoro::Gateway::Repository
       end
 
+      it "console should be set Castoro::Gateway::ConsoleServer instance." do
+        @g.instance_variable_get(:@console).should be_kind_of Castoro::Gateway::ConsoleServer
+      end
+
       it "should raise already started GatewayError." do
         Proc.new {
           @g.start
@@ -85,6 +89,10 @@ describe Castoro::Gateway do
 
         it "repository should be nil." do
           @g.instance_variable_get(:@repository).should be_nil
+        end
+
+        it "console should be nil." do
+          @g.instance_variable_get(:@console).should be_nil
         end
 
         it "should raise already stopped GatewayError." do
@@ -122,31 +130,51 @@ describe Castoro::Gateway do
       # mock for Castoro::Gateway::Repository
       @repository = mock Castoro::Gateway::Repository
       @repository.stub!(:new).and_return @repository
+      @repository.stub!(:start)
+      @repository.stub!(:stop)
+      @repository.stub!(:alive?).and_return true
+
+      # mock for Castoro::Gateway::ConsoleServer
+      @console = mock Castoro::Gateway::ConsoleServer
+      @console.stub!(:new).and_return @console
+      @console.stub!(:start)
+      @console.stub!(:stop)
+      @console.stub!(:alive?).and_return true
 
       Castoro::Gateway.class_variable_set(:@@facade_class, @facade)
       Castoro::Gateway.class_variable_set(:@@workers_class, @workers)
       Castoro::Gateway.class_variable_set(:@@repository_class, @repository)
+      Castoro::Gateway.class_variable_set(:@@console_server_class, @console)
     end
 
     it "should be set mock." do
-      Castoro::Gateway.class_variable_get(:@@facade_class).should     == @facade
-      Castoro::Gateway.class_variable_get(:@@workers_class).should    == @workers
-      Castoro::Gateway.class_variable_get(:@@repository_class).should == @repository
+      Castoro::Gateway.class_variable_get(:@@facade_class).should         == @facade
+      Castoro::Gateway.class_variable_get(:@@workers_class).should        == @workers
+      Castoro::Gateway.class_variable_get(:@@repository_class).should     == @repository
+      Castoro::Gateway.class_variable_get(:@@console_server_class).should == @console
     end
 
     context "when dependency classes initialized" do
       it "class variables should be reset correctly." do
         Castoro::Gateway.dependency_classes_init
-        Castoro::Gateway.class_variable_get(:@@facade_class).should     == Castoro::Gateway::Facade
-        Castoro::Gateway.class_variable_get(:@@workers_class).should    == Castoro::Gateway::Workers
-        Castoro::Gateway.class_variable_get(:@@repository_class).should == Castoro::Gateway::Repository
+        Castoro::Gateway.class_variable_get(:@@facade_class).should         == Castoro::Gateway::Facade
+        Castoro::Gateway.class_variable_get(:@@workers_class).should        == Castoro::Gateway::Workers
+        Castoro::Gateway.class_variable_get(:@@repository_class).should     == Castoro::Gateway::Repository
+        Castoro::Gateway.class_variable_get(:@@console_server_class).should == Castoro::Gateway::ConsoleServer
       end
     end
 
     context "when config argument is test configs" do
       before do
         test_configs = {
+          "multicast_addr"        => "239.192.1.2",
           "multicast_device_addr" => "127.0.0.1",
+          "gateway" => {
+            "console_port"        => 30150,
+            "unicast_port"        => 30151,
+            "multicast_port"      => 30149,
+            "watchdog_port"       => 30153,
+          },
           "peer" => {
             "multicast_port"      => 30152
           }
@@ -175,11 +203,22 @@ describe Castoro::Gateway do
                   .with(
                     @logger, @g.instance_variable_get(:@config)["workers"],
                     @facade, @repository,
-                    "239.192.1.1",
+                    "239.192.1.2",
                     "127.0.0.1",
                     30152
                   ).exactly(1)
           @workers.should_receive(:start)
+          @g.start
+        end
+
+        it "console should initialized and start." do
+          @console.should_receive(:new)
+                  .with(
+                    @logger, @repository,
+                    30150,
+                    {:host => "0.0.0.0"} 
+                  ).exactly(1)
+          @console.should_receive(:start)
           @g.start
         end
 

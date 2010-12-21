@@ -43,9 +43,9 @@ describe Castoro::Gateway::Repository do
       repository.should be_kind_of Castoro::Gateway::Repository
     end
 
-    it "should be respond to query, fetch_available_peers, insert_cache_record, drop_cache_record, update_watchdog_status." do
+    it "should be respond to query, fetch_available_peers, insert_cache_record, drop_cache_record, update_watchdog_status, status, dump." do
       repository = Castoro::Gateway::Repository.new @logger, @config
-      repository.should respond_to :query, :fetch_available_peers, :insert_cache_record, :drop_cache_record, :update_watchdog_status
+      repository.should respond_to :query, :fetch_available_peers, :insert_cache_record, :drop_cache_record, :update_watchdog_status, :status, :dump
     end
 
     it "should be set logger and cache." do
@@ -145,6 +145,29 @@ describe Castoro::Gateway::Repository do
 
         repository = Castoro::Gateway::Repository.new @logger, @config
         repository.update_watchdog_status command
+      end
+    end
+
+    context "when get cache status" do
+      it "cache#status should be called once." do
+        @cache.stub!(:status)
+        command = Castoro::Protocol::Command::Status.new
+        @cache.should_receive(:status).exactly(1)
+
+        repository = Castoro::Gateway::Repository.new @logger, @config
+        repository.status
+      end
+    end
+
+    context "when dump the cache" do
+      it "cache#dump should be called once." do
+        @cache.stub!(:dump)
+        io = STDOUT
+        command = Castoro::Protocol::Command::Dump.new
+        @cache.should_receive(:dump).with(io).exactly(1)
+
+        repository = Castoro::Gateway::Repository.new @logger, @config
+        repository.dump io
       end
     end
   end

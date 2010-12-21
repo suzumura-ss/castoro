@@ -48,6 +48,13 @@ describe Castoro::Gateway::Facade do
   end
 
   context "when initialized" do
+    it "should be able start > stop > start ..." do
+      100.times {
+        @facade.start
+        @facade.stop
+      }
+    end
+
     it "should be created an instance of Castoro::Gateway::Facade" do
       @facade.should be_kind_of Castoro::Gateway::Facade
     end

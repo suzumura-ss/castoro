@@ -21,7 +21,7 @@ module Castoro
           DSTAT_ACTIVE_PAGES                      #   使用中のcacheページ数。
           DSTAT_HAVE_STATUS_PEERS                 #   ステータスが登録されているpeer数。
           DSTAT_ACTIVE_PEERS                      #   書き込み可能なpeer数。
-          DSTAT_READABLE_PEERS                    #   読み出し専用のpeer数。
+          DSTAT_READABLE_PEERS                    #   読み出し可能なpeer数。
     watchdog_limit=                               # watchdogのタイムアウト値(sec)を指定する。デフォルト１５秒。
     self.make_nfs_path(p, b, c, t, r)             # p:storage_name, b:base_path, c:content_id, t:content_type, r:revision
                                                   #   からNFSパスを生成する。

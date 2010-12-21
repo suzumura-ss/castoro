@@ -83,8 +83,7 @@ module Castoro
       @@facade_class          = Facade
       @@workers_class         = Workers
       @@repository_class      = Repository
-      @@console_server_class  = Server::TCP
-      @@console_workers_class = ConsoleWorkers
+      @@console_server_class  = ConsoleServer
     end
     dependency_classes_init
 
@@ -122,12 +121,9 @@ module Castoro
         @workers.start
 
         # start console server.
-        @console = @@console_server_class.new @logger, @config["gateway"]["console_port"].to_i, :host => "0.0.0.0"
+        @console = @@console_server_class.new @logger, @repository, @config["gateway"]["console_port"].to_i, :host => "0.0.0.0"
         @console.start
 
-        # start console workers.
-        @console_workers = @@console_workers_class.new @logger, @console, self
-        @console_workers.start
       }
     end
 
@@ -143,9 +139,6 @@ module Castoro
       @locker.synchronize {
         raise GatewayError, "gateway already stopped." unless alive?
         
-        @console_workers.stop force
-        @console_workers = nil
-
         @console.stop
         @console = nil
 
@@ -167,20 +160,8 @@ module Castoro
     def alive?
       @locker.synchronize {
         @facade and @facade.alive? and
-          @workers and @workers.alive? and @repository and
-          @console and @console.alive? and
-          @console_workers and @console_workers.alive?
-      }
-    end
-
-    ##
-    # The status of hash representation is returned.
-    #
-    def status
-      @locker.synchronize {
-        raise GatewayError, "gateway is stopped." unless alive?
-
-        @repository.status
+          @workers and @workers.alive? and @repository
+          @console and @console.alive? 
       }
     end
 

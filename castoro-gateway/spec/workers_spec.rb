@@ -71,6 +71,13 @@ describe Castoro::Gateway::Workers do
       @w = Castoro::Gateway::Workers.new(@logger, count, @facade, @repository, mc_addr, dv_addr, port)
     end
 
+    it "should be able start > stop > start ..." do
+      100.times {
+        @w.start
+        @w.stop
+      }
+    end
+
     it "should alive? false" do
       @w.alive?.should be_false
     end

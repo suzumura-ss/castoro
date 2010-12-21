@@ -63,8 +63,30 @@ describe Castoro::BasketCache do
       @cache.set_status "peer100", ACTIVE, available
     end
 
-    it "should be empty" do
+    it "should be empty." do
       @cache.find_by_key(keys[1]).should be_empty
+    end
+
+    it "should return the status of the cache initialization." do
+      res = @cache.status
+      res.should be_kind_of Hash
+      res[:CACHE_EXPIRE].should            == CACHE_SETTINGS["watchdog_limit"]
+      res[:CACHE_REQUESTS].should          == 0
+      res[:CACHE_HITS].should              == 0
+      res[:CACHE_COUNT_CLEAR].should       == 0
+      res[:CACHE_ALLOCATE_PAGES].should    == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE
+      res[:CACHE_FREE_PAGES].should        == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE
+      res[:CACHE_ACTIVE_PAGES].should      == 0 
+      res[:CACHE_HAVE_STATUS_PEERS].should == 1
+      res[:CACHE_ACTIVE_PEERS].should      == 1
+      res[:CACHE_READABLE_PEERS].should    == 1
+    end
+
+    it "dump result should be empty." do
+      io = StringIO.new
+      @cache.dump io
+      io.rewind
+      io.read.should == ""
     end
 
     after do
@@ -72,7 +94,7 @@ describe Castoro::BasketCache do
     end
   end
 
-  context "when insert a item" do
+  context "when insert items" do
     before do
       logger = Logger.new nil
       @cache = Castoro::BasketCache.new logger, CACHE_SETTINGS
@@ -82,59 +104,201 @@ describe Castoro::BasketCache do
       @cache.insert(keys[2], "peer102", "/expdsk/baskets")
     end
 
-    it "should be empty when insert and remove it" do
-      @cache.set_status "peer100", ACTIVE, available
-      @cache.erase_by_peer_and_key("peer100", keys[0])
-      @cache.erase_by_peer_and_key("peer101", keys[1])
-      @cache.erase_by_peer_and_key("peer102", keys[2])
-      @cache.find_by_key(keys[0]).should be_empty
-      @cache.find_by_key(keys[1]).should be_empty
-      @cache.find_by_key(keys[2]).should be_empty
+    it "should be changed the status of the page size." do
+      res = @cache.status
+      res[:CACHE_EXPIRE].should            == CACHE_SETTINGS["watchdog_limit"]
+      res[:CACHE_REQUESTS].should          == 0
+      res[:CACHE_HITS].should              == 0
+      res[:CACHE_COUNT_CLEAR].should       == 0
+      res[:CACHE_ALLOCATE_PAGES].should    == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE
+      res[:CACHE_FREE_PAGES].should        == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE - res[:CACHE_ACTIVE_PAGES]
+      res[:CACHE_ACTIVE_PAGES].should      == 3 
+      res[:CACHE_HAVE_STATUS_PEERS].should == 0
+      res[:CACHE_ACTIVE_PEERS].should      == 0
+      res[:CACHE_READABLE_PEERS].should    == 0
     end
 
-    it "should be empty when insert but NOT activated" do
-      @cache.find_by_key(keys[0]).should be_empty
-      @cache.find_by_key(keys[1]).should be_empty
-      @cache.find_by_key(keys[2]).should be_empty
+    it "dump result should be inserted items." do
+      io = StringIO.new
+      @cache.dump io
+      io.rewind
+      io.read.split("\n").size.should == 3
+      io.rewind
+      io.read.should == "  peer102: /expdsk/baskets/1357902.0.3\n  peer101: /expdsk/baskets/4567890.1.2\n  peer100: /expdsk/baskets/291.1.3\n"
     end
 
-    it "should be one item when mark active" do
-      @cache.set_status "peer100", ACTIVE, available
-      @cache.set_status "peer101", ACTIVE, available
-      @cache.set_status "peer102", ACTIVE, available
-      @cache.find_by_key(keys[0]).should == {
-          "peer100" => "/expdsk/baskets/0/000/000/291.1.3",
-      }
-      @cache.find_by_key(keys[1]).should == {
-          "peer101" => "/expdsk/baskets/0/004/567/4567890.1.2",
-      }
-      @cache.find_by_key(keys[2]).should == {
-          "peer102" => "/expdsk/baskets/0/001/357/1357902.0.3",
-      }
+    context "and remove it with 1 storage is active" do
+      before do
+        @cache.set_status "peer100", ACTIVE, available
+        @cache.erase_by_peer_and_key("peer100", keys[0])
+        @cache.erase_by_peer_and_key("peer101", keys[1])
+        @cache.erase_by_peer_and_key("peer102", keys[2])
+      end
+      
+      it "should be erased items." do
+        @cache.find_by_key(keys[0]).should be_empty
+        @cache.find_by_key(keys[1]).should be_empty
+        @cache.find_by_key(keys[2]).should be_empty
+      end
+
+      it "#status return the number of miss hits after #find_by_key." do
+        @cache.find_by_key(keys[0])
+        @cache.find_by_key(keys[1])
+        @cache.find_by_key(keys[2])
+
+        res = @cache.status
+        res[:CACHE_EXPIRE].should            == CACHE_SETTINGS["watchdog_limit"]
+        res[:CACHE_REQUESTS].should          == 3
+        res[:CACHE_HITS].should              == 0
+        res[:CACHE_COUNT_CLEAR].should       == 0
+        res[:CACHE_ALLOCATE_PAGES].should    == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE
+        res[:CACHE_FREE_PAGES].should        == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE
+        res[:CACHE_ACTIVE_PAGES].should      == 0 
+        res[:CACHE_HAVE_STATUS_PEERS].should == 1
+        res[:CACHE_ACTIVE_PEERS].should      == 1
+        res[:CACHE_READABLE_PEERS].should    == 1
+      end
+    
+      it "dump result should be empty." do
+        io = StringIO.new
+        @cache.dump io
+        io.rewind
+        io.read.should == ""
+      end
     end
 
-    it "should be one item when mark readonly" do
-      @cache.set_status "peer100", READONLY, available
-      @cache.set_status "peer101", READONLY, available
-      @cache.set_status "peer102", READONLY, available
-      @cache.find_by_key(keys[0]).should == {
-          "peer100" => "/expdsk/baskets/0/000/000/291.1.3",
-      }
-      @cache.find_by_key(keys[1]).should == {
-          "peer101" => "/expdsk/baskets/0/004/567/4567890.1.2",
-      }
-      @cache.find_by_key(keys[2]).should == {
-          "peer102" => "/expdsk/baskets/0/001/357/1357902.0.3",
-      }
+    context "with storage status is nothing" do
+      it "should not be able to find inserted items." do
+        @cache.find_by_key(keys[0]).should be_empty
+        @cache.find_by_key(keys[1]).should be_empty
+        @cache.find_by_key(keys[2]).should be_empty
+      end
+  
+      it "#status return the number of miss hits after #find_by_key." do
+        @cache.find_by_key(keys[0])
+        @cache.find_by_key(keys[1])
+        @cache.find_by_key(keys[2])
+
+        res = @cache.status
+        res[:CACHE_EXPIRE].should            == CACHE_SETTINGS["watchdog_limit"]
+        res[:CACHE_REQUESTS].should          == 3
+        res[:CACHE_HITS].should              == 0
+        res[:CACHE_COUNT_CLEAR].should       == 0
+        res[:CACHE_ALLOCATE_PAGES].should    == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE
+        res[:CACHE_FREE_PAGES].should        == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE - res[:CACHE_ACTIVE_PAGES]
+        res[:CACHE_ACTIVE_PAGES].should      == 3 
+        res[:CACHE_HAVE_STATUS_PEERS].should == 0
+        res[:CACHE_ACTIVE_PEERS].should      == 0
+        res[:CACHE_READABLE_PEERS].should    == 0
+      end
     end
 
-    it "should be empty when mark maintenance" do
-      @cache.set_status "peer100", MAINTENANCE, available
-      @cache.set_status "peer101", MAINTENANCE, available
-      @cache.set_status "peer102", MAINTENANCE, available
-      @cache.find_by_key(keys[0]).should be_empty
-      @cache.find_by_key(keys[1]).should be_empty
-      @cache.find_by_key(keys[2]).should be_empty
+    context 'with all storage status is active' do
+      before do
+        @cache.set_status "peer100", ACTIVE, available
+        @cache.set_status "peer101", ACTIVE, available
+        @cache.set_status "peer102", ACTIVE, available
+      end
+
+      it "should be able to find the inserted items." do
+        @cache.find_by_key(keys[0]).should == {
+            "peer100" => "/expdsk/baskets/0/000/000/291.1.3",
+        }
+        @cache.find_by_key(keys[1]).should == {
+            "peer101" => "/expdsk/baskets/0/004/567/4567890.1.2",
+        }
+        @cache.find_by_key(keys[2]).should == {
+            "peer102" => "/expdsk/baskets/0/001/357/1357902.0.3",
+        }
+      end
+
+      it "#status return the number of miss hits after #find_by_key." do
+        @cache.find_by_key(keys[0])
+        @cache.find_by_key(keys[1])
+        @cache.find_by_key(keys[2])
+
+        res = @cache.status
+        res[:CACHE_EXPIRE].should            == CACHE_SETTINGS["watchdog_limit"]
+        res[:CACHE_REQUESTS].should          == 3
+        res[:CACHE_HITS].should              == 3
+        res[:CACHE_COUNT_CLEAR].should       == 1000
+        res[:CACHE_ALLOCATE_PAGES].should    == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE
+        res[:CACHE_FREE_PAGES].should        == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE - res[:CACHE_ACTIVE_PAGES]
+        res[:CACHE_ACTIVE_PAGES].should      == 3 
+        res[:CACHE_HAVE_STATUS_PEERS].should == 3
+        res[:CACHE_ACTIVE_PEERS].should      == 3
+        res[:CACHE_READABLE_PEERS].should    == 3
+      end
+    end
+
+    context 'with storage status is read only' do
+      before do
+        @cache.set_status "peer100", READONLY, available
+        @cache.set_status "peer101", READONLY, available
+        @cache.set_status "peer102", READONLY, available
+      end
+
+      it "should be found the insert items." do
+        @cache.find_by_key(keys[0]).should == {
+            "peer100" => "/expdsk/baskets/0/000/000/291.1.3",
+        }
+        @cache.find_by_key(keys[1]).should == {
+            "peer101" => "/expdsk/baskets/0/004/567/4567890.1.2",
+        }
+        @cache.find_by_key(keys[2]).should == {
+            "peer102" => "/expdsk/baskets/0/001/357/1357902.0.3",
+        }
+      end
+
+      it "#status return the number of hits after #find_by_key." do
+        @cache.find_by_key(keys[0])
+        @cache.find_by_key(keys[1])
+        @cache.find_by_key(keys[2])
+
+        res = @cache.status
+        res[:CACHE_EXPIRE].should            == CACHE_SETTINGS["watchdog_limit"]
+        res[:CACHE_REQUESTS].should          == 3
+        res[:CACHE_HITS].should              == 3
+        res[:CACHE_COUNT_CLEAR].should       == 1000
+        res[:CACHE_ALLOCATE_PAGES].should    == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE
+        res[:CACHE_FREE_PAGES].should        == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE - res[:CACHE_ACTIVE_PAGES]
+        res[:CACHE_ACTIVE_PAGES].should      == 3 
+        res[:CACHE_HAVE_STATUS_PEERS].should == 3
+        res[:CACHE_ACTIVE_PEERS].should      == 0
+        res[:CACHE_READABLE_PEERS].should    == 3
+      end
+    end
+
+    context 'with storage status is maintenance' do
+      before do
+        @cache.set_status "peer100", MAINTENANCE, available
+        @cache.set_status "peer101", MAINTENANCE, available
+        @cache.set_status "peer102", MAINTENANCE, available
+      end
+  
+      it "should not be able to find the inserted items." do
+        @cache.find_by_key(keys[0]).should be_empty
+        @cache.find_by_key(keys[1]).should be_empty
+        @cache.find_by_key(keys[2]).should be_empty
+      end
+
+      it "#status return the number of miss hits after #find_by_key." do
+        @cache.find_by_key(keys[0])
+        @cache.find_by_key(keys[1])
+        @cache.find_by_key(keys[2])
+
+        res = @cache.status
+        res[:CACHE_EXPIRE].should            == CACHE_SETTINGS["watchdog_limit"]
+        res[:CACHE_REQUESTS].should          == 3
+        res[:CACHE_HITS].should              == 0
+        res[:CACHE_COUNT_CLEAR].should       == 0
+        res[:CACHE_ALLOCATE_PAGES].should    == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE
+        res[:CACHE_FREE_PAGES].should        == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE - res[:CACHE_ACTIVE_PAGES]
+        res[:CACHE_ACTIVE_PAGES].should      == 3 
+        res[:CACHE_HAVE_STATUS_PEERS].should == 3
+        res[:CACHE_ACTIVE_PEERS].should      == 0
+        res[:CACHE_READABLE_PEERS].should    == 0
+      end
     end
 
     after do
@@ -152,35 +316,49 @@ describe Castoro::BasketCache do
       @cache.find_peers({"length" => 0}).should be_empty
     end
 
-    context "there is 3 peers, there are 100 and 1000 bytes writable class1 and 1000 bytes writable class2" do
+    context "there are 3 peers, 100 and 1000 bytes writable class1 and 1000 bytes writable class2" do
       before do
         @cache.set_status "peer100", ACTIVE, 100
         @cache.set_status "peer101", ACTIVE, 1000
         @cache.set_status "peer102", ACTIVE, 1000
       end
 
-      it "should be used default class and included 2 peers when require 50 bytes and without class" do
+      it "#status should return values that reflect of the 3 peers status." do
+        res = @cache.status
+        res[:CACHE_EXPIRE].should            == CACHE_SETTINGS["watchdog_limit"]
+        res[:CACHE_REQUESTS].should          == 0
+        res[:CACHE_HITS].should              == 0
+        res[:CACHE_COUNT_CLEAR].should       == 0
+        res[:CACHE_ALLOCATE_PAGES].should    == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE
+        res[:CACHE_FREE_PAGES].should        == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE - res[:CACHE_ACTIVE_PAGES]
+        res[:CACHE_ACTIVE_PAGES].should      == 0 
+        res[:CACHE_HAVE_STATUS_PEERS].should == 3
+        res[:CACHE_ACTIVE_PEERS].should      == 3
+        res[:CACHE_READABLE_PEERS].should    == 3
+      end
+
+      it "should be used default class and included 2 peers when require 50 bytes and without class." do
         same_elements?(@cache.find_peers({"length" => 50}), ["peer100","peer101"]).should be_true
       end
 
-      it "should be included 2 peers when require 50 bytes and class = class1" do
+      it "should be included 2 peers when require 50 bytes and class = class1." do
         same_elements?(@cache.find_peers({"length" => 50, "class" => "class1"}), ["peer100","peer101"]).should be_true
       end
 
-      it "should be included 1 peer when require class = class2" do
+      it "should be included 1 peer when require class = class2." do
         same_elements?(@cache.find_peers({"class" => "class2"}), ["peer102"])
       end
 
-      it "should be included 1 peers when require 500 bytes and class = class1" do
+      it "should be included 1 peers when require 500 bytes and class = class1." do
         same_elements?(@cache.find_peers({"length" => 500, "class" => "class1"}), ["peer101"]).should be_true
       end
 
-      it "should empty when require 5000 bytes" do
+      it "should empty when require 5000 bytes." do
         @cache.find_peers({"length" => 5000}).should be_empty
       end
     end
 
-    context "there is 4 peers, there are 100 bytes writable and 1000 bytes avail but readonly each class1 and class2" do
+    context "there are 4 peers, 100 bytes writable and 1000 bytes avail but readonly each class1 and class2" do
       before do
         @cache.set_status "peer100", ACTIVE  , 100
         @cache.set_status "peer101", READONLY, 1000
@@ -188,23 +366,37 @@ describe Castoro::BasketCache do
         @cache.set_status "peer103", READONLY, 1000
       end
 
-      it "should be used default class and included 1 peer when require 50 bytes and without class" do
+      it "#status should return values that reflect of the 4 peers status." do
+        res = @cache.status
+        res[:CACHE_EXPIRE].should            == CACHE_SETTINGS["watchdog_limit"]
+        res[:CACHE_REQUESTS].should          == 0
+        res[:CACHE_HITS].should              == 0
+        res[:CACHE_COUNT_CLEAR].should       == 0
+        res[:CACHE_ALLOCATE_PAGES].should    == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE
+        res[:CACHE_FREE_PAGES].should        == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE - res[:CACHE_ACTIVE_PAGES]
+        res[:CACHE_ACTIVE_PAGES].should      == 0 
+        res[:CACHE_HAVE_STATUS_PEERS].should == 4
+        res[:CACHE_ACTIVE_PEERS].should      == 2 
+        res[:CACHE_READABLE_PEERS].should    == 4
+      end
+
+      it "should be used default class and included 1 peer when require 50 bytes and without class." do
         same_elements?(@cache.find_peers({"length" => 50}), ["peer100"]).should be_true
       end
 
-      it "should be included 1 peer when require 50 bytes and class = class2" do
+      it "should be included 1 peer when require 50 bytes and class = class2." do
         same_elements?(@cache.find_peers({"length" => 50, "class" => "class2"}), ["peer102"]).should be_true
       end
 
-      it "should be empty when require 50 bytes and class = class3" do
+      it "should be empty when require 50 bytes and class = class3." do
         @cache.find_peers({"length" => 50, "class" => "class3"}).should be_empty
       end
 
-      it "should empty when require 500 bytes" do
+      it "should empty when require 500 bytes." do
         @cache.find_peers({"length" => 500}).should be_empty
       end
 
-      it "should empty when require 5000 bytes" do
+      it "should empty when require 5000 bytes." do
         @cache.find_peers({"length" => 5000}).should be_empty
       end
     end
@@ -214,7 +406,6 @@ describe Castoro::BasketCache do
     end
   end
 
-
   private
 
   def same_elements? array1, array2
@@ -223,4 +414,3 @@ describe Castoro::BasketCache do
 
   
 end
-

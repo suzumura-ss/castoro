@@ -31,6 +31,7 @@ module Castoro
       page_num = (config["cache_size"] / Cache::PAGE_SIZE).ceil
       @locker  = Monitor.new
       @cache   = Cache.new page_num
+      @cache.watchdog_limit = config["watchdog_limit"].to_i
     end
 
     def method_missing method_name, *arguments
@@ -123,19 +124,38 @@ module Castoro
     # The status of hash representation is returned.
     #
     def status
+      @logger.info { "status request accepted." }
+
       @locker.synchronize {
         {
-          :CACHE_EXPIRE            => @cache.stat(Castoro::Cache::DSTAT_CACHE_EXPIRE),
-          :CACHE_REQUESTS          => @cache.stat(Castoro::Cache::DSTAT_CACHE_REQUESTS),
-          :CACHE_HITS              => @cache.stat(Castoro::Cache::DSTAT_CACHE_HITS),
-          :CACHE_COUNT_CLEAR       => @cache.stat(Castoro::Cache::DSTAT_CACHE_COUNT_CLEAR),
-          :CACHE_ALLOCATE_PAGES    => @cache.stat(Castoro::Cache::DSTAT_ALLOCATE_PAGES),
-          :CACHE_FREE_PAGES        => @cache.stat(Castoro::Cache::DSTAT_FREE_PAGES),
-          :CACHE_ACTIVE_PAGES      => @cache.stat(Castoro::Cache::DSTAT_ACTIVE_PAGES),
-          :CACHE_HAVE_STATUS_PEERS => @cache.stat(Castoro::Cache::DSTAT_HAVE_STATUS_PEERS),
-          :CACHE_ACTIVE_PEERS      => @cache.stat(Castoro::Cache::DSTAT_ACTIVE_PEERS),
-          :CACHE_READABLE_PEERS    => @cache.stat(Castoro::Cache::DSTAT_READABLE_PEERS),
+          :CACHE_EXPIRE            => @cache.stat(::Castoro::Cache::DSTAT_CACHE_EXPIRE),
+          :CACHE_REQUESTS          => @cache.stat(::Castoro::Cache::DSTAT_CACHE_REQUESTS),
+          :CACHE_HITS              => @cache.stat(::Castoro::Cache::DSTAT_CACHE_HITS),
+          :CACHE_COUNT_CLEAR       => @cache.stat(::Castoro::Cache::DSTAT_CACHE_COUNT_CLEAR),
+          :CACHE_ALLOCATE_PAGES    => @cache.stat(::Castoro::Cache::DSTAT_ALLOCATE_PAGES),
+          :CACHE_FREE_PAGES        => @cache.stat(::Castoro::Cache::DSTAT_FREE_PAGES),
+          :CACHE_ACTIVE_PAGES      => @cache.stat(::Castoro::Cache::DSTAT_ACTIVE_PAGES),
+          :CACHE_HAVE_STATUS_PEERS => @cache.stat(::Castoro::Cache::DSTAT_HAVE_STATUS_PEERS),
+          :CACHE_ACTIVE_PEERS      => @cache.stat(::Castoro::Cache::DSTAT_ACTIVE_PEERS),
+          :CACHE_READABLE_PEERS    => @cache.stat(::Castoro::Cache::DSTAT_READABLE_PEERS),
         }
+      }
+    end
+
+
+    ##
+    # cache records is dumped.
+    #
+    # === Args
+    #
+    # +io+::
+    #   IO object that receives dump result.
+    #
+    def dump io
+      @logger.info { "dump request accepted." }
+
+      @locker.synchronize {
+        @cache.dump io
       }
     end
   end

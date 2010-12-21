@@ -31,7 +31,7 @@ module Castoro
     @@stop_timeout = 10
 
     def self.start options
-      puts "*** Starting Castoro::Gateway..."
+      STDERR.puts "*** Starting Castoro::Gateway..."
 
       config = YAML::load(ERB.new(IO.read(options[:conf])).result)
 
@@ -79,16 +79,16 @@ module Castoro
       end
 
     rescue => e
-      puts "--- Castor::Gateway error! - #{e.message}"
-      puts e.backtrace.join("\n\t") if options[:verbose]
+      STDERR.puts "--- Castoro::Gateway error! - #{e.message}"
+      STDERR.puts e.backtrace.join("\n\t") if options[:verbose]
       exit(1)
 
     ensure
-      puts "*** done."
+      STDERR.puts "*** done."
     end
 
     def self.stop options
-      puts "*** Stopping Castor::Gateway daemon..."
+      STDERR.puts "*** Stopping Castoro::Gateway daemon..."
       raise "PID file not found - #{options[:pid]}" unless File.exist?(options[:pid])
       timeout(@@stop_timeout) {
         send_signal(options[:pid], options[:force] ? :TERM : :HUP)
@@ -96,17 +96,17 @@ module Castoro
       }
 
     rescue => e
-      puts "--- Castor::Gateway error! - #{e.message}"
-      puts e.backtrace.join("\n\t") if options[:verbose]
+      STDERR.puts "--- Castoro::Gateway error! - #{e.message}"
+      STDERR.puts e.backtrace.join("\n\t") if options[:verbose]
       exit(1)
       
     ensure
-      puts "*** done."
+      STDERR.puts "*** done."
     end
 
     def self.setup options
-      puts "*** Stopping Castor::Gateway daemon..."
-      puts "--- setup configuration file to #{options[:conf]}..."
+      STDERR.puts "*** Stopping Castoro::Gateway daemon..."
+      STDERR.puts "--- setup configuration file to #{options[:conf]}..."
 
       if File.exist?(options[:conf])
         raise "Config file already exists - #{options[:conf]}" unless options[:force]
@@ -119,12 +119,12 @@ module Castoro
       }
       
     rescue => e
-      puts "--- Castor::Gateway error! - #{e.message}"
-      puts e.backtrace.join("\n\t") if options[:verbose]
+      STDERR.puts "--- Castoro::Gateway error! - #{e.message}"
+      STDERR.puts e.backtrace.join("\n\t") if options[:verbose]
       exit(1)
 
     ensure
-      puts "*** done."
+      STDERR.puts "*** done."
     end
 
     def self.status options
@@ -137,11 +137,28 @@ module Castoro
       width  = ret.keys.max { |x, y| x.length <=> y.length }.length
       key_format = "%-#{width}s"
       ret.each { |k, v|
-        puts "#{key_format % k} : #{v}"
+        STDOUT.puts "#{key_format % k} : #{v}"
       }
     rescue => e
-      puts "--- Castor::Gateway error! - #{e.message}"
-      puts e.backtrace.join("\n\t") if options[:verbose]
+      STDERR.puts "--- Castoro::Gateway error! - #{e.message}"
+      STDERR.puts e.backtrace.join("\n\t") if options[:verbose]
+      exit(1)
+    end
+
+    def self.dump options
+      port = options[:port].to_i
+
+      Castoro::Sender::TCP.start(Logger.new(nil), "127.0.0.1", port, 3.0) { |s|
+        s.send_and_recv_stream(Castoro::Protocol::Command::Dump.new, 3.0) { |received|
+          STDOUT.print received
+        }
+        STDOUT.puts
+      }
+
+
+    rescue => e
+      STDERR.puts "--- Castoro::Gateway error! - #{e.message}"
+      STDERR.puts e.backtrace.join("\n\t") if options[:verbose]
       exit(1)
     end
 
