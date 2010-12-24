@@ -145,6 +145,8 @@ module Castoro
         @locker.synchronize {
           raise ServerError, "#{@name} already stopped." unless alive?
 
+          Thread.current[:dying] = true
+
           @unix_server.close
           @unix_server = nil
           self
@@ -318,6 +320,8 @@ module Castoro
       def stop
         @locker.synchronize {
           raise ServerError, "#{@name} already stopped." unless alive?
+
+          Thread.current[:dying] = true
 
           @tcp_server.close
           @tcp_server = nil

@@ -138,7 +138,7 @@ module Castoro
     attr_reader :basket, :hints
     def initialize basket, hints
       @basket = basket.to_basket
-      raise "Nil cannot be set for hints."  unless hints.kind_of? Hash
+      raise "hints should be a Hash."  unless hints.kind_of? Hash
       raise "Nil cannot be set for class."  unless hints["class"]
 
       @hints = hints.dup
@@ -569,7 +569,7 @@ module Castoro
       unless @error
         @basket = basket.to_basket
 
-        raise "Nil cannot be set for paths." unless paths.kind_of? Hash
+        raise "paths should be a Hash." unless paths.kind_of? Hash
         @paths = paths.dup
       end
     end
@@ -630,7 +630,7 @@ module Castoro
       super error
       status ||= {}
       unless @error
-        raise "status should be Hash." unless status.kind_of? Hash
+        raise "status should be a Hash." unless status.kind_of? Hash
         @status = status.dup
       end
     end
@@ -679,8 +679,8 @@ module Castoro
 
     attr_reader :ip, :port, :sid
     def initialize ip, port, sid = 0
-      raise ProtocolError, "port should be an Fixnum." unless port.kind_of? Fixnum
-      raise ProtocolError, "sid should be an Numeric." unless sid.kind_of? Numeric
+      raise ProtocolError, "port should be a Fixnum." unless port.kind_of? Fixnum
+      raise ProtocolError, "sid should be a Numeric." unless sid.kind_of? Numeric
 
       @ip, @port, @sid = ip.to_s, port, sid
     end

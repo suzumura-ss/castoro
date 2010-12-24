@@ -17,7 +17,7 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require File.dirname(__FILE__) + '/spec_helper.rb'
+require File.dirname(__FILE__) + '/../spec_helper.rb'
 
 
 describe Castoro::Protocol::UDPHeader do

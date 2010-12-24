@@ -1,3 +1,8 @@
+=== 0.0.15 (future-version)
+
+* Bugfix: Added value-setter for the flag to stop thread, in Castoro::Server::UNIX, TCP #stop.
+* Corrected error messages.
+* Devided spec files for protocol.rb.
 
 === 0.0.14
 
