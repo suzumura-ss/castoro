@@ -24,10 +24,8 @@ module Castoro
     class Repository
 
       def initialize logger, config
-        @logger                   = logger
-
-        @cache                    = BasketCache.new @logger, config
-        @cache.watchdog_limit     = config["watchdog_limit"].to_i
+        @logger = logger
+        @cache  = ::Castoro::BasketCache.new @logger, config
       end
 
       ##
@@ -53,7 +51,7 @@ module Castoro
       #   create command instance.
       #
       def fetch_available_peers command
-        peers = @cache.find_peers command.hints
+        peers = @cache.preferentially_find_peers command.hints
 
         if peers.empty?
           @logger.warn { "[key:#{command.basket}] It failed in the selection of Peer." }

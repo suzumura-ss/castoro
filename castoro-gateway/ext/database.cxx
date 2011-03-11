@@ -159,6 +159,14 @@ bool Database::get_status(ID peer, PeerStatus& status)
 }
 
 
+void Database::find(ArrayOfId& result)
+{
+  for(PeerStatusMap::iterator it = m_status.begin(); it != m_status.end(); it++) {
+    result.push_back((*it).first);
+  }
+}
+
+
 void Database::find(uint64_t require_space, ArrayOfId& result)
 {
   PeerStatusMap::iterator it = m_status.begin();

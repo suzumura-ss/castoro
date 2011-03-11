@@ -23,11 +23,14 @@ module Castoro
           DSTAT_ACTIVE_PEERS                      #   書き込み可能なpeer数。
           DSTAT_READABLE_PEERS                    #   読み出し可能なpeer数。
     watchdog_limit=                               # watchdogのタイムアウト値(sec)を指定する。デフォルト１５秒。
+    watchdog_limit                                # watchdogのタイムアウト値(sec)を取得する。
     self.make_nfs_path(p, b, c, t, r)             # p:storage_name, b:base_path, c:content_id, t:content_type, r:revision
                                                   #   からNFSパスを生成する。
     class Peers
       [](storage_name)                            # storage_nameのPeerを返す。
-      find(require_spaces)                        # stat[:status]がACTIVEでstat[:available]がrequire_spaces以上であるstorage_idの配列を返す。見つからない場合は[]。
+      find(require_spaces)                        # stat[:status]がACTIVEでstat[:available]がrequire_spaces以上である
+                                                  # storage_idの配列を返す。見つからない場合は[]。
+                                                  # 引数省略時は、認識している全てのstorage_idの配列を返す。
     end
 
     class Peer

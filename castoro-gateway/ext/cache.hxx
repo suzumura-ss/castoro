@@ -64,11 +64,13 @@ public:
   // peer handlings.
   inline void set_status(ID p, const PeerStatus& s) { m_db->set_status(p, s); };
   inline bool get_status(ID p, PeerStatus& s) { return m_db->get_status(p, s); };
+  inline void find(ArrayOfId& a) { m_db->find(a); };
   inline void find(uint64_t r, ArrayOfId& a) { m_db->find(r, a); };
   inline void remove(ID p) { m_db->remove(p); };
 
   // global stats.
   inline void set_expire(uint32_t e) { m_db->set_expire(e); };
+  inline uint32_t get_expire() const { return m_db->get_expire(); };
   inline uint64_t stat(Database::DatabaseStat s) { return m_db->stat(s); };
 
   // Ruby bindings.
@@ -80,7 +82,8 @@ private:
   // Ruby bindings.
   static VALUE rb_init(VALUE self, VALUE _p);
   static VALUE rb_find(VALUE self, VALUE _c, VALUE _t, VALUE _r);
-  static VALUE rb_set_exipre(VALUE self, VALUE _t);
+  static VALUE rb_set_expire(VALUE self, VALUE _t);
+  static VALUE rb_get_expire(VALUE self);
   static VALUE rb_stat(VALUE self, VALUE _k);
   static VALUE rb_alloc_peers(VALUE self);
   static VALUE rb_dump(VALUE self, VALUE _f);
@@ -102,7 +105,7 @@ private:
 public:
   // Ruby bindings
   static VALUE define_class(VALUE _p);
-  static VALUE rb_find(VALUE self, VALUE _r);
+  static VALUE rb_find(int argc, VALUE* argv, VALUE self);
   static VALUE rb_alloc_peer(VALUE self, VALUE _p);
 };
 

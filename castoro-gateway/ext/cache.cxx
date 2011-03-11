@@ -68,7 +68,8 @@ VALUE Cache::define_class(VALUE _p)
   rb_define_alloc_func(c, (rb_alloc_func_t)rb_alloc);
   rb_define_method(c, "initialize", RUBY_METHOD_FUNC(rb_init), 1);
   rb_define_method(c, "find",   RUBY_METHOD_FUNC(rb_find), 3);
-  rb_define_method(c, "watchdog_limit=", RUBY_METHOD_FUNC(rb_set_exipre), 1);
+  rb_define_method(c, "watchdog_limit=", RUBY_METHOD_FUNC(rb_set_expire), 1);
+  rb_define_method(c, "watchdog_limit", RUBY_METHOD_FUNC(rb_get_expire), 0);
   rb_define_method(c, "stat",   RUBY_METHOD_FUNC(rb_stat), 1);
   rb_define_method(c, "peers",  RUBY_METHOD_FUNC(rb_alloc_peers), 0);
   rb_define_method(c, "dump",  RUBY_METHOD_FUNC(rb_dump), 1);
@@ -136,10 +137,16 @@ VALUE Cache::rb_find(VALUE self, VALUE _c, VALUE _t, VALUE _r)
 }
 
 
-VALUE Cache::rb_set_exipre(VALUE self, VALUE _t)
+VALUE Cache::rb_set_expire(VALUE self, VALUE _t)
 {
   get_self(self)->set_expire(NUM2UINT(_t));
   return Qnil;
+}
+
+
+VALUE Cache::rb_get_expire(VALUE self)
+{
+  return UINT2NUM(get_self(self)->get_expire());
 }
 
 
@@ -197,23 +204,28 @@ VALUE Peers::define_class(VALUE _p)
 {
   VALUE c = rb_define_class_under(_p, "Peers", rb_cObject);
 
-  rb_define_method(c, "find", RUBY_METHOD_FUNC(rb_find), 1);
+  rb_define_method(c, "find", RUBY_METHOD_FUNC(rb_find), -1);
   rb_define_method(c, "[]", RUBY_METHOD_FUNC(rb_alloc_peer), 1);
 
   return c;
 }
 
 
-VALUE Peers::rb_find(VALUE self, VALUE _r)
+VALUE Peers::rb_find(int argc, VALUE* argv, VALUE self)
 {
   ArrayOfId a;
+  VALUE _r;
 
-  get_self(self)->m_cache->find(NUM2ULL(_r), a);
+  int num = rb_scan_args(argc, argv, "01", &_r);
+  if (num == 0) {
+    get_self(self)->m_cache->find(a);
+  } else {
+    get_self(self)->m_cache->find(NUM2ULL(_r), a);
+  }
 
   VALUE result = rb_class_new_instance(0, &stub, rb_cArray);
-  for(unsigned int i=0; i<a.size(); i++) {
-    ID peer = a.at(i);
-    rb_funcall(result, operator_push, 1, rb_id2str(peer));
+  for(ArrayOfId::iterator it = a.begin(); it != a.end(); it++) {
+    rb_funcall(result, operator_push, 1, rb_id2str(*it));
   }
   return result;
 }
@@ -224,7 +236,6 @@ VALUE Peers::rb_alloc_peer(VALUE self, VALUE _p)
   Peers* p = get_self(self);
   return Data_Wrap_Struct(rb_cPeer, Peer::gc_mark, Peer::free, new Peer(*(p->m_cache), rb_to_id(_p)));
 }
-
 
 
 //

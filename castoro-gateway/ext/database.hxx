@@ -78,11 +78,13 @@ namespace Gateway {
     // peer handlings.
     void set_status(ID peer, const PeerStatus& status);
     bool get_status(ID peer, PeerStatus& status);
+    void find(ArrayOfId& result);
     void find(uint64_t require_space, ArrayOfId& result);
     void remove(ID peer);
 
     // global settings.
     inline void set_expire(uint32_t expires) { m_expire = expires; };
+    inline uint32_t get_expire() const { return m_expire; };
 
     // dump cache.
     bool dump(CacheDumperAbstract& dumper);

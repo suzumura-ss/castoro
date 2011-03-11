@@ -43,7 +43,7 @@ CACHE_SETTINGS = {
                      when 'class2'
                        ['peer102', 'peer103']
                      when 'default'
-                       ['peer100', 'peer101']
+                       ['peer100', 'peer101', 'peer102', 'peer103', 'peer104']
                      else
                        []
                      end
@@ -55,6 +55,7 @@ CACHE_SETTINGS = {
 
 
 describe Castoro::BasketCache do
+
   context "when empty" do
     before do
       logger = Logger.new nil
@@ -314,6 +315,7 @@ describe Castoro::BasketCache do
 
     it "should empty when there is no peers." do
       @cache.find_peers({"length" => 0}).should be_empty
+      @cache.preferentially_find_peers({"length" => 0}).should be_empty
     end
 
     context "there are 3 peers, 100 and 1000 bytes writable class1 and 1000 bytes writable class2" do
@@ -337,20 +339,24 @@ describe Castoro::BasketCache do
         res[:CACHE_READABLE_PEERS].should    == 3
       end
 
-      it "should be used default class and included 2 peers when require 50 bytes and without class." do
-        same_elements?(@cache.find_peers({"length" => 50}), ["peer100","peer101"]).should be_true
+      it "should be used default class and included 3 peers when require 50 bytes and without class." do
+        @cache.find_peers({"length" => 50}) =~ ["peer100","peer101","peer102"]
+        @cache.preferentially_find_peers({"length" => 50}) =~ ["peer100","peer101","peer102"]
       end
 
       it "should be included 2 peers when require 50 bytes and class = class1." do
-        same_elements?(@cache.find_peers({"length" => 50, "class" => "class1"}), ["peer100","peer101"]).should be_true
+        @cache.find_peers({"length" => 50, "class" => "class1"}) =~ ["peer100","peer101"]
+        @cache.preferentially_find_peers({"length" => 50, "class" => "class1"}) =~ ["peer100","peer101"]
       end
 
       it "should be included 1 peer when require class = class2." do
-        same_elements?(@cache.find_peers({"class" => "class2"}), ["peer102"])
+        @cache.find_peers({"class" => "class2"}) =~ ["peer102"]
+        @cache.preferentially_find_peers({"class" => "class2"})=~ ["peer102"]
       end
 
       it "should be included 1 peers when require 500 bytes and class = class1." do
-        same_elements?(@cache.find_peers({"length" => 500, "class" => "class1"}), ["peer101"]).should be_true
+        @cache.find_peers({"length" => 500, "class" => "class1"}) =~ ["peer101"]
+        @cache.preferentially_find_peers({"length" => 500, "class" => "class1"}) =~ ["peer101"]
       end
 
       it "should empty when require 5000 bytes." do
@@ -358,46 +364,26 @@ describe Castoro::BasketCache do
       end
     end
 
-    context "there are 4 peers, 100 bytes writable and 1000 bytes avail but readonly each class1 and class2" do
+    context "there are 6 peers, 5 writable and 1 readonly with various capacity" do
       before do
-        @cache.set_status "peer100", ACTIVE  , 100
-        @cache.set_status "peer101", READONLY, 1000
-        @cache.set_status "peer102", ACTIVE  , 100
-        @cache.set_status "peer103", READONLY, 1000
+        @cache.set_status "peer100", ACTIVE,      100
+        @cache.set_status "peer101", ACTIVE,     1000
+        @cache.set_status "peer102", ACTIVE,    10000
+        @cache.set_status "peer103", ACTIVE,   100000
+        @cache.set_status "peer104", ACTIVE,  1000000
+        @cache.set_status "peer105", READONLY,   1000
       end
 
-      it "#status should return values that reflect of the 4 peers status." do
-        res = @cache.status
-        res[:CACHE_EXPIRE].should            == CACHE_SETTINGS["watchdog_limit"]
-        res[:CACHE_REQUESTS].should          == 0
-        res[:CACHE_HITS].should              == 0
-        res[:CACHE_COUNT_CLEAR].should       == 0
-        res[:CACHE_ALLOCATE_PAGES].should    == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE
-        res[:CACHE_FREE_PAGES].should        == CACHE_SETTINGS["cache_size"] / Castoro::Cache::PAGE_SIZE - res[:CACHE_ACTIVE_PAGES]
-        res[:CACHE_ACTIVE_PAGES].should      == 0 
-        res[:CACHE_HAVE_STATUS_PEERS].should == 4
-        res[:CACHE_ACTIVE_PEERS].should      == 2 
-        res[:CACHE_READABLE_PEERS].should    == 4
-      end
-
-      it "should be used default class and included 1 peer when require 50 bytes and without class." do
-        same_elements?(@cache.find_peers({"length" => 50}), ["peer100"]).should be_true
-      end
-
-      it "should be included 1 peer when require 50 bytes and class = class2." do
-        same_elements?(@cache.find_peers({"length" => 50, "class" => "class2"}), ["peer102"]).should be_true
-      end
-
-      it "should be empty when require 50 bytes and class = class3." do
-        @cache.find_peers({"length" => 50, "class" => "class3"}).should be_empty
-      end
-
-      it "should empty when require 500 bytes." do
-        @cache.find_peers({"length" => 500}).should be_empty
-      end
-
-      it "should empty when require 5000 bytes." do
-        @cache.find_peers({"length" => 5000}).should be_empty
+      it "should return peers preferentially sorted by capacity." do
+        rank = {"peer100" => 0, "peer101" => 0, "peer102" => 0, "peer103" => 0, "peer104" => 0, }
+        100.times{
+          rank[@cache.preferentially_find_peers({"length" => 50})[0]] += 1
+        }
+        rank = rank.sort { |x, y| y[1] <=> x[1] }.map{ |x| x[0] }
+        rank.first.should == "peer104"
+        rank.last.should  == "peer100"
+        res =  @cache.preferentially_find_peers({"length" => 50})
+        res =~ ["peer104", "peer103", "peer102", "peer101", "peer100"]
       end
     end
 
@@ -412,5 +398,4 @@ describe Castoro::BasketCache do
     array1.all? {|a| array2.include? a} and array2.all? {|a| array1.include? a}
   end
 
-  
 end

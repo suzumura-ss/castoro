@@ -250,6 +250,10 @@ describe Castoro::Cache do
         @cache.peers[PEER2].status = ACTIVE_1000
       end
 
+      it "should be include 2(all) peers when argument is omitted" do
+        @cache.peers.find.should == [PEER1, PEER2]
+      end
+
       it "should be include 2 peers when require 50 bytes" do
         @cache.peers.find(50).should == [PEER1, PEER2]
       end
@@ -268,6 +272,10 @@ describe Castoro::Cache do
         @cache.peers[PEER1].status = ACTIVE_100
         @cache.peers[PEER2].status = ACTIVE_1000
         @cache.peers[PEER2].status = READONLY
+      end
+
+      it "should be include 2(all) peers when argument is omitted" do
+        @cache.peers.find.should == [PEER1, PEER2]
       end
 
       it "should be include 1 peer when require 50 bytes" do
@@ -372,6 +380,12 @@ describe Castoro::Cache do
       @cache.find(1,2,3).should == [nfs2(1,2,3)]
     end
 
+    describe "#watchdog_limit" do
+      it "should be eql 1" do
+        @cache.watchdog_limit.should be_eql 1
+      end
+    end
+
     after do
       @cache = nil
     end
@@ -422,6 +436,12 @@ __RESULT__
       @cache.find(4,5,6)
     end
 
+    describe "#watchdog_limit" do
+      it "should be eql 1" do
+        @cache.watchdog_limit.should be_eql 5
+      end
+    end
+
     it "should return stats" do
       @cache.stat(Castoro::Cache::DSTAT_CACHE_EXPIRE).should == 5
       @cache.stat(Castoro::Cache::DSTAT_CACHE_REQUESTS).should == 2
@@ -433,7 +453,6 @@ __RESULT__
       @cache.stat(Castoro::Cache::DSTAT_HAVE_STATUS_PEERS).should == 2
       @cache.stat(Castoro::Cache::DSTAT_ACTIVE_PEERS).should == 1
       @cache.stat(Castoro::Cache::DSTAT_READABLE_PEERS).should == 2
-      puts "\npage size = #{Castoro::Cache::PAGE_SIZE}"
     end
 
     after do

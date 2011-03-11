@@ -1,3 +1,11 @@
+
+=== 0.0.15 2011-03-11
+
+* added Castoro::BasketCache#preferentially_find_peers
+* added Castoro::Cache#watchdog_limit
+* modified Castoro::Cache#find
+** when the argument is omitted, all storage_id is returned.
+
 === 0.0.14 2010-12-21
 
 * Added subcommand 'dump'

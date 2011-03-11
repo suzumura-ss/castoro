@@ -172,6 +172,6 @@ module Castoro
         old_val.kind_of?(Hash) ? merge_r(old_val, new_val) : new_val
       end
     end
-    
+
   end
 end

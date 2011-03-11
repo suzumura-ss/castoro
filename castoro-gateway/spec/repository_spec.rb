@@ -54,11 +54,6 @@ describe Castoro::Gateway::Repository do
       repository.instance_variable_get(:@cache).should  == @cache
     end
 
-    it "cache#watchdog_limit should be called once." do
-      @cache.should_receive(:watchdog_limit=).with(15).exactly(1)
-      repository = Castoro::Gateway::Repository.new @logger, @config
-    end
-
     context 'when query with cache find peer' do
       it "should return Castoro::Protocol::Response::Get instance." do
         key     = Castoro::BasketKey.new 1, 2, 3
@@ -89,7 +84,7 @@ describe Castoro::Gateway::Repository do
       it "should return error response." do
         key = Castoro::BasketKey.new 1, 2, 3
         command = Castoro::Protocol::Command::Create.new key, {"class" => :original, "length" => 100}
-        @cache.stub!(:find_peers).with({"class" => "original", "length" => 100}).and_return([])
+        @cache.stub!(:preferentially_find_peers).with({"class" => "original", "length" => 100}).and_return([])
         repository = Castoro::Gateway::Repository.new @logger, @config
 
         res = repository.fetch_available_peers command
@@ -100,7 +95,7 @@ describe Castoro::Gateway::Repository do
 
     context "when fetch availabele_peer from cache with find peers." do
       it "should return Castoro::Response::Create::Gateway instance that contains the Peers." do
-        @cache.stub!(:find_peers).with({"class" => "original", "length" => 100}).and_return(["host1", "host2", "host3"])
+        @cache.stub!(:preferentially_find_peers).with({"class" => "original", "length" => 100}).and_return(["host1", "host2", "host3"])
         key = Castoro::BasketKey.new 1, 2, 3
         command = Castoro::Protocol::Command::Create.new key, {"class" => :original, "length" => 100}
         repository = Castoro::Gateway::Repository.new @logger, @config

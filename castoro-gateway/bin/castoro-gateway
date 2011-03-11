@@ -48,11 +48,11 @@ COMMAND_OPTIONS = {
   },
   :status => {
     :verbose => false,
-    :port => Castoro::Gateway::DEFAULT_SETTINGS["gateway"]["console_port"].to_i,
+    :port => Castoro::Gateway::Gateway::DEFAULT_SETTINGS["gateway"]["console_port"].to_i,
   },
   :dump => {
     :verbose => false,
-    :port => Castoro::Gateway::DEFAULT_SETTINGS["gateway"]["console_port"].to_i,
+    :port => Castoro::Gateway::Gateway::DEFAULT_SETTINGS["gateway"]["console_port"].to_i,
   }
 }
 
@@ -168,4 +168,4 @@ rescue
   exit 1
 end
 
-Castoro::ScriptRunner.send(command, opt)
+Castoro::Gateway::ScriptRunner.send(command, opt)

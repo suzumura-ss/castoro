@@ -26,5 +26,6 @@ require "castoro-gateway/facade"
 require "castoro-gateway/repository"
 require "castoro-gateway/workers"
 require "castoro-gateway/console_server"
+require "castoro-gateway/version"
 
 require "castoro-gateway/gateway"

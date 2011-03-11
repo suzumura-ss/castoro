@@ -32,6 +32,7 @@ module Castoro
       @locker  = Monitor.new
       @cache   = Cache.new page_num
       @cache.watchdog_limit = config["watchdog_limit"].to_i
+      @weight  = weighting_coefficient @return_peer_number
     end
 
     def method_missing method_name, *arguments
@@ -97,6 +98,18 @@ module Castoro
     end
 
     ##
+    # fetch satisfied Peer
+    # and return the array that preferentially sorted by capacity.
+    #
+    #
+    def preferentially_find_peers hints = {}
+      @locker.synchronize {
+        availables = find_peers hints
+        preferentially_sort_by_capacity availables
+      }
+    end
+
+    ##
     # set status to Cache::Peers
     #
     # === Args
@@ -158,5 +171,39 @@ module Castoro
         @cache.dump io
       }
     end
+
+    private
+
+    ##
+    # weighting coefficient for #preferentially_find_peers is returned.
+    #
+    def weighting_coefficient length
+      (0..(length-1)).map { |x| 2**x }
+    end
+
+    ##
+    # preferentially sort peers by capacity.
+    # 
+    # === Args
+    #
+    # +availables+::
+    #   Array object that each element contains host and capacity.
+    #
+    def preferentially_sort_by_capacity availables
+      availables.map! { |host|
+        stat = @cache.peers[host].status[:available] || {}
+        [host, stat.to_i]
+      }
+
+      i = -1
+      availables.map { |host, capa|
+        [host, availables.count { |h,c| capa <= c }]
+      }.map { |q|
+        i += 1
+        [q[0], q[1] * @weight[i]]
+      }.sort_by { |x| x[1] }.map { |x| x[0] }
+    end
+
   end
+
 end

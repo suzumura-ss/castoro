@@ -23,9 +23,12 @@ require 'rake/clean'
 require 'rake/gempackagetask'
 require 'rake/rdoctask'
 
+$LOAD_PATH.unshift File.expand_path('../lib', __FILE__)
+require 'castoro-gateway/version'
+
 spec = Gem::Specification.new do |s|
   s.name = 'castoro-gateway'
-  s.version = '0.0.14'
+  s.version = Castoro::Gateway::Version::STRING
   s.has_rdoc = true
   s.extra_rdoc_files = ['README.textile']
   s.summary = "This(it) is gateway for Castoro which is distributed abstraction filesystem."
