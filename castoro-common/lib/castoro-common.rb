@@ -30,4 +30,11 @@ require "castoro-common/server"
 require "castoro-common/workers"
 require "castoro-common/workers_helper"
 
+# When 1.9.x, It is possible to set it individually.
+# by BasicSocket#do_not_reverse_lookup= method.
+#
+# However, If you need to work in both environments,
+# BasicSocket.do_not_reverse_lookup= must be set globally using the
+#
+BasicSocket.do_not_reverse_lookup = true
 

@@ -1,8 +1,10 @@
-=== 0.0.15 (future-version)
+=== 0.0.15 2011-03-23
 
 * Bugfix: Added value-setter for the flag to stop thread, in Castoro::Server::UNIX, TCP #stop.
 * Corrected error messages.
 * Devided spec files for protocol.rb.
+* changed to BasicSocket.do_not_reverse_lookup = true
+** when 1.9.2 or newer, default is true. otherwise default is false.
 
 === 0.0.14
 

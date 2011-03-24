@@ -27,7 +27,7 @@ require "timeout"
 require "etc"
 
 module Castoro
-  module Gateway
+  class Gateway
 
     class ScriptRunner
       @@stop_timeout = 10
