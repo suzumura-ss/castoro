@@ -17,28 +17,34 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+require 'singleton'
+require 'castoro-peer/configurations'
+
 module Castoro
   module Peer
 
-    module SignalHandler
+    class StorageServers
+      include Singleton
 
-      def regist_signal_handler
-        [:start_request, :stop_request, :shutdown_request].each { |m|
-          raise "self does not fill the methods." unless self.respond_to? m
-        }
+      attr_reader :target, :alternative_hosts, :colleague_hosts
 
-        [:INT, :QUIT, :TERM].each { |sig|
-          Signal.trap(sig) { self.shutdown_request }
-        }
-        [:USR1].each { |sig|
-          Signal.trap(sig) { self.stop_request     }
-        }
-        [:USR2].each { |sig|
-          Signal.trap(sig) { self.start_request    }
-        }
+      def initialize
+        c = Configurations.instance
+        hostname = c.HostnameForClient
+        storages = c.StorageHostsData
+        groups = c.StorageGroupsData
+        g = groups.select { |a| a.include? hostname }
+        g.flatten!
+        n = g.size
+        g.concat g.dup
+        i = g.index( hostname )
+        hosts = g.slice(i, n)
+        h = hosts.map { |x| storages[ x ] || x }
+        h.shift
+        @colleague_hosts = h.dup
+        @target = h.shift
+        @alternative_hosts = h
       end
-
     end
   end
 end
-

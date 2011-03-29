@@ -35,13 +35,13 @@ module Castoro
   module Peer
     
     class TCPReplicationServer < PreThreadedTcpServer
-      def initialize( config, port, host = '0.0.0.0', maxConnections = 20  )
+      def initialize( port = Configurations.instance.ReplicationTCPCommunicationPort, host = '0.0.0.0', maxConnections = 20  )
         super
       end
 
       def serve( io )
         channel = TcpServerChannel.new
-        processor = ReplicationReceiverImplementation.new( channel, io, @config )
+        processor = ReplicationReceiverImplementation.new( channel, io )
         begin
           processor.run
         rescue => e
@@ -52,14 +52,14 @@ module Castoro
     end
 
     class ReplicationReceiverImplementation
-      def initialize( channel, io, config )
-        @config = config
+      def initialize( channel, io )
+        @config = Configurations.instance
 
         @channel, @io = channel, io
         @directory_entries = []
         @basket = nil
         @dst = nil
-        @csm_executor = Csm.create_executor (config[:use_manipulator_daemon] && config[:manipulator_socket])
+        @csm_executor = Csm.create_executor
       end
 
       def run
@@ -241,7 +241,7 @@ module Castoro
         # in the method process_file_command
         size = @args[ 'size' ].to_i
         sending_size = size
-        unit_size = @config[:replication_transmission_datasize]
+        unit_size = @config.ReplicationTransmissionDataUnitSize
         while ( 0 < size )
           MaintenaceServerSingletonScheduler.instance.check_point
           n = ( unit_size < size ) ? unit_size : size
@@ -303,20 +303,20 @@ module Castoro
 
       def send_insert_multicast_packet
         # Todo: codes regarding multicast could be enhanced
-        channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new @config[:multicast_if] )
-        host = @config[:hostname_for_client]
-        ip   = @config[:multicast_address]
-        port = @config[:gateway_udp_command_port]
+        channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
+        host = @config.HostnameForClient
+        ip   = @config.MulticastAddress
+        port = @config.GatewayUDPCommandPort
         args = Hash[ 'basket', @basket.to_s, 'host', host, 'path', @path_a ]
         channel.send( 'INSERT', args, ip, port )
       end
 
       def send_drop_multicast_packet
         # Todo: codes regarding multicast could be enhanced
-        channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new @config[:multicast_if] )
-        host = @config[:hostname_for_client]
-        ip   = @config[:multicast_address]
-        port = @config[:gateway_udp_command_port]
+        channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
+        host = @config.HostnameForClient
+        ip   = @config.MulticastAddress
+        port = @config.GatewayUDPCommandPort
         args = Hash[ 'basket', @basket.to_s, 'host', host, 'path', @path_d ]
         channel.send( 'DROP', args, ip, port )
       end

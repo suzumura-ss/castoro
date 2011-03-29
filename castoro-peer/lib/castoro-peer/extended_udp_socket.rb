@@ -80,15 +80,12 @@ module Castoro
 
 
     class ExtendedUDPSocket < PartlyExtendedUDPSocket
-
-      attr_reader :if_addr
-
-      def initialize multicast_if
-        super()
+      def initialize
+        super
         self.do_not_reverse_lookup = true
-        @if_addr = multicast_if
-        interface = IPAddr.new( @if_addr ).hton
-        Log.debug( "ExtendedUDPSocket.new : Multicast IP_MULTICAST_IF  : #{@if_addr}" )
+        if_addr = Configurations.instance[ :MulticastIf ]
+        interface = IPAddr.new( if_addr ).hton
+        Log.debug( "ExtendedUDPSocket.new : Multicast IP_MULTICAST_IF  : #{if_addr}" )
 #        p caller
         self.setsockopt( Socket::IPPROTO_IP, Socket::IP_MULTICAST_IF, interface )
         self.setsockopt( Socket::IPPROTO_IP, Socket::IP_MULTICAST_LOOP, "\x00" )
@@ -97,8 +94,9 @@ module Castoro
       def bind( host, port )
         if ( isClassD?( host ) )
           multicast_address = host
-          ip_mreq = IPAddr.new( multicast_address ).hton + IPAddr.new( @if_addr ).hton
-          Log.debug( "ExtendedUDPSocket.bind: Multicast IP_ADD_MEMBERSHIP: #{multicast_address} #{@if_addr}" )
+          if_addr = Configurations.instance[ :MulticastIf ]
+          ip_mreq = IPAddr.new( multicast_address ).hton + IPAddr.new( if_addr ).hton
+          Log.debug( "ExtendedUDPSocket.bind: Multicast IP_ADD_MEMBERSHIP: #{multicast_address} #{if_addr}" )
           self.setsockopt( Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, ip_mreq )
           Log.debug( "bind( 0.0.0.0, #{port} )" )
           super( '0.0.0.0', port )
@@ -121,8 +119,8 @@ end
 if $0 == __FILE__
   module Castoro
     module Peer
-      $CONFIG.load( 'csd.conf' )
-      s = ExtendedUDPSocket.new $CONFIG[:multicast_if]
+      Configurations.instance.load( 'csd.conf' )
+      s = ExtendedUDPSocket.new
       s.bind( "239.192.1.1", 10000 )
       p = Castoro::UdpPacket.new( nil, nil, nil )
       s.sending( p )

@@ -19,26 +19,13 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require "optparse"
 require "socket"
 
 require "rubygems"
 require "castoro-peer/configurations"
 
-conffile = Castoro::Peer::Configurations::DEFAULT_FILE
-
-OptionParser.new { |opt|
-
-  opt.on("-c", "--c conffile", "configurations file fullpath") { |v|
-    conffile = v
-  }
-
-  opt.parse! ARGV
-}
-
-STDERR.puts "#{File.basename($0)} is going to shutdown ... "
-conf = Castoro::Peer::Configurations.new conffile
-port = conf[:cmond_maintenance_port]
+puts "#{File.basename($0)} is going to shutdown ... "
+port = Castoro::Peer::Configurations.instance.CmondMaintenancePort
 
 s = nil
 begin

@@ -19,6 +19,7 @@
 
 require 'thread'
 require 'singleton'
+require 'castoro-peer/custom_condition_variable'
 require 'castoro-peer/pipeline'
 
 module Castoro

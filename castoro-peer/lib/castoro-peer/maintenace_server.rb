@@ -20,7 +20,6 @@
 require 'socket'
 require 'fcntl'
 
-require 'castoro-peer/version'
 require 'castoro-peer/pre_threaded_tcp_server'
 require 'castoro-peer/log'
 require 'castoro-peer/scheduler'
@@ -31,8 +30,8 @@ module Castoro
     class TCPHealthCheckPatientServer < PreThreadedTcpServer
       THRESHOLD = 5.5
 
-      def initialize( config, port, concurrence = 5 )
-        super( config, port, '0.0.0.0', concurrence )
+      def initialize( port, concurrence = 5 )
+        super( port, '0.0.0.0', concurrence )
       end
 
       def serve( io )
@@ -96,9 +95,9 @@ module Castoro
 
 
     class TcpMaintenaceServer < PreThreadedTcpServer
-      def initialize( config, port )
-        super( config, port, '0.0.0.0', 10 )
-        @hostname = config[:hostname_for_client]
+      def initialize( port )
+        super( port, '0.0.0.0', 10 )
+        @hostname = Configurations.instance.HostnameForClient
         @program = $0.sub(/.*\//, '')
       end
 
@@ -153,7 +152,7 @@ module Castoro
 
       def do_version
         t = Time.new
-        @io.syswrite( "#{t.iso8601}.#{"%06d" % t.usec} #{@hostname} #{@program} Version: #{Version::PROGRAM_VERSION}\n" )
+        @io.syswrite( "#{t.iso8601}.#{"%06d" % t.usec} #{@hostname} #{@program} Version: #{PROGRAM_VERSION}\n" )
       end
 
       def do_mode

@@ -37,8 +37,9 @@ module Castoro
       # Todo
       TIMED_OUT_IN_SECOND = 10
 
-      def initialize config
-        @config = config
+      def initialize
+        @config = Configurations.instance
+        super
       end
 
       def check_error( args )
@@ -86,7 +87,7 @@ module Castoro
         @total_file_size = 0
         @started_time = Time.new
         @host = host
-        @port = @config[:replication_tcp_communication_port]
+        @port = @config.ReplicationTCPCommunicationPort
         Log.notice( "Replicating #{@basket} to #{@host}:#{@port} started." )
 
         @socket = nil
@@ -154,7 +155,7 @@ module Castoro
         # okay to transer
         #      File.exist? @basket.path_a and raise PermanentError, "Deletion abandoned due to the existence of basket: #{@basket} #{@basket.path_a}"
         @host = host
-        @port = @config[:replication_tcp_communication_port]
+        @port = @config.ReplicationTCPCommunicationPort
         Log.notice( "Deleting #{@basket} to #{@host}:#{@port} started." )
 
         @socket = nil
@@ -210,7 +211,7 @@ module Castoro
       end
 
       def do_replication
-        unit_size = @config[:replication_transmission_datasize]
+        unit_size = @config.ReplicationTransmissionDataUnitSize
         Find.find( @basket.path_a ) do |path|
 
           MaintenaceServerSingletonScheduler.instance.check_point

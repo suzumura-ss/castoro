@@ -25,7 +25,7 @@ require 'rake/rdoctask'
 
 spec = Gem::Specification.new do |s|
   s.name = 'castoro-client'
-  s.version = '0.0.13'
+  s.version = '0.1.0'
   s.has_rdoc = true
   s.extra_rdoc_files = ['README.textile', 'LICENSE']
   s.summary = "This(it) is client libraries for Castoro which is distributed abstraction filesystem."
@@ -33,7 +33,7 @@ spec = Gem::Specification.new do |s|
   s.files = %w(History.txt LICENSE README.textile COPYING.LESSER Rakefile) + Dir.glob("{bin,lib,spec}/**/*")
   s.require_path = "lib"
 
-  s.add_dependency('castoro-common', '>=0.0.10')
+  s.add_dependency('castoro-common', '>=0.1.0')
 end
 
 Rake::GemPackageTask.new(spec) do |p|

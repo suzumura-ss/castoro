@@ -24,7 +24,7 @@ require 'castoro-peer/manipulator'
 
 describe Castoro::Peer::Csm::Request::Catch do
   before do
-    @conf = mock(Castoro::Peer::Configurations)
+    @conf = Castoro::Peer::Configurations.instance
   end
   
   context 'when initialize' do

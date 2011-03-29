@@ -1,4 +1,12 @@
 
+=== 0.1.0 2011-03-28
+
+* version renumbering.
+** based on castoro-peer 0.0.18
+* config key names were united.
+** from "ReplicationTransmissionDataSize"
+** to   "ReplicationTransmissionDataUnitSize"
+
 === 0.0.21 2010-12-21
 
 * fixed issue #13 - peerctl stat command did not work.

@@ -27,11 +27,7 @@ PATH2 = "/dst/path"
 
 describe Castoro::Peer::Csm::Request::Delete do
   before do
-    @conf = mock(Castoro::Peer::Configurations)
-    @conf.stub!(:[]).with(:dir_d_user).and_return('root')
-    @conf.stub!(:[]).with(:dir_d_group).and_return('castoro')
-    @conf.stub!(:[]).with(:dir_d_perm).and_return('0555')
-    Castoro::Peer::Csm::Request.class_variable_set :@@configurations, @conf
+    @conf  = Castoro::Peer::Configurations.instance
   end
   
   context 'when initialize' do
@@ -91,9 +87,9 @@ describe Castoro::Peer::Csm::Request::Delete do
 
       it 'should instance valiables be set correctly.' do
         @csm_req.instance_variable_get(:@subcommand).should == "mv"
-        @csm_req.instance_variable_get(:@user).should == @conf[:dir_d_user]
-        @csm_req.instance_variable_get(:@group).should == @conf[:dir_d_group]
-        @csm_req.instance_variable_get(:@mode).should == @conf[:dir_d_perm]
+        @csm_req.instance_variable_get(:@user).should == @conf.Dir_w_user
+        @csm_req.instance_variable_get(:@group).should == @conf.Dir_w_group
+        @csm_req.instance_variable_get(:@mode).should == @conf.Dir_w_perm
         @csm_req.instance_variable_get(:@path1).should == PATH1
         @csm_req.instance_variable_get(:@path2).should == PATH2
       end

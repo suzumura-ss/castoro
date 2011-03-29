@@ -22,33 +22,29 @@ require File.dirname(__FILE__) + '/spec_helper.rb'
 require 'castoro-peer/configurations'
 require 'castoro-peer/manipulator'
 
+PATH1 = "/src/path"
+PATH2 = "/dst/path"
+
 describe Castoro::Peer::Csm::Request::Cancel do
   before do
-    @conf = mock(Castoro::Peer::Configurations)
-    @conf.stub!(:[]).with(:dir_c_user).and_return('root')
-    @conf.stub!(:[]).with(:dir_c_group).and_return('castoro')
-    @conf.stub!(:[]).with(:dir_c_perm).and_return('0555')
-    Castoro::Peer::Csm::Request.class_variable_set :@@configurations, @conf
-
-    @path1 = "/src/path"
-    @path2 = "/dst/path"
+    @conf  = Castoro::Peer::Configurations.instance
   end
   
   context 'when initialize' do
-    context "with(#{@path1}, 100)" do
+    context "with(#{PATH1}, 100)" do
       it 'should raise error' do
         pending "this case should be checked and rescued."
         Proc.new{
-          @csm_req = Castoro::Peer::Csm::Request::Cancel.new(@path1, 100)
+          @csm_req = Castoro::Peer::Csm::Request::Cancel.new(PATH1, 100)
         }.should raise_error(Castoro::Peer::InternalServerError)
       end
     end
 
-    context "with(100, #{@path2})" do
+    context "with(100, #{PATH2})" do
       it 'should raise error' do
         pending "this case should be checked and rescued."
         Proc.new{
-          @csm_req = Castoro::Peer::Csm::Request::Cancel.new(100, @path2)
+          @csm_req = Castoro::Peer::Csm::Request::Cancel.new(100, PATH2)
         }.should raise_error(Castoro::Peer::InternalServerError)
       end
     end
@@ -62,27 +58,27 @@ describe Castoro::Peer::Csm::Request::Cancel do
       end
     end
 
-    context "with('', #{@path2})" do
+    context "with('', #{PATH2})" do
       it 'should raise error' do
         pending "this case should be checked and rescued."
         Proc.new{
-          @csm_req = Castoro::Peer::Csm::Request::Cancel.new("", @path2)
+          @csm_req = Castoro::Peer::Csm::Request::Cancel.new("", PATH2)
         }.should raise_error(Castoro::Peer::InternalServerError)
       end
     end
 
-    context "with(#{@path1}, '')" do
+    context "with(#{PATH1}, '')" do
       it 'should raise error' do
         pending "this case should be checked and rescued."
         Proc.new{
-          @csm_req = Castoro::Peer::Csm::Request::Cancel.new(@path1, "")
+          @csm_req = Castoro::Peer::Csm::Request::Cancel.new(PATH1, "")
         }.should raise_error(Castoro::Peer::InternalServerError)
       end
     end
 
-    context "with(#{@path1}, #{@path2})" do
+    context "with(#{PATH1}, #{PATH2})" do
       before do
-        @csm_req = Castoro::Peer::Csm::Request::Cancel.new(@path1, @path2)
+        @csm_req = Castoro::Peer::Csm::Request::Cancel.new(PATH1, PATH2)
       end
 
       it 'should be an instance of Castoro::Peer::Csm::Request::Cancel' do
@@ -91,11 +87,11 @@ describe Castoro::Peer::Csm::Request::Cancel do
 
       it 'should instance valiables be set correctly.' do
         @csm_req.instance_variable_get(:@subcommand).should == "mv"
-        @csm_req.instance_variable_get(:@user).should == @conf[:dir_c_user]
-        @csm_req.instance_variable_get(:@group).should == @conf[:dir_c_group]
-        @csm_req.instance_variable_get(:@mode).should == @conf[:dir_c_perm]
-        @csm_req.instance_variable_get(:@path1).should == @path1
-        @csm_req.instance_variable_get(:@path2).should == @path2
+        @csm_req.instance_variable_get(:@user).should == @conf.Dir_c_user
+        @csm_req.instance_variable_get(:@group).should == @conf.Dir_c_group
+        @csm_req.instance_variable_get(:@mode).should == @conf.Dir_c_perm
+        @csm_req.instance_variable_get(:@path1).should == PATH1
+        @csm_req.instance_variable_get(:@path2).should == PATH2
       end
 
       after do

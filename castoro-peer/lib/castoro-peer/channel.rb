@@ -143,18 +143,15 @@ module Castoro
 
 
     class UdpMulticastClientChannel
-
-      @@generator ||= SessionIdGenerator.new
-
       def initialize( socket )
-        @socket     = socket
-        @reply_ip   = socket.if_addr
+        @socket = socket
+        @reply_ip = Configurations.instance[ :MulticastIf ]
         @reply_port = 0
       end
 
       def send( command, args, ip, port )  # Todo: swap parameters
         # p [ 'command', command, 'args', args ]
-        sid    = @@generator.generate
+        sid = SessionIdGenerator.instance.generate
         header = [ @reply_ip, @reply_port, sid ].to_json
         body   = [ PROTOCOL_VERSION, 'C', command, args ].to_json
         @socket.sending( "#{header}\r\n#{body}\r\n", ip, port )  # Todo: ticket

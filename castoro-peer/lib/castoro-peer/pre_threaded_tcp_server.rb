@@ -26,8 +26,7 @@ module Castoro
   module Peer
 
     class PreThreadedTcpServer
-      def initialize( config, port, host, number_of_threads )
-        @config = config
+      def initialize( port, host, number_of_threads )
         @number_of_threads = number_of_threads
         factor = 1
         backlog = number_of_threads * factor

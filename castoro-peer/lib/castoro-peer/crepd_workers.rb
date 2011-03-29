@@ -20,6 +20,7 @@
 require 'castoro-peer/pre_threaded_tcp_server'
 require 'castoro-peer/worker'
 require 'castoro-peer/log'
+require 'castoro-peer/storage_servers'
 require 'castoro-peer/server_status'
 require 'castoro-peer/maintenace_server'
 require 'castoro-peer/crepd_sender'
@@ -44,16 +45,17 @@ module Castoro
 ########################################################################
 
     class ReplicationWorkers
+      include Singleton
 
-      def initialize config
-        c = @config = config
+      def initialize
+        c = Configurations.instance
         @w = []
         $ReplicationSenderQueue = queue = Pipeline.new
-        @w << UdpReplicationInternalCommandReceiver.new( queue, c[:replication_udp_command_port], c[:multicast_if] )
+        @w << UdpReplicationInternalCommandReceiver.new( queue, c.ReplicationUDPCommandPort )
         @w << ReplicationSenderManager.new( queue )
-        c[:number_of_replication_sender].times { @w << ReplicationSender.new( queue, c ) }
-        @m = CrepdTcpMaintenaceServer.new( @config, c[:crepd_maintenance_port] )
-        @h = TCPHealthCheckPatientServer.new( c, c[:crepd_healthcheck_port] )
+        c.NumberOfReplicationSender.times      { @w << ReplicationSender.new( queue ) }
+        @m = CrepdTcpMaintenaceServer.new( c.CrepdMaintenancePort )
+        @h = TCPHealthCheckPatientServer.new( c.CrepdHealthCheckPort )
       end
 
       def start_workers
@@ -204,9 +206,8 @@ module Castoro
       end
 
       class ReplicationSender < Worker
-        def initialize( queue, config )
+        def initialize( queue )
           @queue = queue
-          @config = config
           super
         end
 
@@ -251,18 +252,18 @@ module Castoro
 
           basket = Basket.new( content_id, type_id, revision_number )
 
-          alternative_host_candidates = if alternative
-                                          []
-                                        else
-                                          @config.storage_servers.alternative_hosts.dup
-                                        end
+          if ( alternative )
+            alternative_host_candidates = []
+          else
+            alternative_host_candidates = StorageServers.instance.alternative_hosts.dup
+          end
 
-          host = @config.storage_servers.target
+          host = StorageServers.instance.target
           alternative_host = nil
           done = false
 
           begin
-            @sender = ReplicationSenderImplementation.new @config
+            @sender = ReplicationSenderImplementation.new
 
             case action
             when "replicate"
@@ -340,9 +341,9 @@ module Castoro
 
 
       class UdpReplicationInternalCommandReceiver < Worker
-        def initialize( queue, port, multicast_if )
+        def initialize( queue, port )
           @queue = queue
-          @socket = ExtendedUDPSocket.new multicast_if
+          @socket = ExtendedUDPSocket.new
           @socket.bind( '127.0.0.1', port )
           super
         end

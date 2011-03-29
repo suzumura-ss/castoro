@@ -3,111 +3,15 @@ h1. castoro-peer
 h2. Install
 
 <pre>
-gem install castoro-peer-0.0.X.gem
+gem install castoro-peer-0.0.7.gem
 </pre>
 
 h3. Setup
 
-h4. set configurations file (peer.conf)
-
-Template of peer.conf can be made by 'castoro-gateway-setup' command.
-
-<pre>
-$ sudo castoro-peer-setup
-*** Setup Configuration files...
---- Mkdir /etc/castoro/
---- Copy files to /etc/castoro/
------ peer.conf
-*** Done.
-</pre>
-
-h4. set init.d scripts.
-
+cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-peer-0.0.1/config/
+cd etc/
+make install # => copy to /etc/castoro/*, /var/castoro/*
 cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-peer-0.0.1/config/
 cd init.d/
 make install # => copy to /etc/init.d/*
-
-h3. configuration files.
-
-The following files are necessary to start.
-
-* /etc/castoro/peer.conf
-
-h4. peer.conf summary
-
-based on yaml format.
-
-<pre>
----
-hostname_for_client: peer01
-multicast_address: 239.192.1.1
-multicast_network: 192.168.1/0/24
-gateway_udp_command_port: 30109
-...
-...
-aliases:
-  peer1: peer1rep
-  peer2: peer2rep
-  peer3: peer3rep
-  peer4: peer4rep
-  peer5: peer5rep
-  peer6: peer6rep
-  peer7: peer7rep
-  peer8: peer8rep
-  peer9: peer9rep
-groups:
-  - [ peer1, peer2, peer3 ]
-  - [ peer4, peer5, peer6 ]
-</pre>
-
-h4. peer.conf attributes
-
-|name of attribute|type|default|details|
-|hostname_for_client|String|-|-|
-|multicast_address|String|239.192.1.1|-|
-|multicast_if|String|-|-|
-|gateway_udp_command_port|Integer|30109|-|
-|peer_tcp_command_port|Integer|30111|-|
-|peer_unicast_udp_command_port|Integer|30111|-|
-|peer_multicast_udp_command_port|Integer|30112|-|
-|watchdog_command_port|Integer|30113|-|
-|replication_tcp_command_port|Integer|30149|-|
-|replication_udp_command_port|Integer|30149|-|
-|replication_tcp_communication_port|Integer|30148|-|
-|cmond_maintenance_port|Integer|30100|-|
-|cpeerd_maintenance_port|Integer|30102|-|
-|crepd_maintenance_port|Integer|30103|-|
-|cmond_healthcheck_port|Integer|30105|-|
-|cpeerd_healthcheck_port|Integer|30107|-|
-|crepd_healthcheck_port|Integer|30108|-|
-|basket_base_dir|String|/expdsk|-|
-|number_of_express_command_processor|Integer|10|-|
-|number_of_regular_command_processor|Integer|10|-|
-|number_of_basket_status_query_db|Integer|10|-|
-|number_of_csm_controller|Integer|3|-|
-|number_of_udp_response_sender|Integer|10|-|
-|number_of_tcp_response_sender|Integer|10|-|
-|number_of_multicast_command_sender|Integer|3|-|
-|number_of_replication_db_client|Integer|1|-|
-|number_of_replication_sender|Integer|3|-|
-|period_of_alive_packet_sender|Integer|4|-|
-|period_of_statistics_logger|Integer|60|-|
-|dir_w_user|String|castoro|username for working basket owner|
-|dir_w_group|String|castoro|groupname for working basket owner|
-|dir_w_perm|String|0777|permission for working basket|
-|dir_a_user|String|root|username for archive basket owner|
-|dir_a_group|String|castoro|groupname for archive basket owner|
-|dir_a_perm|String|0555|permission for archive basket|
-|dir_d_user|String|root|username for deleted basket owner|
-|dir_d_group|String|castoro|groupname for deleted basket owner|
-|dir_d_perm|String|0555|permission for deleted basket|
-|dir_c_user|String|root|username for canceled basket owner|
-|dir_c_group|String|castoro|groupname for canceled basket owner|
-|dir_c_perm|String|0555|permission for canceled basket|
-|effective_user|String|castoro|username for process effective user|
-|replication_transmission_datasize|Integer|1048576|data transmission size per replication|
-|use_manipulator_daemon|Boolean|true|when false, a file making is not requested to manipulator.|
-|manipulator_socket|String|/var/castoro/manipulator.sock|fullpath for manipulator daemon UNIX socket|
-|alias|Hash|{}|it should be a hostname to which peer can be recognized mutually.|
-|groups|Array|-|a peer does replicate to a peer of the same group.|
 

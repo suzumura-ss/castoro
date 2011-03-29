@@ -26,9 +26,7 @@ module Castoro
     class CmondMain < Main
       def initialize
         super
-        @w = CmondWorkers.new @config
-        RemoteControl.set_mode_of_every_local_target @config[:cpeerd_maintenance_port],
-                                                     @config[:crepd_maintenance_port]
+        @w = CmondWorkers.instance
       end
 
       def start

@@ -1,3 +1,8 @@
+
+=== 0.1.0 2011-03-28
+
+* version renumbering.
+
 === 0.0.13 2010-12-15
 
 * Implemented function to check existance of the contents after finalize timeout.
