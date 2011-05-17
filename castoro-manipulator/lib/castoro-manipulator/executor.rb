@@ -87,8 +87,14 @@ module Castoro #:nodoc:
 
         # make directory.
         make_parent_dir(mode, user, group, File.dirname(dir)) {
-          Dir.mkdir dir, mode
-          FileUtils.chown user, group, dir
+          begin
+            Dir.mkdir dir
+            FileUtils.chmod mode, dir
+            FileUtils.chown user, group, dir
+          rescue
+            FileUtils.remove_entry_secure dir
+            raise
+          end
         }
 
         nil
@@ -167,7 +173,8 @@ module Castoro #:nodoc:
           nothing_dir = path unless File.exist? path
         end
 
-        FileUtils.mkdir_p dir, :mode => mode
+        FileUtils.mkdir_p dir
+        FileUtils.chmod_R mode, nothing_dir if nothing_dir
         FileUtils.chown_R user, group, nothing_dir if nothing_dir
 
         yield if block_given?
