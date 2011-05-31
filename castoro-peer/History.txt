@@ -1,4 +1,8 @@
 
+=== 0.1.1 2011-05-31
+
+* The set description related to a specific environment is excluded.
+
 === 0.1.0 2011-03-28
 
 * version renumbering.

@@ -43,7 +43,7 @@ module Castoro
           ticket.mark unless ticket.nil?
           # Log.debug( "UDP O : #{s}" ) if $DEBUG
           # p port
-          Log.debug( "UDP O : #{s}" ) if $DEBUG and port != 30113 and port != 40113
+          Log.debug( "UDP O : #{s}" ) if $DEBUG
         else
           Log.notice( "UDP sendto: invalid parameters : #{s}" )
         end
@@ -63,7 +63,7 @@ module Castoro
           # family, port, hostname, ip = array
           port, ip = array[1], array[3]
           s = debug_information( data, ip, port )
-          Log.debug( "UDP I : #{s}" ) if $DEBUG and self.addr[1] != 30113 and self.addr[1] != 40113
+          Log.debug( "UDP I : #{s}" ) if $DEBUG
         end
         data
       end
