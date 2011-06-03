@@ -72,8 +72,23 @@ module Castoro
           raise ClientError, "destinations cannot be set excluding Array or String."
         end
         destinations = destinations.to_a if destinations.kind_of?(String)
-        destinations.to_a.map! { |d| d.to_s }
-        raise ClientError, "Illegal destination format." unless destinations.all? { |d| d =~ /^.+:\d+$/ }
+
+        # destination(1) <-> (*)segment(1) <-> (*)element
+        @destinations = []
+        segment = []
+        destinations.each do |seg|
+          case seg
+          when Array # segment
+            @destinations << seg
+          else       # element(gateway)
+            segment << seg
+          end
+        end
+        @destinations << segment unless segment.empty?
+
+        @destinations.each do |segment|
+          raise ClientError, "Illegal destination format." unless segment.all? { |d| d =~ /^.+:\d+$/ }
+        end
 
         raise ClientError, "it is necessary to set the numerical value to expire" if expire.to_f == 0.0
         if request_interval.to_f == 0.0
@@ -83,7 +98,8 @@ module Castoro
         @logger           = logger || Logger.new(nil)
         @my_host          = my_host
         @my_ports         = my_ports
-        @destinations     = destinations.to_a.sort_by{ rand }
+        @destinations     = @destinations.sort_by{ rand }
+        @destinations.map! { |seg| seg = seg.sort_by{ rand } }
         @expire           = expire.to_f
         @request_interval = request_interval.to_f
 
@@ -221,13 +237,22 @@ module Castoro
         req_thread = Thread.fork {
           ThreadGroup::Default.add Thread.current
           interval = 0.0
-          @destinations.each { |d|
-            host, port = d.split(":")
-            @sender.send header, command, host, port
+          max_seg_size = 0
+          @destinations.each do |seg|
+            max_seg_size = seg.size if seg.size > max_seg_size
+          end
+          
+          max_seg_size.times do |i|
+            @destinations.size.times do |j|
+              d = @destinations[j][i]
+              next if d.nil?
+              host, port = d.split(":")
+              @sender.send header, command, host, port
+            end
             interval += @request_interval
             sleep interval
             break if Thread.current[:dying]
-          }
+          end
         }
 
         begin
@@ -273,6 +298,7 @@ module Castoro
       #
       def cycle_destinations
         @destinations << @destinations.shift       
+        @destinations.map! { |seg| seg << seg.shift } 
       end        
 
       ##
