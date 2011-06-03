@@ -121,6 +121,28 @@ describe Castoro::Client do
     end
   end
 
+  context "When gateway segments set to options['gateways'] element." do
+    it "TimeslideSender#new should receive with gateway segments." do
+      segment_1 = [ "host_1", "host_2:30112" ]
+      segment_2 = [ {"host" => "host_5"}, {"host" => "host_6", "port" => 30112} ]
+      conf = {
+        "gateways" => [ segment_1, segment_2 ]
+      }
+      
+      init_args = [
+        @logger,
+        Castoro::Client::DEFAULT_SETTINGS["my_host"],
+        Castoro::Client::DEFAULT_SETTINGS["my_ports"].to_a,
+        [ [ "host_1:30111", "host_2:30112" ], [ "host_5:30111", "host_6:30112" ] ],
+        Castoro::Client::DEFAULT_SETTINGS["expire"],
+        Castoro::Client::DEFAULT_SETTINGS["request_interval"],
+      ]
+      Castoro::Client::TimeslideSender.should_receive(:new).with(*init_args).and_return(@sender_mock)
+
+      @client = Castoro::Client.new(conf)
+    end
+  end
+
   context "When Hash composed of 'host' set to options['gateways'] element." do
     it "PORT number should applied to default number." do
       conf = {
