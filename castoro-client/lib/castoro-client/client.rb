@@ -124,14 +124,9 @@ module Castoro
       #     { "host" => "foo", "port" => 30111 }
       # - String
       #     "foo:30111"
-      gateways = opt["gateways"].map! { |g|
-        if g.kind_of?(Hash)
-          "#{g["host"]}:#{(g["port"] || GATEWAY_DEFAULT_PORT)}"
-        else
-          elems = g.split(":")
-          "#{elems[0]}:#{(elems[1] || GATEWAY_DEFAULT_PORT)}"
-        end
-      }
+      # - Array (segments)
+      #     ["foo", "bar:30111"]
+      gateways = opt["gateways"].map! { |g| normalize_gateway(g) }
 
       @sender = TimeslideSender.new(@logger, opt["my_host"],
                                              opt["my_ports"].to_a,
@@ -415,6 +410,18 @@ module Castoro
     end
 
     private
+
+    def normalize_gateway(g)
+      case g
+      when Array
+        g.map!{|segment| normalize_gateway(segment)}
+      when Hash
+        "#{g["host"]}:#{(g["port"] || GATEWAY_DEFAULT_PORT)}"
+      else
+        elems = g.split(":")
+        "#{elems[0]}:#{(elems[1] || GATEWAY_DEFAULT_PORT)}"
+      end
+    end
 
     def create_internal connection, peer, remining_peers, cmd, &block
 

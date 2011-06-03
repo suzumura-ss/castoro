@@ -1,3 +1,7 @@
+=== 0.1.1 2011-06-03
+
+* Implemented segment settings for gateway.
+
 
 === 0.1.0 2011-03-28
 
