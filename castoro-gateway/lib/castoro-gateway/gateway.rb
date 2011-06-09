@@ -139,14 +139,14 @@ module Castoro
       @locker.synchronize {
         raise GatewayError, "gateway already stopped." unless alive?
         
-        @console.stop
-        @console = nil
+        @facade.stop
+        @facade = nil
 
         @workers.stop force
         @workers = nil
 
-        @facade.stop
-        @facade = nil
+        @console.stop
+        @console = nil
 
         @repository = nil
 

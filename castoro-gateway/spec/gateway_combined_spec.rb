@@ -82,10 +82,13 @@ describe Castoro::Gateway do
     }
 
     # mock for console server forker.
-    forker = Proc.new { |socket, &block|
-      block.call(socket)
+    forker = Proc.new { |server_socket, client_socket, &block|
+      block.call(client_socket)
     }
     Castoro::Gateway::ConsoleServer.class_variable_set(:@@forker, forker)
+
+    # initialize dependency classes.
+    Castoro::Gateway.dependency_classes_init
 
     @g = Castoro::Gateway.new(@conf, Logger.new(nil))
     @g.start

@@ -32,43 +32,14 @@ module Castoro
 
   class Gateway
 
-    module ConsoleCommandExecutor
+    class ConsoleServer
       include WorkersHelper
 
-      def execute_command sock
-        if IO.select([sock], nil, nil, @get_expire)
-          accept_command(sock, sock.gets) { |cmd|
-            case cmd
-            when Protocol::Command::Status
-              res = Protocol::Response::Status.new(nil, @repository.status)
-              send_response(sock, res)
-
-            when Protocol::Command::Dump
-              @repository.dump sock
-
-            else
-              raise GatewayError, "only Status, Dump and Nop are acceptable."
-            end
-          }
-        end
-      end
-    end
- 
-
-    class ConsoleServer
-      include ConsoleCommandExecutor
-
-      @@forker = Proc.new{ |socket, &block|
-        fork{
-          exit! 0 if fork{
-            begin
-              block.call(socket)
-            ensure
-              socket.close
-            end
-          }
+      @@forker = Proc.new { |server_socket, client_socket, &block|
+        Process.detach fork {
+          server_socket.close
+          block.call client_socket
         }
-        Process.wait
       }
 
       DEFAULT_SETTINGS = {
@@ -179,7 +150,25 @@ module Castoro
         until Thread.current[:dying]
           begin
             accept { |socket|
-              execute_command socket
+
+              if IO.select([socket], nil, nil, @get_expire)
+                accept_command(socket, socket.gets) { |cmd|
+                  case cmd
+                  when Protocol::Command::Status
+                    res = Protocol::Response::Status.new(nil, @repository.status)
+                    send_response(socket, res)
+      
+                  when Protocol::Command::Dump
+                    @@forker.call(@tcp_server, socket) { |sock|
+                      @repository.dump sock
+                    }
+      
+                  else
+                    raise GatewayError, "only Status, Dump and Nop are acceptable."
+                  end
+                }
+              end
+
             }
           rescue => e
             @logger.error { e.message }
@@ -190,7 +179,7 @@ module Castoro
 
       end
 
-      def accept &block
+      def accept
         accepted = @accept_locker.synchronize {
           return nil unless @tcp_server
           return nil unless IO.select([@tcp_server], nil, nil, @accept_expire)
@@ -199,7 +188,7 @@ module Castoro
 
         if accepted
           begin
-            @@forker.call(accepted, &block)
+            yield accepted
           ensure
             accepted.close
           end

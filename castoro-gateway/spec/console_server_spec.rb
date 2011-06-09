@@ -46,8 +46,8 @@ describe Castoro::Gateway::ConsoleServer do
 
   context "when initialized" do
     before do
-      forker = Proc.new { |socket, &block|
-        block.call(socket)
+      forker = Proc.new { |server_socket, client_socket, &block|
+        block.call(client_socket)
       }
       Castoro::Gateway::ConsoleServer.class_variable_set(:@@forker, forker)
       @c = Castoro::Gateway::ConsoleServer.new(@logger, @repository, console_port)
