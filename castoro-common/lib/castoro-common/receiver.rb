@@ -232,15 +232,16 @@ module Castoro
         @locker.synchronize {
           raise ReceiverError, "#{@port}/receiver already stopped." unless alive?
 
+          unset_sock_opt @socket
+          @socket.close
+          @socket = nil
+
           if force
             @thread.kill
           else
             @thread[:dying] = true
             @thread.join
           end
-          unset_sock_opt @socket
-          @socket.close
-          @socket = nil
           @thread = nil
         }
       end
@@ -254,33 +255,21 @@ module Castoro
 
       def listen_loop
         until Thread.current[:dying]
-          if IO::select([@socket], nil, nil, 1.0)
-            begin
-              data, sockaddr = @socket.recvfrom(1024)
-              port, ip = sockaddr[1].to_i, sockaddr[3].to_s
-            rescue Errno::ECONNRESET => e
-              @logger.error { e.message }
-              @logger.debug { e.backtrace.join("\n\t") }
-              next
-            end
-            @logger.debug { "#{@port} / received data from #{ip}:#{port}\n#{data.chomp}" }
-
-            # call subscriber proc.
+          get { |data, port, ip|
             begin
               lines = data.split("\r\n")
 
               # parse header and data.
               header = Protocol::UDPHeader.parse(lines[0])
-              data = Protocol.parse(lines[1])
+              body = Protocol.parse(lines[1])
 
-              @subscriber.call(header, data, port, ip)
+              @subscriber.call(header, body, port, ip)
 
             rescue => e
               @logger.error { e.message }
               @logger.debug { e.backtrace.join("\n\t") }
-              next
             end
-          end
+          }
         end
       end
 
@@ -295,6 +284,23 @@ module Castoro
       # the option can be set by changing the definition of the method.
       #
       def unset_sock_opt socket; end
+
+      # Get packet from udpsocket.
+      #
+      def get
+        if (ret = IO.select([@socket], nil, nil, 1.0) rescue nil)
+          begin
+            data, sockaddr = @socket.recvfrom(1024)
+            port, ip = sockaddr[1].to_i, sockaddr[3].to_s
+          rescue Errno::ECONNRESET => e
+            @logger.error { e.message }
+            @logger.debug { e.backtrace.join("\n\t") }
+          end
+          @logger.debug { "#{@port} / received data from #{ip}:#{port}\n#{data.chomp}" }
+
+          yield data, port, ip
+        end
+      end
     end
 
     ##

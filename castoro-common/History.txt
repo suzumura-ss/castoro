@@ -1,4 +1,9 @@
 
+=== 0.1.1 2011-06-20
+
+* fixed issue #23
+** Performance improvement concerning start stop of Receiver::UDP
+
 === 0.1.0 2011-03-28
 
 * version renumbering.
