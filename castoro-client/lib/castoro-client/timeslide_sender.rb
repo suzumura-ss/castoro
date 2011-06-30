@@ -99,7 +99,13 @@ module Castoro
         @my_host          = my_host
         @my_ports         = my_ports
         @destinations     = @destinations.sort_by{ rand }
-        @destinations.map! { |seg| seg = seg.sort_by{ rand } }
+        @destinations.map! { |seg|
+          seg.map { |d|
+            h, p = d.split(":")
+            { :host => h, :port => p }
+          }.sort_by { rand }
+        }
+        @blank_elements   = Array.new(@destinations.map { |d| d.size }.max)
         @expire           = expire.to_f
         @request_interval = request_interval.to_f
 
@@ -237,22 +243,12 @@ module Castoro
         req_thread = Thread.fork {
           ThreadGroup::Default.add Thread.current
           interval = 0.0
-          max_seg_size = 0
-          @destinations.each do |seg|
-            max_seg_size = seg.size if seg.size > max_seg_size
-          end
-          
-          max_seg_size.times do |i|
-            @destinations.size.times do |j|
-              d = @destinations[j][i]
-              next if d.nil?
-              host, port = d.split(":")
-              @sender.send header, command, host, port
-            end
+          flat_destinations.each { |d|
+            @sender.send header, command, d[:host], d[:port]
             interval += @request_interval
             sleep interval
             break if Thread.current[:dying]
-          end
+          }
         }
 
         begin
@@ -300,6 +296,22 @@ module Castoro
         @destinations << @destinations.shift       
         @destinations.map! { |seg| seg << seg.shift } 
       end        
+
+      ##
+      # Flat destinations is returned.
+      #
+      # === Example
+      #
+      # * [ ["a", "b", "c", "d"], ["e", "f"], ["g", "h", "i"] ]
+      #   => [ "a", "e", "g", "b", "f", "h", "c", "i", "d" ]
+      # * [ [ "A", "B", "C" ] ]
+      #   => [ "A", "B", "C" ]
+      # * [ [ 1, 2, 3, 4, 5], [6, 7] ]
+      #   => [ 1, 6, 2, 7, 3, 4, 5 ]
+      #
+      def flat_destinations
+        @blank_elements.zip(*@destinations).flatten.compact
+      end
 
       ##
       # The value in which whether correctness as hostname or ipaddress is shown is returned. 

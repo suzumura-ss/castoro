@@ -246,7 +246,7 @@ describe Castoro::Client do
           @sender.should_receive(:send).with(@create, 5.00).once.and_return(
             Castoro::Protocol::Response::Create::Peer.new( nil, @key, "host", "path")
           )
-          @sender.should_receive(:send).with(@finalize, 5.00).once
+          @sender.should_receive(:send).with(@finalize, 5.00).once.and_return nil
           @sender.should_receive(:send).with(@cancel, 5.00).once.and_return {
             Castoro::Protocol::Response::Cancel.new({"code" => "Castoro::Peer::PreconditionFailedError"}, @key)
           }

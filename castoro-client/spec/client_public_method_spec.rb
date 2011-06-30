@@ -174,16 +174,19 @@ describe Castoro::Client do
 
     context "if connet peers failed" do
       it "should raise ClientNothingPeerError." do
+        @sender_mock.should_receive(:send).once.with(@create_command).and_return {
+          Castoro::Protocol::Response::Create::Gateway.new nil, @key, @peers
+        }
         @client.should_receive(:connect).once.and_return(false)
         Proc.new {
-          @client.create_direct(@peers, @key, @hints) {}
+          @client.create(@key, @hints) {}
         }.should raise_error(Castoro::ClientNothingPeerError)
       end
     end
 
     context "the Response not intended." do
       it "should raise Castoro::ClientError with TimeslideSender#send should be called once." do
-        @sender_mock.should_receive(:send).once.and_return {
+        @sender_mock.should_receive(:send).once.with(@create_command).and_return {
           Castoro::Protocol::Response::Create.new nil, @key
         }
         Proc.new {
@@ -194,7 +197,7 @@ describe Castoro::Client do
 
     context "gateway connection failed." do
       it "should raise Castoro::ClientError with #send should be called once." do
-        @sender_mock.should_receive(:send).once.and_return {
+        @sender_mock.should_receive(:send).once.with(@create_command).and_return {
           Castoro::Protocol::Response::Create::Gateway.new "error", @key, {}
         }
         Proc.new {
@@ -229,8 +232,6 @@ describe Castoro::Client do
         Proc.new {
           @client.create_direct(@peers, @key, @hints) {}
         }.should raise_error(Castoro::ClientNothingPeerError)
-
-
       end
     end
   end

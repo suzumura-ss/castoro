@@ -1,3 +1,13 @@
+
+=== 0.1.2 2011-06-30
+
+* fixed issue #21
+** The failing test case existed.
+* fixed issue #22
+** the testcase duplicated.
+* fixed issue #20
+** TimeslideSender is refactored.
+
 === 0.1.1 2011-06-03
 
 * Implemented segment settings for gateway.
