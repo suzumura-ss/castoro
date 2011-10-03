@@ -34,6 +34,7 @@ module Castoro
 
       @@output = $stdout
       @@queue = Pipeline.new
+      @@thread = nil
 
       def Log.output=( output )
         @@output = output
@@ -51,15 +52,15 @@ module Castoro
       end
 
       def Log.start
-        # Todo: ...
-        Thread.new {
+        @@thread = Thread.new {
           loop do
             begin
-              Log.worker
+              break unless Log.worker()
             rescue => e
               ExtendedSyslog.instance.log( Syslog::LOG_WARNING, "Exception: %s \"%s\"", e.class, e.message )
             end
           end
+          @@thread = nil
         }
       end
 
@@ -67,8 +68,21 @@ module Castoro
         Log.start
       end
 
+      def Log.running?
+        @@thread && @@thread.alive?
+      end
+
+      def Log.stop
+        @@queue.enq nil if running?
+        begin
+          sleep 0.01
+        end while running?
+      end
+
       def Log.worker
         severity, label, m, z, t = @@queue.deq
+        return nil if severity.nil?
+
         if ( m.is_a? Exception )
 
           c, x, bt = m.class, m.message, m.backtrace.slice(0,3).inspect
@@ -97,6 +111,7 @@ module Castoro
             @@output.flush
           end
         end
+        return true
       end
 
       def Log.emerg  ( m, *args ) ; log( Syslog::LOG_EMERG,     'EMERG', m, *args ) ; end
