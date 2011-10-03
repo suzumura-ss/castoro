@@ -20,6 +20,7 @@
 require 'socket'
 require 'fcntl'
 require 'castoro-peer/errors'
+require 'peersocket'
 
 module Castoro
   module Peer
@@ -42,7 +43,8 @@ module Castoro
         end
 
         IO.select(nil, [self], nil, timedout)
-        errno = getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR).unpack('i')[0]
+        # errno = getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR).unpack('i')[0]
+        errno = getsockopt_SOL_SOCKET_SO_ERROR()
         unless (errno == 0)
           # See /usr/include/sys/errno.h
           raise StandardError, "Connection refused or something else: errno=#{errno} #{host}:#{port}"
@@ -68,8 +70,9 @@ module Castoro
 
       def set_receive_timed_out( timedout )
         t = Time.at( timedout )
-        optval = [t.tv_sec, t.tv_usec].pack('ll')
-        setsockopt(Socket::SOL_SOCKET, Socket::SO_RCVTIMEO, optval)
+        #optval = [t.tv_sec, t.tv_usec].pack('ll')
+        #setsockopt(Socket::SOL_SOCKET, Socket::SO_RCVTIMEO, optval)
+        setsockopt_SOL_SOCKET_SO_RCVTIMEO( t.tv_sec, t.tv_usec )
       end
 
       def reset_receive_timed_out
@@ -126,33 +129,51 @@ if $0 == __FILE__
   module Castoro
     module Peer
 
-      Thread.new {
+      #HOST = 'google.com'
+      # socat tcp-listen:8888,fork - &
+      HOST = 'localhost'
+      PORT = 8888
+
+#      thread = Thread.new {
         begin
           socket2 = ExtendedTCPSocket.new
-          socket2.connect( 'google.com', 80, 3 )
+          socket2.setsockopt( Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true )
+          socket2.connect( HOST, PORT, 3 )
           socket2.set_receive_timed_out( 2 )
-          p socket2.gets_with_timed_out( 1 )
-          p socket2.gets_with_timed_out( 1 )
+#          print "socket2.gets()...\n"
+#          t = socket2.gets()
+#          print "socket2.gets()... #{t}\n"
+          print "socket2.sysread(100)...\n"
+          t = socket2.sysread(100)
+          print "socket2.sysread(100)... #{t}\n"
         rescue => e
-          p e
+          p e.backtrace
         end
-      }
+#      }
 
-      socket = ExtendedTCPSocket.new
-      # socket.connect_nonblock( "127.0.0.1", 22222, 3 )
-      # socket.connect( "127.0.0.1", 22, 3 )
-      # socket.connect( '192.168.254.254', 22,3 )
-       socket.connect( 'google.com', 80, 3 )
-#      socket.set_receive_timed_out( 2 )
-      socket.puts("GET / HTTP/1.0")
-      socket.puts("")
+      sleep 10
+#      sleep 1; thread.run
+#      sleep 1; thread.run
+#      sleep 1; thread.run
+#      sleep 1; thread.run
+#      sleep 1; thread.run
+#      sleep 1; thread.run
 
-      p socket.gets_with_timed_out( 2 )
-      p socket.gets_with_timed_out( 2 )
-#      p socket.sysread( 100 )
-#      p socket.sysread( 100 )
-
-      sleep 3
+      begin
+        socket = ExtendedTCPSocket.new
+        # socket.connect_nonblock( "127.0.0.1", 22222, 3 )
+        # socket.connect( "127.0.0.1", 22, 3 )
+        # socket.connect( '192.168.254.254', 22,3 )
+        socket.connect( HOST, PORT, 3 )
+        #      socket.set_receive_timed_out( 2 )
+        socket.puts("GET / HTTP/1.0")
+        socket.puts("")
+        p socket.gets_with_timed_out( 2 )
+        p socket.sysread( 100 )
+      rescue => e
+        p e.backtrace
+      end
+      sleep 10
     end
   end
 end

@@ -36,6 +36,9 @@ module Castoro
         @program_name = $0.sub(/.*\//, '')
         print "Starting #{@program_name} ... "
 
+        # Workaround for http://redmine.ruby-lang.org/issues/show/2371
+        Log.stop
+
         pid = fork()
         if ( pid )  # parent
           begin
