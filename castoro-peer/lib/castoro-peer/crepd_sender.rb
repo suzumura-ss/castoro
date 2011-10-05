@@ -34,8 +34,9 @@ module Castoro
   module Peer
 
     class ReplicationSenderImplementation
-      # Todo
-      TIMED_OUT_IN_SECOND = 10
+      # Todo: could be configurable
+      TIMED_OUT_FOR_CONNECTING = 10  # in seconds
+      TIMED_OUT_FOR_RECEIVING  = 60  # in seconds
 
       def initialize
         @config = Configurations.instance
@@ -71,6 +72,12 @@ module Castoro
       end
 
       def receiving
+        unless ( IO.select([@socket], nil, nil, TIMED_OUT_FOR_RECEIVING) )
+          m = "Response from a remote host timed out #{TIMED_OUT_FOR_RECEIVING}s: #{@basket} to #{@host}:#{@port}"
+          Log.warning m
+          raise RetryableError, m
+        end
+
         @channel.receive( @socket )
         if ( @channel.closed? )
           raise RetryableError, "Connection is unexpectedly closed, waiting response of #{@command}: #{@basket} to #{@host}:#{@port}"
@@ -93,7 +100,7 @@ module Castoro
         @socket = nil
         begin
           @socket = ExtendedTCPSocket.new
-          @socket.connect( @host, @port, TIMED_OUT_IN_SECOND )
+          @socket.connect( @host, @port, TIMED_OUT_FOR_CONNECTING )
         rescue SocketError => e
           Log.warning e, "#{@host}:#{@port}"
           raise PermanentError, "#{e.message}: #{@host}:#{@port}"
@@ -105,15 +112,7 @@ module Castoro
         @channel = TcpClientChannel.new
         command, args = nil, nil
         sending( 'CATCH', Hash[ 'basket', @basket.to_s ] )
-        @socket.set_receive_timed_out( TIMED_OUT_IN_SECOND )
-        begin
-          command, args = receiving
-        rescue Errno::EAGAIN  # "Resource temporarily unavailable"
-          m = "Response from a remote host timed out #{TIMED_OUT_IN_SECOND}s: #{@basket} to #{@host}:#{@port}"
-          Log.warning m
-          raise RetryableError, m
-        end
-        @socket.reset_receive_timed_out
+        command, args = receiving
         check_error( args )
 
         if ( args.has_key? 'exists' )
@@ -161,7 +160,7 @@ module Castoro
         @socket = nil
         begin
           @socket = ExtendedTCPSocket.new
-          @socket.connect( @host, @port, TIMED_OUT_IN_SECOND )
+          @socket.connect( @host, @port, TIMED_OUT_FOR_CONNECTING )
         rescue SocketError => e
           Log.warning e, "#{@host}:#{@port}"
           raise PermanentError, "#{e.message}: #{@host}:#{@port}"
@@ -173,15 +172,7 @@ module Castoro
         @channel = TcpClientChannel.new
         command, args = nil, nil
         sending( 'DELETE', Hash[ 'basket', @basket.to_s ] )
-        @socket.set_receive_timed_out( TIMED_OUT_IN_SECOND )
-        begin
-          command, args = receiving
-        rescue Errno::EAGAIN  # "Resource temporarily unavailable"
-          m = "Response from a remote host timed out #{TIMED_OUT_IN_SECOND}s: #{@basket} to #{@host}:#{@port}"
-          Log.warning m
-          raise RetryableError, m
-        end
-        @socket.reset_receive_timed_out
+        command, args = receiving
         check_error( args )
 
         if ( args.has_key? 'doesnot_exist' )

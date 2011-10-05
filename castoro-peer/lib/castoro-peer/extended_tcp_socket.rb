@@ -43,8 +43,7 @@ module Castoro
         end
 
         IO.select(nil, [self], nil, timedout)
-        # errno = getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR).unpack('i')[0]
-        errno = getsockopt_SOL_SOCKET_SO_ERROR()
+        errno = getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR).unpack('i')[0]
         unless (errno == 0)
           # See /usr/include/sys/errno.h
           raise StandardError, "Connection refused or something else: errno=#{errno} #{host}:#{port}"
@@ -68,17 +67,6 @@ module Castoro
         fcntl(Fcntl::F_SETFL, flags)
       end
 
-      def set_receive_timed_out( timedout )
-        t = Time.at( timedout )
-        #optval = [t.tv_sec, t.tv_usec].pack('ll')
-        #setsockopt(Socket::SOL_SOCKET, Socket::SO_RCVTIMEO, optval)
-        setsockopt_SOL_SOCKET_SO_RCVTIMEO( t.tv_sec, t.tv_usec )
-      end
-
-      def reset_receive_timed_out
-        set_receive_timed_out( 0 )
-      end
-
       def gets_with_timed_out( timedout )
 #        t = Time.new
 #        p [ Thread.current, "A", "#{"%.3fs" % (Time.new - t)}", @buffer ]
@@ -96,10 +84,7 @@ module Castoro
         end
 
         x = sysread( 1024 )
-        # getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR).unpack('i')[0]
-
-        # x = sysread( 1024 )
-        # might raise
+        # sysread( 1024 ) might raise
         #  Errno::EAGAIN: Resource temporarily unavailable ; meanings timed out
         #  EOFError "end of file reached"
         #  IOError: closed stream
@@ -134,38 +119,12 @@ if $0 == __FILE__
       HOST = 'localhost'
       PORT = 8888
 
-#      thread = Thread.new {
-        begin
-          socket2 = ExtendedTCPSocket.new
-          socket2.setsockopt( Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true )
-          socket2.connect( HOST, PORT, 3 )
-          socket2.set_receive_timed_out( 2 )
-#          print "socket2.gets()...\n"
-#          t = socket2.gets()
-#          print "socket2.gets()... #{t}\n"
-          print "socket2.sysread(100)...\n"
-          t = socket2.sysread(100)
-          print "socket2.sysread(100)... #{t}\n"
-        rescue => e
-          p e.backtrace
-        end
-#      }
-
-      sleep 10
-#      sleep 1; thread.run
-#      sleep 1; thread.run
-#      sleep 1; thread.run
-#      sleep 1; thread.run
-#      sleep 1; thread.run
-#      sleep 1; thread.run
-
       begin
         socket = ExtendedTCPSocket.new
         # socket.connect_nonblock( "127.0.0.1", 22222, 3 )
         # socket.connect( "127.0.0.1", 22, 3 )
         # socket.connect( '192.168.254.254', 22,3 )
         socket.connect( HOST, PORT, 3 )
-        #      socket.set_receive_timed_out( 2 )
         socket.puts("GET / HTTP/1.0")
         socket.puts("")
         p socket.gets_with_timed_out( 2 )

@@ -51,9 +51,8 @@ module Castoro
         if ( socket )
           socket.setsockopt( Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true )
           socket.syswrite( "_mode #{ServerStatus.instance.status_name}\n" )
-          socket.set_receive_timed_out( TIMED_OUT_DURATION )
           begin
-            socket.gets
+            socket.gets_with_timed_out( TIMED_OUT_DURATION )
           rescue Errno::EAGAIN  # "Resource temporarily unavailable"
             Log.warning "Remote control: response timed out #{TIMED_OUT_DURATION}s: #{host}:#{port} #{ServerStatus.instance.status_name}"
           rescue => e
@@ -173,7 +172,6 @@ module Castoro
               @socket.syswrite( "\n" )
               elapsed = Time.new - start_time
               Log.notice "Health check: command syswrite() to #{@host}:#{@port} took #{"%.3fs" % (elapsed)}" if THRESHOLD < elapsed 
-              # @socket.set_receive_timed_out( TIMED_OUT_DURATION )
               x = nil
               begin
                 x = @socket.gets_with_timed_out( TIMED_OUT_DURATION )
