@@ -20,7 +20,6 @@
 require 'socket'
 require 'fcntl'
 require 'castoro-peer/errors'
-require 'peersocket'
 
 module Castoro
   module Peer
