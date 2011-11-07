@@ -45,9 +45,13 @@ module Castoro
       end
 
       def start
-        @thread_acceptor = Thread.new { acceptor }
+        @thread_acceptor = Thread.new {
+          acceptor()
+        }
         @number_of_threads.times {
-          @thread_workers << Thread.new { worker }
+          @thread_workers << Thread.new {
+            worker()
+          }
         }
       end
 

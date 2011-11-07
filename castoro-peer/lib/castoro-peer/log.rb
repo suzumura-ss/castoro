@@ -85,7 +85,7 @@ module Castoro
 
         if ( m.is_a? Exception )
 
-          c, x, bt = m.class, m.message, m.backtrace.slice(0,3).inspect
+          c, x, bt = m.class, m.message, m.backtrace.slice(0,5).inspect
           @@syslog.log( severity, "Exception: %s \"%s\" %s%s", c, x, bt, z )
 
           if ( @@output )

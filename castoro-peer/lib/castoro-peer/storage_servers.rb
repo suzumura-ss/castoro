@@ -26,7 +26,7 @@ module Castoro
     class StorageServers
       include Singleton
 
-      attr_reader :target, :alternative_hosts, :colleague_hosts
+      attr_reader :members, :myhost, :target, :alternative_hosts, :colleague_hosts
 
       def initialize
         c = Configurations.instance
@@ -40,7 +40,8 @@ module Castoro
         i = g.index( hostname )
         hosts = g.slice(i, n)
         h = hosts.map { |x| storages[ x ] || x }
-        h.shift
+        @members = h.dup
+        @myhost = h.shift
         @colleague_hosts = h.dup
         @target = h.shift
         @alternative_hosts = h

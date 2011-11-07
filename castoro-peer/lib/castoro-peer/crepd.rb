@@ -20,7 +20,6 @@
 require 'castoro-peer/main'
 require 'castoro-peer/server_status'
 require 'castoro-peer/crepd_workers'
-require 'castoro-peer/crepd_receiver'
 
 module Castoro
   module Peer
@@ -28,23 +27,17 @@ module Castoro
     class CrepdMain < Main
       def initialize
         super
-        @w = ReplicationWorkers.instance
-        @r = TCPReplicationServer.new
+        ReplicationQueueDirectories.instance.salvage
+        @w = ReplicationWorkers.new
       end
 
       def start
-        @w.start_maintenance_server
-        @r.start
         @w.start_workers
         super
       end
 
       def stop
         @w.stop_workers
-#        p [@r]
-        @r.graceful_stop
-#        p [@w]
-        @w.stop_maintenance_server
         super
       end
     end

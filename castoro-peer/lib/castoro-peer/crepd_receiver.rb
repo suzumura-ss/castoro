@@ -17,7 +17,6 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'castoro-peer/pre_threaded_tcp_server'
 require 'thread'
 require 'socket'
 require 'json'
@@ -30,251 +29,201 @@ require 'castoro-peer/log'
 require 'castoro-peer/manipulator'
 require 'castoro-peer/server_status'
 require 'castoro-peer/scheduler'
+require 'castoro-peer/crepd_queue'
+require 'castoro-peer/pre_threaded_tcp_server'
 
 module Castoro
   module Peer
     
-    class TCPReplicationServer < PreThreadedTcpServer
-      def initialize( port = Configurations.instance.ReplicationTCPCommunicationPort, host = '0.0.0.0', maxConnections = 20  )
-        super
+    class ReplicationReceiveServer < PreThreadedTcpServer
+      def initialize
+        port = Configurations.instance.ReplicationTCPCommunicationPort
+        host = '0.0.0.0'
+        maxConnections = 20
+        super( port, host, maxConnections )
       end
 
       def serve( io )
-        channel = TcpServerChannel.new
-        processor = ReplicationReceiverImplementation.new( channel, io )
+        receiver = ReplicationReceiver.new( io )
         begin
-          processor.run
+          receiver.initiate
         rescue => e
           Log.warning e
-          channel.send( io, e )
         end
       end
     end
 
-    class ReplicationReceiverImplementation
-      def initialize( channel, io )
+    class ReplicationReceiver
+      def initialize( io )
+        @io = io
+        @channel = TcpServerChannel.new
         @config = Configurations.instance
-
-        @channel, @io = channel, io
-        @directory_entries = []
-        @basket = nil
-        @dst = nil
+        @fd = nil
         @csm_executor = Csm.create_executor
+        @command = nil
+        @basket = nil
       end
 
-      def run
-        while true
-          @channel.receive( @io )
-          break if @channel.closed?
-          @command, @args = @channel.parse
-          @ip, @port = @channel.get_peeraddr
-          @command.upcase!
-          ret = nil
-
-          MaintenaceServerSingletonScheduler.instance.check_point
-
+      def initiate
+        loop do
           begin
-
-            accept = case ServerStatus.instance.status
-                     when ServerStatus::ACTIVE       ; true
-                     when ServerStatus::DEL_REP      ; true
-                     when ServerStatus::FIN_REP      ; true
-                     when ServerStatus::REP          ; true
-                     when ServerStatus::READONLY     ; false
-                     when ServerStatus::MAINTENANCE  ; false
-                     when ServerStatus::UNKNOWN      ; false
-                     else ; false
-                     end
-            unless ( accept )
-              raise RetryableError, "server status: #{ServerStatus.instance.status} #{ServerStatus.instance.status_name} for #{@basket}"
+            @channel.receive( @io )
+            break if @channel.closed?
+            unless ( ServerStatus.instance.replication_activated? )
+              raise RetryableError, "server status: #{ServerStatus.instance.status} #{ServerStatus.instance.status_name} for #{@basket}" 
             end
-
-            case @command
-            when 'NOP'
-              #
-            when 'CATCH'
-              @number_of_dirs  = 0
-              @number_of_files = 0
-              @total_file_size = 0
-              @started_time = Time.new
-              ret = process_catch_command
-            when 'DELETE'
-              ret = process_delete_command
-              # Todo: too ugry
-              if ( ret.nil? )
-                send_drop_multicast_packet
-                insert_replication_candidate( 'delete' )
-              end
-            when 'DIRECTORY'
-              process_directory_command
-            when 'FILE'
-              process_file_command
-            when 'DATA'
-              process_data_command
-            when 'END'
-              process_end_command
-            when 'CANCEL'
-              process_cancel_command
-            when 'PREPARE'
-              # Todo: implement this
-            when 'FINALIZE'
-              process_finalize_command
-              send_insert_multicast_packet
-              insert_replication_candidate( 'replicate' )
-            else
-              raise InvalidArgumentPermanentError, "Unknown command:"
-            end
-            if ( ret )
-              @channel.send( @io, ret )
-            else
-              @channel.send( @io, @args )
-            end
-
-          rescue AlreadyExistsPermanentError => e
-            Log.warning e, "#{@command} #{@args.inspect} from #{@ip}:#{@port}"
-            @channel.send( @io, e )
-          rescue InvalidArgumentPermanentError => e
-            Log.warning e, "#{@command} #{@args.inspect} from #{@ip}:#{@port}"
-            @channel.send( @io, e )
+            @command, @args = @channel.parse
+            @ip, @port = @channel.get_peeraddr
+            @response = @args
+            dispatch  # some commands alter @response during their process
+            @channel.send( @io, @response )
           rescue => e
-            Log.warning e, "from #{@ip}:#{@port}"
+            Log.warning e, "#{@command} #{@args} from #{@ip}:#{@port}"
             @channel.send( @io, e )
           end
         end
+      ensure
+        @fd.close if @fd and not @fd.closed?
       end
 
-      def process_catch_command
-        @dst.close if @dst and not @dst.closed?
-        begin
-          basket_text = @args[ 'basket' ] or raise PermanentError
-          @basket = Basket.new_from_text( basket_text )
-        rescue => e
-          raise InvalidArgumentPermanentError, "#{e.class} #{e.message}: Invalid basket: #{basket_text} ;"
+      def dispatch
+        @command.upcase!
+        case @command
+        when 'NOP'       ; do_nop
+        when 'CATCH'     ; do_catch
+        when 'DELETE'    ; do_delete
+        when 'DIRECTORY' ; do_directory
+        when 'FILE'      ; do_file
+        when 'DATA'      ; do_data
+        when 'END'       ; do_end
+        when 'CANCEL'    ; do_cancel
+        when 'FINALIZE'  ; do_finalize
+        else             ; raise InvalidArgumentPermanentError, "Unknown command: #{@command}"
         end
+      end
 
-        Log.debug( "CATCH: #{@basket} #{@path_r} from #{@ip}:#{@port}" )
+      def do_nop
+        # Do nothing
+      end
 
+      def parse_basket
+        basket_text = @args[ 'basket' ] or raise PermanentError
+        @basket = Basket.new_from_text( basket_text )
         @path_a = @basket.path_a
+      rescue => e
+        raise InvalidArgumentPermanentError, "#{e.class} #{e.message}: Invalid basket: #{basket_text}"
+      end
+
+      def do_catch
+        @started = Time.new
+        @dirs, @files, @bytes = 0, 0, 0
+        @directory_entries = []
+
+        parse_basket
+        @entry = ReplicationEntry.new( :basket => @basket, :action => :replicate, :args => @args )
+        Log.debug "CATCH: #{@entry} from #{@ip}:#{@port}"
+
         if ( File.exist? @path_a )
-            return Hash[ :exists => @path_a ]
-        end
-
-        begin
-          @path_r = @basket.path_r
-        rescue => e
-          raise RetryableError, "#{e.class} #{e.message} for #{@basket}"
-        end
-
-        # Has to confirm if its parent directory exists
-        # If not, should create it before proceeding
-
-        csm_request = Csm::Request::Catch.new( @path_r )
-        begin
-          @csm_executor.execute( csm_request )
-        rescue => e
-          raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_r}"
-        end
-        return nil
-      end
-
-      def process_delete_command
-        @dst.close if @dst and not @dst.closed?
-        begin
-          basket_text = @args[ 'basket' ] or raise PermanentError
-          @basket = Basket.new_from_text( basket_text )
-        rescue => e
-          raise InvalidArgumentPermanentError, "#{e.class} #{e.message}: Invalid basket: #{basket_text} ;"
-        end
-
-        @path_a = @basket.path_a
-        @path_d = @basket.path_d
-        Log.debug( "DELETE: #{@basket} #{@path_d} from #{@ip}:#{@port}" )
-
-        unless ( File.exist? @path_a )
-          return Hash[ :doesnot_exist => @path_a ]
-        end
-
-        csm_request = Csm::Request::Delete.new( @path_a, @path_d )
-        begin
-          @csm_executor.execute( csm_request )
-        rescue => e
-          raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_a}"
-        end
-
-        Log.notice( "DELETED: #{@basket} #{@path_a} from #{@ip}:#{@port}; moved to #{@path_d}")
-        return nil
-      end
-
-      def process_directory_command
-        @dst.close if @dst and not @dst.closed?
-        path = @args[ 'path' ] or raise InvalidArgumentPermanentError, "path is not given: #{@basket} ;"
-        absolute_path = "#{@path_r}/#{path}"
-        Log.debug( "DIRECTORY: #{@basket} #{absolute_path} from #{@ip}:#{@port}" )
-
-        unless ( path == '.' )
+          register_entry
+          @response = { :exists => @path_a }
+        else
           begin
-            Dir.mkdir( absolute_path, 0755 )
+            @path_r = @basket.path_r
+            csm_request = Csm::Request::Catch.new( @path_r )
+            @csm_executor.execute( csm_request )
           rescue => e
-            raise PermanentError, "#{e.class} #{e.message}: mkdir #{absolute_path} for #{@basket}"
+            raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_r}"
           end
         end
+      end
+
+      def do_delete
+        parse_basket
+        @entry = ReplicationEntry.new( :basket => @basket, :action => :delete, :args => @args )
+        Log.debug "DELETE: #{@entry} from #{@ip}:#{@port}"
+
+        register_entry
+        ReplicationQueueDirectories.instance.delete( @basket, :replicate )
+
+        @path_d = @basket.path_d
+        if ( File.exist? @path_a )
+          begin
+            csm_request = Csm::Request::Delete.new( @path_a, @path_d )
+            @csm_executor.execute( csm_request )
+          rescue => e
+            raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_a} #{@path_d}"
+          end
+          Log.notice "DELETED: #{@basket} #{@path_a} from #{@ip}:#{@port}; moved to #{@path_d} #{@entry.ttl_and_hosts}"
+          send_multicast_packet( 'DROP', @path_d )
+        else
+          @response = { :doesnot_exist => @path_a }
+        end
+      end
+
+      def parse_attributes( args )
+        path = args[ 'path' ] or raise InvalidArgumentPermanentError, "path is not given: #{@basket}"
+        if ( path == '.'  or path == '..' )
+          raise InvalidArgumentPermanentError, "#{path} is not allowed: #{@basket}"
+        end
+        @path = "#{@path_r}/#{path}"
+        @mode  = args[ 'mode' ]
+        @atime = args[ 'atime' ]
+        @mtime = args[ 'mtime' ]
+      end
+
+      def apply_attributes
+        File.chmod( @mode, @path )
+        File.utime( @atime, @mtime, @path )
+      end
+
+      def do_directory
+        parse_attributes( @args )
+        Log.debug "DIRECTORY: #{@basket} #{@path} from #{@ip}:#{@port}"
+
+        begin
+          Dir.mkdir( @path, 0755 )
+        rescue => e
+          raise PermanentError, "#{e.class} #{e.message}: mkdir #{@path} for #{@basket}"
+        end
+
         @directory_entries.push @args
-        @number_of_dirs = @number_of_dirs + 1
+        @dirs += 1
       end
 
-      def process_file_command
-        @dst.close if @dst and not @dst.closed?
-        path = @args[ 'path' ] or raise InvalidArgumentPermanentError, "path is not given: #{@basket} ;"
-        @file_path = "#{@path_r}/#{path}"
-        Log.debug( "FILE: #{@basket} #{@file_path} from #{@ip}:#{@port}" )
-        @dst = File.new( @file_path, "w" )
-        # @dst will be closed in the method process_data_command
-        size = @args[ 'size' ].to_i
-        @mode  = @args[ 'mode' ].to_i
-        @atime = @args[ 'atime' ].to_i
-        @mtime = @args[ 'mtime' ].to_i
-        @number_of_files = @number_of_files + 1
+      def do_file
+        parse_attributes( @args )
+        Log.debug "FILE: #{@basket} #{@path} from #{@ip}:#{@port}"
+        @fd = File.new( @path, "w" )  # @fd will be closed in the method do_data
       end
 
-      def process_data_command
-        # @dst should be kept open here, which should be already opened 
-        # in the method process_file_command
-        size = @args[ 'size' ].to_i
-        sending_size = size
+      def do_data
+        sent = @args[ 'size' ]
         unit_size = @config.ReplicationTransmissionDataUnitSize
-        while ( 0 < size )
+
+        rest = sent
+        while ( 0 < rest )
+          n = ( unit_size < rest ) ? unit_size : rest
+          rest -= IO.copy_stream( @io, @fd, n )  # @fd has been opened in the method do_file
           MaintenaceServerSingletonScheduler.instance.check_point
-          n = ( unit_size < size ) ? unit_size : size
-          m = IO.copy_stream( @io, @dst, n )
-          size = size - m
         end
-        @dst.close if @dst and not @dst.closed?
-        MaintenaceServerSingletonScheduler.instance.check_point
-        File.utime( @atime, @mtime, @file_path )
-        File.chmod( @mode, @file_path )
-        receiving_size = File.size( @file_path )
-        unless ( receiving_size == sending_size )
-          raise RetryableError, "File size does not match: sending_size=#{sending_size} receiving_size=#{receiving_size} #{@file_path} #{@basket}"
-        end
-        @total_file_size = @total_file_size + receiving_size
+        @fd.close
+
+        apply_attributes
+        received = File.size( @path )
+        ( sent == received ) or raise RetryableError, "File size does not match: sent=#{sent} received=#{received} #{@path} #{@basket}"
+        @files += 1
+        @bytes += received
       end
 
-      def process_end_command
-        @dst.close if @dst and not @dst.closed?
-        @directory_entries.reverse.each { |h|
-          path = h[ 'path' ]
-          mode = h[ 'mode' ].to_i
-          atime = h[ 'atime' ].to_i
-          mtime = h[ 'mtime' ].to_i
-          absolute_path = "#{@path_r}/#{path}"
-          Log.debug( "END: #{@basket} #{absolute_path} mode: #{mode} atime: #{atime} mtime: #{mtime} from #{@ip}:#{@port}" )
-          File.utime( atime, mtime, absolute_path )
-          File.chmod( mode, absolute_path )
-        }
+      def do_end
+        @directory_entries.reverse.each do |args|
+          parse_attributes( args )
+          Log.debug "END: #{@basket} #{@path} mode: #{@mode} atime: #{@atime} mtime: #{@mtime} from #{@ip}:#{@port}"
+          apply_attributes
+        end
       end
 
-      def process_cancel_command
-        @dst.close if @dst and not @dst.closed?
+      def do_cancel
         if ( File.exist? @path_r )
           csm_request = Csm::Request::Cancel.new( @path_r, @basket.path_c( @path_r ) )
           begin
@@ -283,59 +232,58 @@ module Castoro
             raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_r} #{@path_a}"
           end
         end
-        Log.notice( "CANCELD: #{@basket} #{@path_r} from #{@ip}:#{@port}" )
+        Log.notice "CANCELD: #{@basket} #{@path_r} from #{@ip}:#{@port}"
       end
 
-      def process_finalize_command
-        @dst.close if @dst and not @dst.closed?
+      def do_finalize
         if ( File.exist? @path_a )
           raise AlreadyExistsPermanentError, "Basket already exists: #{@basket} #{@path_a}"
         end
+
         csm_request = Csm::Request::Finalize.new( @path_r, @path_a )
         begin
           @csm_executor.execute( csm_request )
         rescue => e
           raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_r} #{@path_a}"
         end
-        @elapsed_time = Time.new - @started_time
-        Log.notice( "REPLICATED: #{@basket} #{@basket.path_a} from #{@ip}:#{@port} dirs=#{@number_of_dirs} files=#{@number_of_files} bytes=#{@total_file_size} time=#{"%0.3fs" % @elapsed_time}" )
+        @elapsed = Time.new - @started
+        Log.notice "REPLICATED: #{@basket} #{@basket.path_a} from #{@ip}:#{@port} dirs=#{@dirs} files=#{@files} bytes=#{@bytes} time=#{"%0.3fs" % @elapsed} #{@entry.ttl_and_hosts}"
+
+        send_multicast_packet( 'INSERT', @path_a )
+        register_entry
       end
 
-      def send_insert_multicast_packet
-        # Todo: codes regarding multicast could be enhanced
+      def send_multicast_packet( command, path )
         channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
         host = @config.HostnameForClient
         ip   = @config.MulticastAddress
         port = @config.GatewayUDPCommandPort
-        args = Hash[ 'basket', @basket.to_s, 'host', host, 'path', @path_a ]
-        channel.send( 'INSERT', args, ip, port )
+        args = { 'basket' => @basket.to_s, 'host' => host, 'path' => path }
+        channel.send( command, args, ip, port )
       end
 
-      def send_drop_multicast_packet
-        # Todo: codes regarding multicast could be enhanced
-        channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
-        host = @config.HostnameForClient
-        ip   = @config.MulticastAddress
-        port = @config.GatewayUDPCommandPort
-        args = Hash[ 'basket', @basket.to_s, 'host', host, 'path', @path_d ]
-        channel.send( 'DROP', args, ip, port )
-      end
-
-      def insert_replication_candidate( action )
-        a = action
-        begin
-          file = "#{DIR_WAITING}/#{@basket.to_s}.#{action}"
-          f = File.new( file, "w" )
-          f.close
-        rescue => e
-          Log.warning e, "#{file} #{@basket.to_s}"
-        end
-        queue = $ReplicationSenderQueue
-        if ( queue )
-          queue.enq "#{@basket.to_s}.#{action}"
+      def register_entry
+        if ( satisfied? )
+          Log.debug "register_entry satisfied. #{@basket} #{@entry.action} #{@entry.ttl_and_hosts}"
+        else
+          @entry.decrease_ttl
+          if ( 0 < @entry.ttl )
+            ReplicationQueueDirectories.instance.insert( @entry )
+            ReplicationQueue.instance.enq @entry
+          else
+            Log.warning "TTL exceeded. #{@basket} #{@entry.action} #{@entry.ttl_and_hosts}"
+          end
         end
       end
 
+      def satisfied?
+        hosts = @entry.hosts
+        StorageServers.instance.colleague_hosts.each do |h|
+          Log.debug "satisfied? #{@basket} #{@entry.action} hosts=#{hosts.join(',')} h=#{h} #{hosts.include? h}"
+          hosts.include? h or return false
+        end
+        return true
+      end
     end
 
   end

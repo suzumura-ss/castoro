@@ -29,15 +29,12 @@ require 'castoro-peer/pipeline'
 require 'castoro-peer/storage_servers'
 require 'castoro-peer/server_status'
 require 'castoro-peer/maintenace_server'
+require 'castoro-peer/crepd_queue'
 
 module Castoro
   module Peer
 
     $AUTO_PILOT = true
-
-    # Todo: This could be moved to the configuration; this is also written in crepd_worker.rb
-    DIR_REPLICATION = "/var/castoro/replication"
-    DIR_WAITING     = "#{DIR_REPLICATION}/waiting"
 
 ########################################################################
 # Tickets
@@ -508,10 +505,16 @@ module Castoro
         def serve
           ticket = CsmControllerPL.instance.deq
           ticket.mark
+          basket = ticket.basket
+
+          case ticket.command_sym
+          when :DELETE
+            ReplicationQueueDirectories.instance.delete( basket, :replicate )
+          end
+
           csm_request = ticket.pop
           @csm_executor.execute( csm_request )
           ticket.mark
-          basket = ticket.basket
           h = { 'basket' => basket.to_s }
           case ticket.command_sym
           when :CREATE
@@ -525,7 +528,7 @@ module Castoro
             t = MulticastCommandSenderTicketPool.instance.create_ticket
             t.push( 'DROP', Hash[ 'basket', basket.to_s, 'host', ticket.host, 'path', basket.path_d ] )
             MulticastCommandSenderPL.instance.enq t
-            ReplicationPL.instance.enq [ 'delete', basket ]  # Todo: should not use DB's enum here
+            ReplicationPL.instance.enq [ :delete, basket ]  # Todo: should not use DB's enum here
           when :CANCEL
             m = "CANCEL: #{basket} #{basket.path_c}"
           when :FINALIZE
@@ -533,7 +536,7 @@ module Castoro
             t = MulticastCommandSenderTicketPool.instance.create_ticket
             t.push( 'INSERT', Hash[ 'basket', basket.to_s, 'host', ticket.host, 'path', basket.path_a ] )
             MulticastCommandSenderPL.instance.enq t
-            ReplicationPL.instance.enq [ 'replicate', basket ]  # Todo: should not use DB's enum here
+            ReplicationPL.instance.enq [ :replicate, basket ]  # Todo: should not use DB's enum here
           else
             raise InternalServerError, "Unknown command symbol' #{ticket.command_sym.inspect}"
           end
@@ -621,7 +624,7 @@ module Castoro
 
       class ReplicationDBClient < Worker
         def initialize
-          Dir.exists? DIR_WAITING or raise StandardError, "no directory exists: #{DIR_WAITING}"
+          ReplicationQueueDirectories.instance
           super
           @ip = '127.0.0.1'
           @port = Configurations.instance.ReplicationUDPCommandPort
@@ -630,22 +633,17 @@ module Castoro
 
         def serve
           action, basket = ReplicationPL.instance.deq
-          begin
-            file = "#{DIR_WAITING}/#{basket.to_s}.#{action}"
-            f = File.new( file, "w" )
-            f.close
-          rescue => e
-            Log.warning e, "#{file} #{basket.to_s}"
-          end
+          entry = ReplicationEntry.new( :basket => basket, :action => action )
+          ReplicationQueueDirectories.instance.insert_without_attribute( entry )
 
           begin
             args = Hash[ 'basket', basket.to_s ]
             case action
-            when 'replicate' ; @channel.send( 'REPLICATE', args, @ip, @port )
-            when 'delete'    ; @channel.send( 'DELETE',    args, @ip, @port )
+            when :replicate ; @channel.send( 'REPLICATE', args, @ip, @port )
+            when :delete    ; @channel.send( 'DELETE',    args, @ip, @port )
             end
           rescue => e
-            Log.warning e, "#{action} #{basket.to_s}"
+            Log.warning e, "#{action} #{basket}"
           end
         end
       end

@@ -141,6 +141,7 @@ module Castoro
           @socket = nil
           @interval = INTERVAL
           @target = Time.new + @interval
+          @last_error = nil
         end
 
         def serve
@@ -152,8 +153,11 @@ module Castoro
               begin
                 @socket = ExtendedTCPSocket.new
                 @socket.connect( @host, @port, TIMED_OUT_DURATION )
+                Log.notice "Health check: connection established to #{@host}:#{@port}"
               rescue => e
-                Log.warning e, "Health check: attempt of connecting to #{@host}:#{@port}"
+                unless ( @last_error == e.message )
+                  Log.warning e, "Health check: attempt of connecting to #{@host}:#{@port}"
+                end
                 error = e.message
                 @socket.close if @socket and ! @socket.closed?
                 @socket = nil
@@ -188,15 +192,15 @@ module Castoro
                 @socket.close if @socket and ! @socket.closed?
                 @socket = nil
               rescue => e
-                error = e.message
                 Log.warning e, "#{@host}:#{@port}"
+                error = e.message
                 @socket.close if @socket and ! @socket.closed?
                 @socket = nil
               end
             end
           rescue => e
             Log.warning e, "#{@host}:#{@port}"
-            error = "#{e.message}"
+            error = e.message
             @socket.close if @socket and ! @socket.closed?
             @socket = nil
           end
@@ -207,6 +211,7 @@ module Castoro
 
         rescue => e
           Log.err e, "#{@host}:#{@port}"
+          error = e.message
 
         ensure
           rest = @target - Time.new
@@ -222,6 +227,7 @@ module Castoro
           end
           # Log.notice "rest:#{x_rest} = @target:#{x_target} - Time.new:#{x_now} ==> rest:#{rest} @target:#{@target}"
           sleep rest
+          @last_error = error
         end
 
         def graceful_stop
@@ -284,7 +290,7 @@ module Castoro
                   Log.err( "#{x.host}:#{x.port} cmond error: #{x.error}" ) if x.error
                 }
               else
-                Log.notice( "error recovered" )
+                Log.notice( "Health check: error recovered" )
               end
             end
 

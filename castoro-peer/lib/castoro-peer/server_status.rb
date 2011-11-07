@@ -27,8 +27,6 @@ module Castoro
     # Server Status
     ########################################################################
 
-    # Todo: more appropreate API
-
     class ServerStatus
       include Singleton
 
@@ -51,11 +49,11 @@ module Castoro
       def status=( s )
         last_status = nil
         new_status = nil
-        @mutex.synchronize {
+        @mutex.synchronize do
           last_status = @status
           @status = s
           new_status = s
-        }
+        end
         Log.notice( "STATUS changed from #{ServerStatus.status_to_s(last_status)} to #{ServerStatus.status_to_s(new_status)}" )
       end
 
@@ -68,7 +66,7 @@ module Castoro
       end
 
       def self.status_name_to_i ( x )
-        case (x)
+        case ( x )
           # Todo: use constant values
         when 'online'   , '30' ; ACTIVE
         when 'del_rep'  , '27' ; DEL_REP
@@ -82,27 +80,36 @@ module Castoro
       end
 
       def status_name
-        s = nil
-        @mutex.synchronize {
-          s = @status
-        }
-        ServerStatus.status_to_s( s ) 
+        ServerStatus.status_to_s( @status ) 
       end
 
-      def ServerStatus.status_to_s( s )
-          x = case ( s ) 
-              when ACTIVE      , '30' ; '30 online'
-              when DEL_REP     , '27' ; '27 del_rep'
-              when FIN_REP     , '25' ; '25 fin_rep'
-              when REP         , '23' ; '23 rep'
-              when READONLY    , '20' ; '20 readonly'
-              when MAINTENANCE , '10' ; '10 offline'
-              when UNKNOWN     , '0'  ; '0 unknown'
-              # else raise StandardError, "Unknown status: #{s}"
-              else ; '? ?'
-              end
-          x
+      def self.status_to_s( s )
+        case ( s ) 
+        when ACTIVE      , '30' ; '30 online'
+        when DEL_REP     , '27' ; '27 del_rep'
+        when FIN_REP     , '25' ; '25 fin_rep'
+        when REP         , '23' ; '23 rep'
+        when READONLY    , '20' ; '20 readonly'
+        when MAINTENANCE , '10' ; '10 offline'
+        when UNKNOWN     , '0'  ; '0 unknown'
+          # else raise StandardError, "Unknown status: #{s}"
+        else ; '? ?'
+        end
       end
+
+      def replication_activated?
+        case ( @status )
+        when ACTIVE       ; true
+        when DEL_REP      ; true
+        when FIN_REP      ; true
+        when REP          ; true
+        when READONLY     ; false
+        when MAINTENANCE  ; false
+        when UNKNOWN      ; false
+        else ; false
+        end
+      end
+
     end
 
   end
