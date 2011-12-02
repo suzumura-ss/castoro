@@ -23,7 +23,7 @@
 
 #include "basetypes.hxx"
 #include "mapping.hxx"
-
+#include "basket.hxx"
 
 namespace Castoro {
 namespace Gateway {
@@ -57,10 +57,10 @@ namespace Gateway {
     inline CachePage() {};
     inline virtual ~CachePage() {};
 
-    void init(uint64_t content_id, uint32_t type);
-    bool insert(uint64_t content_id, uint32_t type, uint32_t revision, PEERH peer);
-    bool find(uint64_t content_id, uint32_t type, uint32_t revision, ArrayOfId& result, bool& removed);
-    bool remove(uint64_t content_id, uint32_t type, uint32_t revision, PEERH peer);
+    void init(const BasketId& id, uint32_t type);
+    bool insert(const BasketId& id, uint32_t type, uint32_t revision, PEERH peer);
+    bool find(const BasketId& id, uint32_t type, uint32_t revision, ArrayOfId& result, bool& removed);
+    bool remove(const BasketId& id, uint32_t type, uint32_t revision, PEERH peer);
 
     attr_reader(ContentIdWithType, m_magic);
     attr_reader(uint16_t, m_contains);
@@ -72,9 +72,10 @@ namespace Gateway {
     uint16_t  m_contains;
     uint8_t   m_revision_hash[CACHEPAGE_SIZE];
     ID3       m_peers[CACHEPAGE_SIZE];
-    inline bool validate(uint64_t content_id, uint32_t type) const {
-      uint64_t ch = content_id & (~(CACHEPAGE_SIZE-1));
-      return ((ch==m_magic.content_id) && (type==m_magic.type));
+    inline bool validate(const BasketId& id, uint32_t type) const {
+      BasketId mask(CACHEPAGE_SIZE-1);
+      BasketId ch = id & (~mask);
+      return ((ch==m_magic.basket_id) && (type==m_magic.type));
     };
   };
   typedef std::map<ContentIdWithType, CachePage*> CachePageMap;

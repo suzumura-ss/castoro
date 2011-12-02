@@ -1,4 +1,8 @@
 
+=== 0.1.2 2011-08-22
+
+* cache supported basketid 64bit more.
+
 === 0.1.1 2011-06-09
 
 * fixed issue #18

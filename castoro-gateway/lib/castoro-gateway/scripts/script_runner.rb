@@ -39,6 +39,8 @@ module Castoro
   
         raise "Environment not found - #{options[:env]}" unless config.include?(options[:env])
         config = config[options[:env]]
+
+        [*config["require"]].each { |r| require r } if config["require"]
   
         user = config["user"] || Gateway::DEFAULT_SETTINGS["user"]
         

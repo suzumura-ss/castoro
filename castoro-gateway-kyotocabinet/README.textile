@@ -1,0 +1,47 @@
+h1. castoro-gateway-kyotocabinet
+
+h2. Install
+
+<pre>
+gem install castoro-gateway-kyotocabinet-X.X.X.gem
+</pre>
+
+h2. gateway.conf Configuration example
+
+<pre>
+default:
+  require: ["castoro-gateway-kyotocabinet"]
+  cache:
+    class: KyotoCabinet
+    cache_size: 500000
+    options:
+      watchdog_limit: 15
+      path_derive_proc: ' Proc.new { |id, type, rev, peer| "/expdsk/#{type}/baskets/a" } '
+      compress_derivatable_data: true
+</pre>
+
+h3. configuration details
+
+h4. cache/class
+
+The class name of an alternative cache class
+ex.) It's "KyotoCabinet" in the case of "Castoro::Cache::KyotoCabinet"
+
+h4. cache/cache_size
+
+Cache size (bytes)
+
+h4. cache/options/watchdog_limit
+
+Timeout second for watchdog.
+
+h4. cache/options/path_derive_proc
+
+base-path derive procedure.
+The character string which evaluates by "eval" and returns Proc object.
+A character string is returned for id, type, rev, and peer to an argument.
+
+h4. cache/options/compress_derivatable_data
+
+If value is same as path_derive_proc evaluation value, set to nil. (default: true)
+

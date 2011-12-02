@@ -57,13 +57,13 @@ describe Castoro::Cache do
       lambda{ c = Castoro::Cache.new(-1) }.should raise_error(ArgumentError)
     end
     it "should be success when pages >0" do
-      Castoro::Cache.new(1).should_not be_nil
+      Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 1).should_not be_nil
     end
   end
 
   context "when empty" do
     before do
-      @cache = Castoro::Cache.new(10)
+      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
     end
 
     it "should be empty" do
@@ -78,7 +78,7 @@ describe Castoro::Cache do
 
   context "when insert a item" do
     before do
-      @cache = Castoro::Cache.new(10)
+      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
       @cache.peers[PEER1].insert(1,2,3,BASE1)
     end
 
@@ -111,10 +111,44 @@ describe Castoro::Cache do
     end
   end
 
+  context "when insert a very big id item" do
+    before do
+      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
+      @cache.peers[PEER1].insert(0xffffffffffffffff0123456789abcdef, 2, 3, BASE1)
+    end
+
+    it "should be empty when insert and remove it" do
+      @cache.peers[PEER1].erase(0xffffffffffffffff0123456789abcdef,2,3)
+      @cache.find(0xffffffffffffffff0123456789abcdef,2,3).should be_empty
+    end
+
+    it "should be empty when insert but NOT activated" do
+      @cache.find(0xffffffffffffffff0123456789abcdef,2,3).should be_empty
+    end
+
+    it "should be one item when mark active" do
+      @cache.peers[PEER1].status = ACTIVE
+      @cache.find(0xffffffffffffffff0123456789abcdef,2,3).should == [nfs1(0xffffffffffffffff0123456789abcdef,2,3)]
+    end
+
+    it "should be one item when mark readonly" do
+      @cache.peers[PEER1].status = READONLY
+      @cache.find(0xffffffffffffffff0123456789abcdef,2,3).should == [nfs1(0xffffffffffffffff0123456789abcdef,2,3)]
+    end
+
+    it "should be empty when mark maintenance" do
+      @cache.peers[PEER1].status = MAINTENANCE
+      @cache.find(0xffffffffffffffff0123456789abcdef,2,3).should be_empty
+    end
+
+    after do
+      @cache = nil
+    end
+  end
 
   context "when insert 2 items into same peer" do
     before do
-      @cache = Castoro::Cache.new(10)
+      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
       @cache.peers[PEER1].insert(1,2,3,BASE1)
       @cache.peers[PEER1].insert(4,5,6,BASE1)
     end
@@ -150,7 +184,7 @@ describe Castoro::Cache do
 
   context "when insert 2 items into different peers" do
     before do
-      @cache = Castoro::Cache.new(10)
+      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
       @cache.peers[PEER1].insert(1,2,3,BASE1)
       @cache.peers[PEER2].insert(1,2,3,BASE2)
     end
@@ -197,7 +231,7 @@ describe Castoro::Cache do
 
   context "when remove item" do
     before do
-      @cache = Castoro::Cache.new(10)
+      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
       @cache.peers[PEER1].insert(1,2,3,BASE1)
       @cache.peers[PEER2].insert(1,2,3,BASE2)
       @cache.peers[PEER3].insert(1,2,3,BASE3)
@@ -237,7 +271,7 @@ describe Castoro::Cache do
 
   context "peers matching" do
     before do
-      @cache = Castoro::Cache.new(10)
+      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
     end
 
     it "should empty when there is no peers." do
@@ -298,7 +332,7 @@ describe Castoro::Cache do
 
   context "when content id is large" do
     before do
-      @cache = Castoro::Cache.new(10)
+      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
       @cache.peers[PEER1].status = ACTIVE
     end
 
@@ -338,13 +372,11 @@ describe Castoro::Cache do
 
   context "when make_nfs_path is overloaded" do
     before do
-      @cache = Castoro::Cache.new(10)
+      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
       @cache.peers[PEER1].status = ACTIVE
-      class << @cache
-        def make_nfs_path(p, b, c, t, r)
-          {:host=>p.to_s, :path=>"#{b}/#{c}.#{t}@#{r}"}
-        end
-      end
+      Castoro::Cache.stub!(:make_nfs_path).and_return { |p, b, c, t, r|
+        {:host => p.to_s, :path => "#{b}/#{c}.#{t}@#{r}"}
+      }
     end
 
     it "path should be 'peer:/base/cid.type@rev'" do
@@ -360,8 +392,7 @@ describe Castoro::Cache do
 
   context "watchdog expires" do
     before do
-      @cache = Castoro::Cache.new(10)
-      @cache.watchdog_limit = 1
+      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10, :watchdog_limit => 1)
       @cache.peers[PEER1].insert(1,2,3,BASE1)
       @cache.peers[PEER2].insert(1,2,3,BASE2)
     end
@@ -394,8 +425,8 @@ describe Castoro::Cache do
 
   context "dump cache" do
     before do
-      @cache = Castoro::Cache.new(10)
-      @cache.peers[PEER1].insert(1,2,3,BASE1)
+      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
+      @cache.peers[PEER1].insert(0x0123456789abcdef0123456789abcdef,2,3,BASE1)
       @cache.peers[PEER2].insert(1,2,3,BASE2)
       @cache.peers[PEER3].insert(1,2,3,BASE3)
       @cache.peers[PEER1].status = ACTIVE
@@ -412,9 +443,9 @@ describe Castoro::Cache do
       end
       @cache.dump(result).should be_true
       result.should == <<__RESULT__
-  std100: /expdsk/baskets/r/1.2.3
   std101: /expdsk/baskets/w/1.2.3
   std102: /expdsk/baskets/a/1.2.3
+  std100: /expdsk/baskets/r/#{0x0123456789abcdef0123456789abcdef}.2.3
 __RESULT__
     end
 
@@ -426,8 +457,7 @@ __RESULT__
 
   context "cache stat" do
     before do
-      @cache = Castoro::Cache.new(10)
-      @cache.watchdog_limit = 5
+      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10, :watchdog_limit => 5)
       @cache.peers[PEER1].insert(1,2,3,BASE1)
       @cache.peers[PEER2].insert(1,2,3,BASE2)
       @cache.peers[PEER1].status = ACTIVE

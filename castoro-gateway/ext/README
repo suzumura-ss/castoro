@@ -8,6 +8,10 @@ $ make
 == クラス仕様
 module Castoro
   class Cache
+    self.make_nfs_path(p, b, c, t, r)             # p:storage_name, b:base_path, c:content_id, t:content_type, r:revision
+                                                  #   からNFSパスを生成する。
+    self.member_puts(io, p, b, c, t, r)           # io へ要素に関する情報を文字列表現した情報を書きだす
+                                                  # #dump のヘルパメソッド
     find(content_id, content_type, revision)      # 要素の検索。見つかったNFSパスの配列を返す。見つからない場合は[]。
     erase(content_id, content_type, revision)     # 要素の削除。削除した要素数を返す。
     peers                                         # Peerのイテレータを返す。
@@ -22,10 +26,15 @@ module Castoro
           DSTAT_HAVE_STATUS_PEERS                 #   ステータスが登録されているpeer数。
           DSTAT_ACTIVE_PEERS                      #   書き込み可能なpeer数。
           DSTAT_READABLE_PEERS                    #   読み出し可能なpeer数。
-    watchdog_limit=                               # watchdogのタイムアウト値(sec)を指定する。デフォルト１５秒。
     watchdog_limit                                # watchdogのタイムアウト値(sec)を取得する。
-    self.make_nfs_path(p, b, c, t, r)             # p:storage_name, b:base_path, c:content_id, t:content_type, r:revision
-                                                  #   からNFSパスを生成する。
+    find_peers(require_spaces)                    # #peers.find(require_spaces) のエイリアス
+    insert_element(peer, contentid, content_type, revision, base_path)
+                                                  # #peers[peer].insert(content_id, content_type, revision, base_path) のエイリアス
+    erase_element(peer, content_id, content_type, revision)
+                                                  # #peers[peer].erase(content_id, content_type, revision) のエイリアス
+    get_peer_status(peer)                         # #peers[peer].status のエイリアス
+    set_peer_status(peer, hash)                   # #peers[peer].status= のエイリアス
+
     class Peers
       [](storage_name)                            # storage_nameのPeerを返す。
       find(require_spaces)                        # stat[:status]がACTIVEでstat[:available]がrequire_spaces以上である

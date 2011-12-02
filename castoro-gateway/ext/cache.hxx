@@ -23,6 +23,7 @@
 
 #include "ruby.h"
 #include "database.hxx"
+#include "basket.hxx"
 
 // C++/Ruby Wrapper template.
 template<class T> class RubyWrapper
@@ -55,11 +56,11 @@ public:
   inline virtual ~Cache() { try{ if(m_db) delete m_db; } catch(...){} };
 
   // content handlings.
-  inline void insert(uint64_t c, uint32_t t, uint32_t r, ID p, ID b) { m_db->insert(c, t, r, p, b); };
-  inline void find(uint64_t c, uint32_t t, uint32_t r, ArrayOfPeerWithBase& a, bool& k) {
-    m_db->find(c, t, r, a, k);
+  inline void insert(BasketId id, uint32_t t, uint32_t r, ID p, ID b) { m_db->insert(id, t, r, p, b); };
+  inline void find(BasketId id, uint32_t t, uint32_t r, ArrayOfPeerWithBase& a, bool& k) {
+    m_db->find(id, t, r, a, k);
   };
-  inline void remove(uint64_t c, uint32_t t, uint32_t r, ID p) { m_db->remove(c, t, r, p); };
+  inline void remove(BasketId id, uint32_t t, uint32_t r, ID p) { m_db->remove(id, t, r, p); };
 
   // peer handlings.
   inline void set_status(ID p, const PeerStatus& s) { m_db->set_status(p, s); };
@@ -80,13 +81,29 @@ private:
   Database* m_db;
 
   // Ruby bindings.
-  static VALUE rb_init(VALUE self, VALUE _p);
+  static VALUE rb_init(int argc, VALUE* argv, VALUE self);
   static VALUE rb_find(VALUE self, VALUE _c, VALUE _t, VALUE _r);
-  static VALUE rb_set_expire(VALUE self, VALUE _t);
   static VALUE rb_get_expire(VALUE self);
   static VALUE rb_stat(VALUE self, VALUE _k);
   static VALUE rb_alloc_peers(VALUE self);
   static VALUE rb_dump(VALUE self, VALUE _f);
+  static VALUE rb_find_peers(int argc, VALUE* argv, VALUE self);
+  static VALUE rb_insert_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r, VALUE _b);
+  static VALUE rb_erase_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r);
+  static VALUE rb_get_peer_status(VALUE self, VALUE _p);
+  static VALUE rb_set_peer_status(VALUE self, VALUE _p, VALUE _s);
+
+  static VALUE synchronize(VALUE self);
+  static VALUE find_internal(VALUE block_arg, VALUE data, VALUE self);
+  static VALUE get_expire_internal(VALUE block_arg, VALUE data, VALUE self);
+  static VALUE stat_internal(VALUE block_arg, VALUE data, VALUE self);
+  static VALUE alloc_peers_internal(VALUE block_arg, VALUE data, VALUE self);
+  static VALUE dump_internal(VALUE block_arg, VALUE data, VALUE self);
+  static VALUE find_peers_internal(VALUE block_arg, VALUE data, VALUE self);
+  static VALUE insert_element_internal(VALUE block_arg, VALUE data, VALUE self);
+  static VALUE erase_element_internal(VALUE block_arg, VALUE data, VALUE self);
+  static VALUE get_peer_status_internal(VALUE block_arg, VALUE data, VALUE self);
+  static VALUE set_peer_status_internal(VALUE block_arg, VALUE data, VALUE self);
 };
 
 

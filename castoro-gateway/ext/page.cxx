@@ -69,22 +69,24 @@ void ID3::pushall(ArrayOfId& dest) const
 //
 // class CachePage
 //
-void CachePage::init(uint64_t content_id, uint32_t type)
+void CachePage::init(const BasketId& id, uint32_t type)
 {
   memset(m_revision_hash, 0, sizeof(m_revision_hash));
   memset(m_peers, 0, sizeof(m_peers));
   m_contains = 0;
-  m_magic.content_id = content_id & (~(CACHEPAGE_SIZE-1));
+
+  BasketId mask(0xffffffffffffffffll, ~(CACHEPAGE_SIZE-1));
+  m_magic.basket_id = id & mask;
   m_magic.type = type;
 }
 
 
 // insert revision into page.
-bool CachePage::insert(uint64_t content_id, uint32_t type, uint32_t revision, PEERH peer)
+bool CachePage::insert(const BasketId& id, uint32_t type, uint32_t revision, PEERH peer)
 {
-  if(!validate(content_id, type)) return false; // invalid page.
+  if(!validate(id, type)) return false; // invalid page.
 
-  content_id &= (CACHEPAGE_SIZE-1);
+  uint32_t content_id = id.lower() & (CACHEPAGE_SIZE-1);
   uint8_t rev = (uint8_t)revision;
 
   // check revision.
@@ -103,12 +105,12 @@ bool CachePage::insert(uint64_t content_id, uint32_t type, uint32_t revision, PE
 
 
 // find revision from page.
-bool CachePage::find(uint64_t content_id, uint32_t type, uint32_t revision, ArrayOfId& result, bool& removed)
+bool CachePage::find(const BasketId& id, uint32_t type, uint32_t revision, ArrayOfId& result, bool& removed)
 {
   removed = false;
-  if(!validate(content_id, type)) return false; // invalid page.
+  if(!validate(id, type)) return false; // invalid page.
 
-  content_id &= (CACHEPAGE_SIZE-1);
+  uint32_t content_id = id.lower() & (CACHEPAGE_SIZE-1);
   uint8_t rev = (uint8_t)revision;
 
   // check 'removed'.
@@ -127,11 +129,11 @@ bool CachePage::find(uint64_t content_id, uint32_t type, uint32_t revision, Arra
 
 
 // remove revision from page.
-bool CachePage::remove(uint64_t content_id, uint32_t type, uint32_t revision, PEERH peer)
+bool CachePage::remove(const BasketId& id, uint32_t type, uint32_t revision, PEERH peer)
 {
-  if(!validate(content_id, type)) return false; // invalid page.
+  if(!validate(id, type)) return false; // invalid page.
 
-  content_id &= (CACHEPAGE_SIZE-1);
+  uint32_t content_id = id.lower() & (CACHEPAGE_SIZE-1);
   uint8_t rev = (uint8_t)revision;
 
   // check revision.

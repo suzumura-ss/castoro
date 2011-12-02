@@ -26,13 +26,11 @@
 #include <map>
 #include <sys/time.h>
 
-#ifdef __TEST__
-  typedef uint32_t  ID;
-#else
 # include <ruby.h>
-#endif
 
-#define CACHEPAGE_SIZE  (4096)    // Must be 2^n
+#include "basket.hxx"
+
+#define CACHEPAGE_SIZE  (4096ull)    // Must be 2^n
 #define attr_reader(type, member) inline type member##_r() { return member; }
 #define attr_reader_ref(type, member) inline type* member##_r() { return &member; }
 
@@ -63,22 +61,23 @@ namespace Gateway {
   // { content_id, type } pair for Database.
   class ContentIdWithType {
   public:
-    inline ContentIdWithType(uint64_t c=0, uint32_t t=0) {
-      content_id = c & (~(CACHEPAGE_SIZE-1));;
+    inline ContentIdWithType(const BasketId& id=0ull, uint32_t t=0) {
+      BasketId tmp = CACHEPAGE_SIZE-1ull;
+      basket_id = id & (~tmp);
       type = t;
     };
     inline ~ContentIdWithType() {}; // NOT virtual.
     inline bool operator<(const ContentIdWithType& y) const {
-      if(type==y.type)  return (content_id < y.content_id);
+      if(type==y.type)  return (basket_id < y.basket_id);
       return (type < y.type);
     };
     inline bool operator==(const ContentIdWithType& y) const {
-      if(type==y.type)  return (content_id == y.content_id);
+      if(type==y.type)  return (basket_id == y.basket_id);
       return (type == y.type);
     };
 
   public:
-    uint64_t  content_id;
+    BasketId  basket_id;
     uint32_t  type;
   };
 

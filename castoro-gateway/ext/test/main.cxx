@@ -22,11 +22,15 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#define __TEST__
+#include <unistd.h>
+
 #include "../database.hxx"
-#include "../mapping.cxx"
-#include "../page.cxx"
-#include "../database.cxx"
+#include "../mapping.hxx"
+#include "../page.hxx"
+#include "../database.hxx"
+
+using namespace Castoro;
+using namespace Gateway;
 
 int g_testcount = 0;
 char g_description[4096] = "";
@@ -197,39 +201,39 @@ void test_CachePagePool()
 
   DESCRIPTION("CachePagePool allocate many pages");
   ASSERT( p[0] = pool.alloc() );
-  p[0]->init(0x100010aa, 0);
-  ASSERT_EQ( p[0]->m_magic_r().content_id, 0x10001000 );
+  p[0]->init(BasketId(0x100010aaull), 0);
+  ASSERT_EQ( p[0]->m_magic_r().basket_id.lower(), 0x10001000ull );
   ASSERT_EQ( p[0]->m_magic_r().type, 0 );
 
   ASSERT( p[1] = pool.alloc() );
-  p[1]->init(0x100020aa, 1);
-  ASSERT_EQ( p[1]->m_magic_r().content_id, 0x10002000 );
+  p[1]->init(BasketId(0x100020aaull), 1);
+  ASSERT_EQ( p[1]->m_magic_r().basket_id.lower(), 0x10002000ull );
   ASSERT_EQ( p[1]->m_magic_r().type, 1 );
 
   ASSERT( p[2] = pool.alloc() );
-  p[2]->init(0x100030aa, 2);
-  ASSERT_EQ( p[2]->m_magic_r().content_id, 0x10003000 );
+  p[2]->init(BasketId(0x100030aaull), 2);
+  ASSERT_EQ( p[2]->m_magic_r().basket_id.lower(), 0x10003000ull );
   ASSERT_EQ( p[2]->m_magic_r().type, 2 );
 
   ASSERT( p[3] = pool.alloc() );
-  p[3]->init(0x100040aa, 3);
-  ASSERT_EQ( p[3]->m_magic_r().content_id, 0x10004000 );
+  p[3]->init(BasketId(0x100040aaull), 3);
+  ASSERT_EQ( p[3]->m_magic_r().basket_id.lower(), 0x10004000ull );
   ASSERT_EQ( p[3]->m_magic_r().type, 3 );
 
   ASSERT( page = pool.alloc() );
-  ASSERT_EQ( page->m_magic_r().content_id, 0x10001000 );
+  ASSERT_EQ( page->m_magic_r().basket_id.lower(), 0x10001000ull );
   ASSERT_EQ( page->m_magic_r().type, 0 );
 
   ASSERT( page = pool.alloc() );
-  ASSERT_EQ( page->m_magic_r().content_id, 0x10002000 );
+  ASSERT_EQ( page->m_magic_r().basket_id.lower(), 0x10002000ull );
   ASSERT_EQ( page->m_magic_r().type, 1 );
 
   ASSERT( page = pool.alloc() );
-  ASSERT_EQ( page->m_magic_r().content_id, 0x10003000 );
+  ASSERT_EQ( page->m_magic_r().basket_id.lower(), 0x10003000ull );
   ASSERT_EQ( page->m_magic_r().type, 2 );
 
   ASSERT( page = pool.alloc() );
-  ASSERT_EQ( page->m_magic_r().content_id, 0x10004000 );
+  ASSERT_EQ( page->m_magic_r().basket_id.lower(), 0x10004000ull );
   ASSERT_EQ( page->m_magic_r().type, 3 );
 }
 
@@ -240,15 +244,15 @@ void test_CachePage()
   bool removed = false;
 
   DESCRIPTION("CachePage init");
-  page.init(0, 0);
-  ASSERT_EQ( page.m_magic_r().content_id, 0 );
+  page.init(BasketId(0ull), 0);
+  ASSERT_EQ( page.m_magic_r().basket_id.lower(), 0ull );
   ASSERT_EQ( page.m_magic_r().type, 0 );
 
   DESCRIPTION("CachePage#insert");
-  ASSERT( !page.insert(0x00000, 1, 0, 1) );
-  ASSERT( !page.insert(0x10000, 0, 0, 1) );
-  for(int i=0; i<4095; i++) {
-    DESCRIPTION("CachePage#insert(id=%d)", i);
+  ASSERT( !page.insert(BasketId(0x00000ull), 1, 0, 1) );
+  ASSERT( !page.insert(BasketId(0x10000ull), 0, 0, 1) );
+  for (BasketId i = BasketId(0ull); i.lower() < 4095; i = i + 1ull) {
+    DESCRIPTION("CachePage#insert(id=%d)", i.lower());
     ASSERT( page.insert(i, 0, 0, 1) );
     ASSERT( page.insert(i, 0, 0, 2) );
     ASSERT( page.insert(i, 0, 0, 3) );
@@ -258,21 +262,21 @@ void test_CachePage()
   DESCRIPTION("CachePage#find");
   Castoro::Gateway::ArrayOfId ids;
 
-  page.init(0, 0);
-  for(int i=0; i<4095; i++) {
-    page.insert(i, 0, i, 1);
+  page.init(BasketId(0ull), 0);
+  for (BasketId i = BasketId(0ull); i.lower() < 4095; i = i + 1ull) {
+    page.insert(i, 0, i.lower(), 1);
   }
-  ASSERT(!page.find(0, 1, 1, ids, removed) );
+  ASSERT(!page.find(BasketId(0ull), 1, 1, ids, removed) );
 
-  page.init(0, 0);
+  page.init(BasketId(0ull), 0);
   for(int p=1; p<=3; p++) {
-    for(int i=0; i<4096; i++) {
-      DESCRIPTION("CachePage#find(id=%d, peer<<%d)", i, p);
-      page.insert(i, 0, i, p);
+    for (BasketId i = BasketId(0ull); i.lower() < 4096; i = i + 1ull) {
+      DESCRIPTION("CachePage#find(id=%d, peer<<%d)", i.lower(), p);
+      page.insert(i, 0, i.lower(), p);
       ids.clear();
-      ASSERT( page.find(i, 0, i, ids, removed) );
+      ASSERT( page.find(i, 0, i.lower(), ids, removed) );
       ASSERT_EQ( ids.size(), p );
-      for(int q=1; q<ids.size(); q++) {
+      for(unsigned int q=1; q<ids.size(); q++) {
         ASSERT_EQ( ids[q-1], q);
       }
     }
@@ -280,39 +284,39 @@ void test_CachePage()
 
 
   DESCRIPTION("CachePage#remove");
-  for(int i=0; i<4096; i++) {
-    ASSERT_EQ( page.m_contains_r(), 4096-i );
-    for(int p=1; p<=3; p++) {
-      DESCRIPTION("CachePage#remove(%d, %d)", i, p);
+  for (BasketId i = BasketId(0ull); i.lower() < 4096; i = i + 1ull) {
+    ASSERT_EQ( page.m_contains_r(), 4096-i.lower() );
+    for(unsigned int p=1; p<=3; p++) {
+      DESCRIPTION("CachePage#remove(%d, %d)", i.lower(), p);
       ids.clear();
-      ASSERT( page.find(i, 0, i, ids, removed) );
+      ASSERT( page.find(i, 0, i.lower(), ids, removed) );
       ASSERT_EQ( ids.size(), 3-p+1 );
 
-      if((i==4095) && (p==3)) {
-        ASSERT( !page.remove(i, 0, i, p) );
+      if((i.lower()==4095) && (p==3)) {
+        ASSERT( !page.remove(i, 0, i.lower(), p) );
       } else {
-        ASSERT( page.remove(i, 0, i, p) );
+        ASSERT( page.remove(i, 0, i.lower(), p) );
       }
       ids.clear();
-      ASSERT( page.find(i, 0, i, ids, removed) );
+      ASSERT( page.find(i, 0, i.lower(), ids, removed) );
       ASSERT_EQ( ids.size(), 3-p );
 
-      for(int s=1; s<=p; s++) {
+      for(unsigned int s=1; s<=p; s++) {
         DESCRIPTION("CachePage#remove(%d)=>%d not found", p, s);
-        for(int q=0; q<ids.size(); q++) {
+        for(unsigned int q=0; q<ids.size(); q++) {
           ASSERT( ids[q]!=s );
         }
       }
-      for(int s=p+1; s<=3; s++) {
+      for(unsigned int s=p+1; s<=3; s++) {
         DESCRIPTION("CachePage#remove(%d)=>%d included?", p, s);
-        for(int q=0; q<ids.size(); q++) {
+        for(unsigned int q=0; q<ids.size(); q++) {
           if(ids[q]==s) break;
           if(!(q<ids.size())) ASSERT( false );
         }
       }
     }
     ids.clear();
-    ASSERT( page.find(i, 0, i, ids, removed) );
+    ASSERT( page.find(i, 0, i.lower(), ids, removed) );
     ASSERT( ids.empty() );
     ASSERT_EQ( removed, true );
   }
@@ -412,14 +416,14 @@ void test_Database()
 
   DESCRIPTION("Database insert/find when no peers activated");
   result.clear();
-  db.insert(0x10001, 2, 3, PEER1, 0xff00);
-  db.find(0x10001, 2, 3, result, removed);
+  db.insert(BasketId(0x10001ull), 2, 3, PEER1, 0xff00);
+  db.find(BasketId(0x10001ull), 2, 3, result, removed);
   ASSERT_EQ(result.size(), 0);
   ASSERT_EQ(removed, false);
 
   result.clear();
-  db.insert(0x20001, 2, 3, PEER2, 0xff0f);
-  db.find(0x20001, 2, 3, result, removed);
+  db.insert(BasketId(0x20001ull), 2, 3, PEER2, 0xff0f);
+  db.find(BasketId(0x20001ull), 2, 3, result, removed);
   ASSERT_EQ(result.size(), 0);
   ASSERT_EQ(removed, false);
 
@@ -432,13 +436,13 @@ void test_Database()
   db.set_status(PEER1, s);
 
   result.clear();
-  db.find(0x10001, 2, 3, result, removed);
+  db.find(BasketId(0x10001ull), 2, 3, result, removed);
   ASSERT_EQ(result.size(), 1);
   ASSERT_EQ(result[0].peer, PEER1);
   ASSERT_EQ(removed, false);
 
   result.clear();
-  db.find(0x20001, 2, 3, result, removed);
+  db.find(BasketId(0x20001ull), 2, 3, result, removed);
   ASSERT_EQ(result.size(), 0);
   ASSERT_EQ(removed, false);
 
@@ -451,14 +455,14 @@ void test_Database()
   db.set_status(PEER2, s);
 
   result.clear();
-  db.find(0x10001, 2, 3, result, removed);
+  db.find(BasketId(0x10001ull), 2, 3, result, removed);
   ASSERT_EQ(result.size(), 1);
   ASSERT_EQ(result[0].peer, PEER1);
   ASSERT_EQ(result[0].base, 0xff00);
   ASSERT_EQ(removed, false);
 
   result.clear();
-  db.find(0x20001, 2, 3, result, removed);
+  db.find(BasketId(0x20001ull), 2, 3, result, removed);
   ASSERT_EQ(result.size(), 1);
   ASSERT_EQ(result[0].peer, PEER2);
   ASSERT_EQ(result[0].base, 0xff0f);
@@ -466,38 +470,38 @@ void test_Database()
  
 
   DESCRIPTION("Database delete/find.");
-  db.insert(0x10001, 2, 3, PEER1, 0xff00);
-  db.insert(0x10002, 2, 3, PEER1, 0xff00);
+  db.insert(BasketId(0x10001ull), 2, 3, PEER1, 0xff00);
+  db.insert(BasketId(0x10002ull), 2, 3, PEER1, 0xff00);
   result.clear();
-  db.remove(0x10001, 2, 3, PEER1);
-  db.find(0x10001, 2, 3, result, removed);
+  db.remove(BasketId(0x10001ull), 2, 3, PEER1);
+  db.find(BasketId(0x10001ull), 2, 3, result, removed);
   ASSERT_EQ(result.size(), 0);
   ASSERT_EQ(removed, true);
 
 
   DESCRIPTION("Database insert/find when table overflow");
-  db.insert(0x30001, 2, 3, PEER1, 0xff00);
-  db.insert(0x40001, 2, 3, PEER1, 0xff00);
+  db.insert(BasketId(0x30001ull), 2, 3, PEER1, 0xff00);
+  db.insert(BasketId(0x40001ull), 2, 3, PEER1, 0xff00);
 
   result.clear();
-  db.find(0x30001, 2, 3, result, removed);
+  db.find(BasketId(0x30001ull), 2, 3, result, removed);
   ASSERT_EQ(result.size(), 1);
   ASSERT_EQ(result[0].peer, PEER1);
   ASSERT_EQ(removed, false);
 
   result.clear();
-  db.find(0x40001, 2, 3, result, removed);
+  db.find(BasketId(0x40001ull), 2, 3, result, removed);
   ASSERT_EQ(result.size(), 1);
   ASSERT_EQ(result[0].peer, PEER1);
   ASSERT_EQ(removed, false);
 
   result.clear();
-  db.find(0x10001, 2, 3, result, removed);
+  db.find(BasketId(0x10001ull), 2, 3, result, removed);
   ASSERT_EQ(result.size(), 0);
   ASSERT_EQ(removed, false);
 
   result.clear();
-  db.find(0x20001, 2, 3, result, removed);
+  db.find(BasketId(0x20001ull), 2, 3, result, removed);
   ASSERT_EQ(result.size(), 0);
   ASSERT_EQ(removed, false);
 }
@@ -536,12 +540,14 @@ void test_Database_random()
       // ASSERT(result.size()>0);
       not_found++;
     } else {
-      for(int i=0; i<result.size(); i++) {
+      for(unsigned int i=0; i<result.size(); i++) {
         if((result.at(i).peer==peer) && (result.at(i).base==base)) break;
         if(i==result.size()-1) {
-          printf("[%d] cid=%llu, peer=%llx, base=%llx\n", count, cid, peer, base);
-          for(int j=0; j<result.size(); j++) {
-            printf("          (%2d) peer=%llx, base=%llx\n", j, result.at(j).peer, result.at(j).base);
+          printf("[%d] cid=%llu, peer=%s, base=%s\n", count, cid, RSTRING_PTR(ID2SYM(peer)), RSTRING_PTR(ID2SYM(base)));
+          for(unsigned int j=0; j<result.size(); j++) {
+            const char* p = RSTRING_PTR(ID2SYM(result.at(j).peer));
+            const char* b = RSTRING_PTR(ID2SYM(result.at(j).base));
+            printf("          (%2d) peer=%s, base=%s\n", j, p, b);
           }
           ASSERT(!"Not found");
         }
@@ -569,6 +575,8 @@ void test_Database_random()
 
 int main(int argc, char* argv[])
 {
+  ruby_init();
+
   test_PeerHash();
   test_ID3();
   test_CachePagePool();
@@ -590,6 +598,8 @@ int main(int argc, char* argv[])
   page *= 4096;
   page /= 1024*1024;
   printf("%lld Mega contents per GiB.\n", page);
-  
+ 
+  ruby_cleanup(0);
+
   return 0;
 }
