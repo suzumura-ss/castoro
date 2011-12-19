@@ -18,12 +18,14 @@
 #
 
 begin
-  require 'spec'
+  require 'rspec'
 rescue LoadError
   require 'rubygems' unless ENV['NO_RUBYGEMS']
   gem 'rspec'
-  require 'spec'
+  require 'rspec'
 end
 
 $:.unshift(File.dirname(__FILE__) + '/../lib')
+gem 'castoro-gateway', '>=0.2.0.pre'
 require 'castoro-gateway'
+

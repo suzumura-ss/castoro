@@ -18,7 +18,7 @@
 #
 
 require "rubygems"
-
+gem "castoro-common", ">=0.2.0.pre"
 require "castoro-common"
 
 module Castoro #:nodoc:

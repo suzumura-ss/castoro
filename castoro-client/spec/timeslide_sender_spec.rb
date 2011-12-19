@@ -20,7 +20,7 @@
 require File.dirname(__FILE__) + '/spec_helper.rb'
 
 describe Castoro::Client::TimeslideSender do
-  Spec::Matchers.define :included do |expected|
+  RSpec::Matchers.define :included do |expected|
     match do |actual|
       expected.include? actual
     end
@@ -28,8 +28,8 @@ describe Castoro::Client::TimeslideSender do
 
   before(:all) do
     # times.
-    @times_of_start_and_stop = 1000
-    @times_of_send           = 10000
+    @times_of_start_and_stop = 100
+    @times_of_send           = 1000
 
     # configurations
     @logger = Logger.new(nil)

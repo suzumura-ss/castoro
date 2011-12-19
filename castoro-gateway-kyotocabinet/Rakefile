@@ -25,7 +25,7 @@ require 'rake/rdoctask'
 
 spec = Gem::Specification.new do |s|
   s.name = 'castoro-gateway-kyotocabinet'
-  s.version = '0.0.1'
+  s.version = '0.2.0.pre20111219'
   s.has_rdoc = true
   s.extra_rdoc_files = ['README.textile']
   s.summary = "Implementation by KyotoCabinet of gateway cache."
@@ -35,9 +35,10 @@ spec = Gem::Specification.new do |s|
   s.require_path = "lib"
   s.authors = ['Castoro project']
 
-  s.add_dependency('castoro-gateway', '>=0.1.2')
+  s.add_dependency('castoro-gateway', '>=0.2.0.pre')
   s.add_dependency('msgpack')
   s.add_dependency('kyotocabinet-ruby')
+  s.add_development_dependency('rspec', '>=2.0.0')
 end
 
 Rake::GemPackageTask.new(spec) do |p|

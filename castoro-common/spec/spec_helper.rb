@@ -18,17 +18,17 @@
 #
 
 begin
-  require 'spec'
+  require 'rspec'
 rescue LoadError
   require 'rubygems' unless ENV['NO_RUBYGEMS']
   gem 'rspec'
-  require 'spec'
+  require 'rspec'
 end
 
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'castoro-common'
 
-Spec::Matchers.define :be_synonymas_with do |expected|
+RSpec::Matchers.define :be_synonymas_with do |expected|
   match do |actual|
     act = JSON.parse(actual.to_s)
     exp = JSON.parse(expected.to_s)

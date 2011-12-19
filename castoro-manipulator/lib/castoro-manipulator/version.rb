@@ -4,9 +4,9 @@ module Castoro #:nodoc:
     module Version #:nodoc:
       unless defined? MAJOR
         MAJOR  = 0
-        MINOR  = 1
-        TINY   = 1
-        PRE    = nil
+        MINOR  = 2
+        TINY   = 0
+        PRE    = 'pre20111219'
 
         STRING = [MAJOR, MINOR, TINY, PRE].compact.join('.')
       end
