@@ -112,6 +112,12 @@ describe Castoro::Protocol::Response do
     end
   end
 
+  context 'when parsed, argument for opecode set "GET" with argument for hosts of operand set "" and set island' do
+    it "should be able to create an instance of get response." do
+      Castoro::Protocol::Response.parse("GET", {"error" => nil, "basket" => "1.2.3", "paths" => { "peer100" => "/path/1.2.3", "peer200" => "/path/1.2.3" }, "island" => "abc45678"}).should be_kind_of(Castoro::Protocol::Response::Get)
+    end
+  end
+
   context 'when parsed, argument for opecode set "DELETE"' do
     it "should be able to create an instance of delete response." do
       Castoro::Protocol::Response.parse("DELETE", {"error" => nil, "basket" => "1.2.3"}).should be_kind_of(Castoro::Protocol::Response::Delete)

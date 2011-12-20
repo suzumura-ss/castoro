@@ -78,6 +78,12 @@ describe Castoro::Protocol::Command do
     end
   end
 
+  context 'when parsed, argument for opecode set "GET"' do
+    it "should be able to create an instance of get command with island." do
+      Castoro::Protocol::Command.parse("GET", { "basket" => "1.2.3" , "island" => "abc45678"}).should be_kind_of(Castoro::Protocol::Command::Get)
+    end
+  end
+
   context 'when parsed, argument for opecode set "DELETE"' do
     it "should be able to create an instance of delete command." do
       Castoro::Protocol::Command.parse("DELETE", { "basket" => "1.2.3" }).should be_kind_of(Castoro::Protocol::Command::Delete)
