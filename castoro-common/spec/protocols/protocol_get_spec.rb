@@ -135,7 +135,7 @@ describe Castoro::Protocol::Response::Get do
       end
 
       it "island is 'abc45678'." do
-        island = @command.island
+        island = @response.island
         island.should == "abc45678"
       end
 

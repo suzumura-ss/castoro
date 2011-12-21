@@ -360,9 +360,9 @@ describe Castoro::Protocol do
       end
     end
 
-    context 'when argument set ["1.1","R","GET",{"basket":"123456789.1.2","paths":{"host1":"path1/2/3/4","host2":"path5/6/7/8","island":"abc45678"}}]' do
+    context 'when argument set ["1.1","R","GET",{"basket":"123456789.1.2","paths":{"host1":"path1/2/3/4","host2":"path5/6/7/8"},"island":"abc45678"}]' do
       it 'should be able to create an instance of "GET" response' do
-        response = Castoro::Protocol.parse '["1.1","R","GET",{"basket":"123456789.1.2","paths":{"host1":"path1/2/3/4","host2":"path5/6/7/8","island":"abc45678"}}]'
+        response = Castoro::Protocol.parse '["1.1","R","GET",{"basket":"123456789.1.2","paths":{"host1":"path1/2/3/4","host2":"path5/6/7/8"},"island":"abc45678"}]'
         response.should be_kind_of(Castoro::Protocol::Response::Get)
         response.to_s.should be_synonymas_with('["1.1","R","GET",{"basket":"123456789.1.2","paths":{"host1":"path1/2/3/4","host2":"path5/6/7/8"},"island":"abc45678"}]' + "\r\n")
         response.to_s.should match(/.+\r\n/)
