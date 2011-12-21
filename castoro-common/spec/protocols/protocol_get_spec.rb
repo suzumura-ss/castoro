@@ -25,37 +25,61 @@ describe Castoro::Protocol::Command::Get do
       Castoro::Protocol::Command::Get.new("1.2.3").should be_kind_of(Castoro::Protocol::Command::Get)
     end
 
-    context "when initialized" do
-      before do
-        @command = Castoro::Protocol::Command::Get.new "1.2.3"
-      end
+    describe "#initialize" do
+      context "given basket." do
+        before do
+          @command = Castoro::Protocol::Command::Get.new "1.2.3"
+        end
 
-      it "should be able to get :basket." do
-        basket = @command.basket
-        basket.should be_kind_of(Castoro::BasketKey)
-        basket.to_s.should == "1.2.3"
-      end
+        it "should be able to get :basket." do
+          basket = @command.basket
+          basket.should be_kind_of(Castoro::BasketKey)
+          basket.to_s.should == "1.2.3"
+        end
 
-      it "should be able to use #to_s." do
-        JSON.parse(@command.to_s).should ==
-          JSON.parse('["1.1","C","GET",{"basket":"1.2.3"}]' + "\r\n")
-      end
+        it "should be able to use #to_s." do
+          JSON.parse(@command.to_s).should ==
+            JSON.parse('["1.1","C","GET",{"basket":"1.2.3"}]' + "\r\n")
+        end
 
-      it "should be able to return error_response without argument." do
-        error_res = @command.error_response
-        error_res.should be_kind_of(Castoro::Protocol::Response::Get)
-        error_res.error?.should be_true
-        JSON.parse(error_res.to_s).should ==
-          JSON.parse('["1.1","R","GET",{"basket":null,"paths":{},"error":{}}]' + "\r\n")
-      end
-
-      context "when set error response" do
-        it "should be able to return error_response with argument." do
-          error_res = @command.error_response "Unexpected error!"
+        it "should be able to return error_response without argument." do
+          error_res = @command.error_response
           error_res.should be_kind_of(Castoro::Protocol::Response::Get)
           error_res.error?.should be_true
           JSON.parse(error_res.to_s).should ==
-            JSON.parse('["1.1","R","GET",{"basket":null,"paths":{},"error":"Unexpected error!"}]' + "\r\n")
+            JSON.parse('["1.1","R","GET",{"basket":null,"paths":{},"error":{}}]' + "\r\n")
+        end
+
+        context "when set error response" do
+          it "should be able to return error_response with argument." do
+            error_res = @command.error_response "Unexpected error!"
+            error_res.should be_kind_of(Castoro::Protocol::Response::Get)
+            error_res.error?.should be_true
+            JSON.parse(error_res.to_s).should ==
+              JSON.parse('["1.1","R","GET",{"basket":null,"paths":{},"error":"Unexpected error!"}]' + "\r\n")
+          end
+        end
+      end
+
+      context "given basket and island." do
+        before do
+          @command = Castoro::Protocol::Command::Get.new "1.2.4", "abc45678"
+        end
+
+        it "basket is '1.2.4'." do
+          basket = @command.basket
+          basket.should be_kind_of(Castoro::BasketKey)
+          basket.to_s.should == "1.2.4"
+        end
+
+        it "island is 'abc45678'." do
+          island = @command.island
+          island.should == "abc45678"
+        end
+
+        it "should be able to use #to_s." do
+          JSON.parse(@command.to_s).should ==
+            JSON.parse('["1.1","C","GET",{"basket":"1.2.4","island":"abc45678"}]' + "\r\n")
         end
       end
     end
@@ -69,23 +93,19 @@ describe Castoro::Protocol::Response::Get do
     }.should raise_error(RuntimeError, "paths should be a Hash.")
   end
 
-  context 'when initialize, argument for basket set "1.2.3", argument for paths set {"host1"=>"path1/2/3/4","host2"=>"path5/6/7/8"}' do
-    it 'should be able to create an instance of get response.' do
-      Castoro::Protocol::Response::Get.new(nil, "1.2.3", {"host1"=>"path1/2/3/4","host2"=>"path5/6/7/8"}).should be_kind_of(Castoro::Protocol::Response::Get)
-    end
-
-    context "when initialized" do
+  describe "#initialize" do
+    context "given basket and hosts." do
       before do
         @response = Castoro::Protocol::Response::Get.new(nil, "1.2.3", {"host1"=>"path1/2/3/4","host2"=>"path5/6/7/8"})
       end
 
-      it 'should be able to get :basket.' do
+      it 'basket is "1.2.3".' do
         basket = @response.basket
         basket.should be_kind_of(Castoro::BasketKey)
         basket.to_s.should == "1.2.3"
       end
 
-      it 'should be able to get :paths.' do
+      it 'paths is "host1" => "path1/2/3/4", "host2" => "path5/6/7/8".' do
         @response.paths.should == {"host1"=>"path1/2/3/4", "host2"=>"path5/6/7/8"}
       end
 
@@ -96,6 +116,36 @@ describe Castoro::Protocol::Response::Get do
       it 'should be able to use #to_s.' do
         JSON.parse(@response.to_s).should ==
           JSON.parse('["1.1","R","GET",{"basket":"1.2.3","paths":{"host1":"path1/2/3/4","host2":"path5/6/7/8"}}]' + "\r\n")
+      end
+    end
+
+    context "given basket, hosts and island." do
+      before do
+        @response = Castoro::Protocol::Response::Get.new(nil, "1.2.4", {"host3"=>"path1/2/3/4","host4"=>"path5/6/7/8"}, "abc45678")
+      end
+
+      it 'basket is "1.2.4".' do
+        basket = @response.basket
+        basket.should be_kind_of(Castoro::BasketKey)
+        basket.to_s.should == "1.2.4"
+      end
+
+      it 'paths is "host3" => "path1/2/3/4", "host4" => "path5/6/7/8".' do
+        @response.paths.should == {"host3"=>"path1/2/3/4", "host4"=>"path5/6/7/8"}
+      end
+
+      it "island is 'abc45678'." do
+        island = @response.island
+        island.should == "abc45678"
+      end
+
+      it 'should be #error? false.' do
+        @response.error?.should be_false
+      end
+
+      it 'should be able to use #to_s.' do
+        JSON.parse(@response.to_s).should ==
+          JSON.parse('["1.1","R","GET",{"basket":"1.2.4","paths":{"host3":"path1/2/3/4","host4":"path5/6/7/8"},"island":"abc45678"}]' + "\r\n")
       end
     end
   end

@@ -76,7 +76,7 @@ module Castoro
       when "CANCEL"
         Protocol::Command::Cancel.new(operand["basket"], operand["host"], operand["path"])
       when "GET"
-        Protocol::Command::Get.new(operand["basket"])
+        Protocol::Command::Get.new(operand["basket"], operand["island"])
       when "DELETE"
         Protocol::Command::Delete.new(operand["basket"])
       when "INSERT"
@@ -85,6 +85,8 @@ module Castoro
         Protocol::Command::Drop.new(operand["basket"], operand["host"], operand["path"])
       when "ALIVE"
         Protocol::Command::Alive.new(operand["host"], operand["status"], operand["available"])
+      when "ISLAND"
+        Protocol::Command::Island.new(operand["island"], operand["storables"], operand["capacity"])
       when "STATUS"
         Protocol::Command::Status.new()
       when "DUMP"
@@ -151,7 +153,7 @@ module Castoro
       end
     end
     def to_s
-      [ "1.1", "C", "CREATE", {"basket" => @basket, "hints" => @hints }].to_json + "\r\n"
+      [ "1.1", "C", "CREATE", {"basket" => (@basket ? @basket.to_s : @basket), "hints" => @hints }].to_json + "\r\n"
     end
     def error_response error = {}
       Protocol::Response::Create::Gateway.new(error, @basket, [])
@@ -178,7 +180,7 @@ module Castoro
       @host, @path = host.to_s, path.to_s
     end
     def to_s
-      [ "1.1", "C", "FINALIZE", {"basket" => @basket, "host" => @host, "path" => @path}].to_json + "\r\n"
+      [ "1.1", "C", "FINALIZE", {"basket" => (@basket ? @basket.to_s : @basket), "host" => @host, "path" => @path}].to_json + "\r\n"
     end
     def error_response error = {}
       Protocol::Response::Finalize.new(error, @basket)
@@ -205,7 +207,7 @@ module Castoro
       @host, @path = host.to_s, path.to_s
     end
     def to_s
-      [ "1.1", "C", "CANCEL", {"basket" => @basket, "host" => @host, "path" => @path}].to_json + "\r\n"
+      [ "1.1", "C", "CANCEL", {"basket" => (@basket ? @basket.to_s : @basket), "host" => @host, "path" => @path}].to_json + "\r\n"
     end
     def error_response error = {}
       Protocol::Response::Cancel.new(error, @basket)
@@ -224,12 +226,16 @@ module Castoro
   # </pre>
   #
   class Protocol::Command::Get < Protocol::Command
-    attr_reader :basket
-    def initialize basket
+    attr_reader :basket, :island
+    def initialize basket, island = nil
       @basket = basket.to_basket
+      @island = island
     end
     def to_s
-      [ "1.1", "C", "GET", {"basket" => @basket}].to_json + "\r\n"
+      operand = {}
+      operand["basket"] = (@basket ? @basket.to_s : @basket)
+      operand["island"] = @island.to_s if @island
+      [ "1.1", "C", "GET", operand].to_json + "\r\n"
     end
     def error_response error = {}
       Protocol::Response::Get.new(error, @basket, {})
@@ -253,7 +259,7 @@ module Castoro
       @basket = basket.to_basket
     end
     def to_s
-      [ "1.1", "C", "DELETE", {"basket" => @basket}].to_json + "\r\n"
+      [ "1.1", "C", "DELETE", {"basket" => (@basket ? @basket.to_s : @basket)}].to_json + "\r\n"
     end
     def error_response error = {}
       Protocol::Response::Delete.new(error, @basket)
@@ -291,7 +297,7 @@ module Castoro
       @host, @path = host.to_s, path.to_s
     end
     def to_s
-      [ "1.1", "C", "INSERT", {"basket" => @basket, "host" => @host, "path" => @path}].to_json + "\r\n"
+      [ "1.1", "C", "INSERT", {"basket" => (@basket ? @basket.to_s : @basket), "host" => @host, "path" => @path}].to_json + "\r\n"
     end
     def error_response error = {}
       Protocol::Response::Insert.new(error)
@@ -318,7 +324,7 @@ module Castoro
       @host, @path = host.to_s, path.to_s
     end
     def to_s
-      [ "1.1", "C", "DROP", {"basket" => @basket, "host" => @host, "path" => @path}].to_json + "\r\n"
+      [ "1.1", "C", "DROP", {"basket" => (@basket ? @basket.to_s : @basket), "host" => @host, "path" => @path}].to_json + "\r\n"
     end
     def error_response error = {}
       Protocol::Response::Drop.new(error)
@@ -338,6 +344,26 @@ module Castoro
     end
     def error_response error = {}
       Protocol::Response::Alive.new(error)
+    end
+  end
+
+  class Protocol::Command::Island < Protocol::Command
+    attr_reader :island, :storables, :capacity
+    def initialize island, storables, capacity
+      raise "Nil cannot be set for island." unless island 
+      raise "Nil cannot be set for storables." unless storables
+      raise "Nil cannot be set for capacity." unless capacity
+      @island, @storables, @capacity = island.to_s, storables.to_i, capacity.to_i
+    end
+    def to_s
+      operand = {}
+      operand["island"] = @island
+      operand["storables"] = @storables
+      operand["capacity"] = @capacity
+      [ "1.1", "C", "ISLAND", operand].to_json + "\r\n"
+    end
+    def error_response error = {}
+      Protocol::Response::Island.new(error)
     end
   end
 
@@ -424,7 +450,7 @@ module Castoro
         Protocol::Response::Nop.new(operand["error"])
       when "CREATE"
         if operand.include?("hosts")
-          Protocol::Response::Create::Gateway.new(operand["error"], operand["basket"], operand["hosts"])
+          Protocol::Response::Create::Gateway.new(operand["error"], operand["basket"], operand["hosts"], operand["island"])
         elsif operand.include?("host") and operand.include?("path")
           Protocol::Response::Create::Peer.new(operand["error"], operand["basket"], operand["host"], operand["path"])
         else
@@ -435,7 +461,7 @@ module Castoro
       when "CANCEL"
         Protocol::Response::Cancel.new(operand["error"], operand["basket"])
       when "GET"
-        Protocol::Response::Get.new(operand["error"], operand["basket"], operand["paths"])
+        Protocol::Response::Get.new(operand["error"], operand["basket"], operand["paths"], operand["island"])
       when "DELETE"
         Protocol::Response::Delete.new(operand["error"], operand["basket"])
       when "INSERT"
@@ -444,6 +470,8 @@ module Castoro
         Protocol::Response::Drop.new(operand["error"])
       when "ALIVE"
         Protocol::Response::Alive.new(operand["error"])
+      when "ISLAND"
+        Protocol::Response::Island.new(operand["error"])
       when "STATUS"
         Protocol::Response::Status.new(operand["error"], operand["status"])
       when "MKDIR"
@@ -486,7 +514,7 @@ module Castoro
       end
     end
     def to_s
-      operand = {"basket" => @basket}
+      operand = {"basket" => (@basket ? @basket.to_s : @basket)}
       operand["error"] = @error if @error
       [ "1.1", "R", "CREATE", operand].to_json + "\r\n"
     end
@@ -495,18 +523,20 @@ module Castoro
   class Protocol::Response::Create::Gateway < Protocol::Response::Create
     include Enumerable
 
-    attr_reader :hosts
-    def initialize error, basket, hosts
+    attr_reader :hosts, :island
+    def initialize error, basket, hosts, island = nil
       super error, basket
       unless @error
         raise "Nil cannot be set for hosts." unless hosts
         @hosts = hosts.to_a
+        @island = island
       end
     end
     def each(&block); @hosts.each(&block); end
     def [](index); @hosts[index]; end
     def to_s
-      operand = {"basket" => @basket, "hosts" => @hosts}
+      operand = {"basket" => (@basket ? @basket.to_s : @basket), "hosts" => @hosts}
+      operand["island"] = @island.to_s if @island
       operand["error"] = @error if @error
       [ "1.1", "R", "CREATE", operand].to_json + "\r\n"
     end
@@ -523,7 +553,7 @@ module Castoro
       end
     end
     def to_s
-      operand = {"basket" => @basket, "host" => @host, "path" => @path}
+      operand = {"basket" => (@basket ? @basket.to_s : @basket), "host" => @host, "path" => @path}
       operand["error"] = @error if @error
       [ "1.1", "R", "CREATE", operand].to_json + "\r\n"
     end
@@ -538,7 +568,7 @@ module Castoro
       end
     end
     def to_s
-      operand = {"basket" => @basket}
+      operand = {"basket" => (@basket ? @basket.to_s : @basket)}
       operand["error"] = @error if @error
       [ "1.1", "R", "FINALIZE", operand].to_json + "\r\n"
     end
@@ -553,7 +583,7 @@ module Castoro
       end
     end
     def to_s
-      operand = {"basket" => @basket}
+      operand = {"basket" => (@basket ? @basket.to_s : @basket)}
       operand["error"] = @error if @error
       [ "1.1", "R", "CANCEL", operand].to_json + "\r\n"
     end
@@ -562,12 +592,13 @@ module Castoro
   class Protocol::Response::Get < Protocol::Response
     include Enumerable
 
-    attr_reader :basket, :paths
-    def initialize error, basket, paths
+    attr_reader :basket, :paths, :island
+    def initialize error, basket, paths, island = nil
       super error
       @paths = {}
       unless @error
         @basket = basket.to_basket
+        @island = island
 
         raise "paths should be a Hash." unless paths.kind_of? Hash
         @paths = paths.dup
@@ -577,7 +608,8 @@ module Castoro
     def each_key(&block); @paths.each_key(&block); end
     def [](index); @paths[index]; end
     def to_s
-      operand = {"basket" => @basket, "paths" => @paths}
+      operand = {"basket" => (@basket ? @basket.to_s : @basket), "paths" => @paths}
+      operand["island"] = @island.to_s if @island
       operand["error"] = @error if @error
       [ "1.1", "R", "GET", operand].to_json + "\r\n"
     end
@@ -592,7 +624,7 @@ module Castoro
       end
     end
     def to_s
-      operand = {"basket" => @basket}
+      operand = {"basket" => (@basket ? @basket.to_s : @basket)}
       operand["error"] = @error if @error
       [ "1.1", "R", "DELETE", operand].to_json + "\r\n"
     end
@@ -619,6 +651,14 @@ module Castoro
       operand = {}
       operand["error"] = @error if @error
       [ "1.1", "R", "ALIVE", operand].to_json + "\r\n"
+    end
+  end
+
+  class Protocol::Response::Island < Protocol::Response
+    def to_s
+      operand = {}
+      operand["error"] = @error if @error
+      [ "1.1", "R", "ISLAND", operand].to_json + "\r\n"
     end
   end
 

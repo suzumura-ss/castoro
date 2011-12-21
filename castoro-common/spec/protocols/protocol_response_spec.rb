@@ -88,6 +88,12 @@ describe Castoro::Protocol::Response do
     end
   end
 
+  context 'when operand set to error, basket, hosts and island.' do
+    it "should be able to create an instance of create gateway response." do
+      Castoro::Protocol::Response.parse("CREATE", {"error" => nil, "basket" => "1.2.3", "hosts" => ["peer100", "peer200", "peer300"], "island" => "hoge"}).should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
+    end
+  end
+
   context 'when parsed, argument for opecode set "CREATE" with argument for host of operand set "host100" and argument for path of operand set "path100"' do
     it "should be able to create an instance of create peer response." do
       Castoro::Protocol::Response.parse("CREATE", {"error" => nil, "basket" => "1.2.3", "host" => "peer100", "path" => "/path/1.2.3" }).should be_kind_of(Castoro::Protocol::Response::Create::Peer)
@@ -112,6 +118,12 @@ describe Castoro::Protocol::Response do
     end
   end
 
+  context 'when parsed, argument for opecode set "GET" with argument for hosts of operand set "" and set island' do
+    it "should be able to create an instance of get response." do
+      Castoro::Protocol::Response.parse("GET", {"error" => nil, "basket" => "1.2.3", "paths" => { "peer100" => "/path/1.2.3", "peer200" => "/path/1.2.3" }, "island" => "abc45678"}).should be_kind_of(Castoro::Protocol::Response::Get)
+    end
+  end
+
   context 'when parsed, argument for opecode set "DELETE"' do
     it "should be able to create an instance of delete response." do
       Castoro::Protocol::Response.parse("DELETE", {"error" => nil, "basket" => "1.2.3"}).should be_kind_of(Castoro::Protocol::Response::Delete)
@@ -133,6 +145,12 @@ describe Castoro::Protocol::Response do
   context 'when parsed, argument for opecode set "ALIVE"' do
     it "should be able to create an instance of alive response." do
       Castoro::Protocol::Response.parse("ALIVE", {"error" => nil}).should be_kind_of(Castoro::Protocol::Response::Alive)
+    end
+  end
+
+  context 'when parsed, argument for opecode set "ISLAND"' do
+    it "should be able to create an instance of island response." do
+      Castoro::Protocol::Response.parse("ISLAND", {"error" => nil}).should be_kind_of(Castoro::Protocol::Response::Island)
     end
   end
 
