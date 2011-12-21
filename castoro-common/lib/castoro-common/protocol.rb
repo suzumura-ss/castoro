@@ -85,6 +85,8 @@ module Castoro
         Protocol::Command::Drop.new(operand["basket"], operand["host"], operand["path"])
       when "ALIVE"
         Protocol::Command::Alive.new(operand["host"], operand["status"], operand["available"])
+      when "ISLAND"
+        Protocol::Command::Island.new(operand["island"], operand["storables"], operand["capacity"])
       when "STATUS"
         Protocol::Command::Status.new()
       when "DUMP"
@@ -345,6 +347,26 @@ module Castoro
     end
   end
 
+  class Protocol::Command::Island < Protocol::Command
+    attr_reader :island, :storables, :capacity
+    def initialize island, storables, capacity
+      raise "Nil cannot be set for island." unless island 
+      raise "Nil cannot be set for storables." unless storables
+      raise "Nil cannot be set for capacity." unless capacity
+      @island, @storables, @capacity = island.to_s, storables.to_i, capacity.to_i
+    end
+    def to_s
+      operand = {}
+      operand["island"] = @island
+      operand["storables"] = @storables
+      operand["capacity"] = @capacity
+      [ "1.1", "C", "ISLAND", operand].to_json + "\r\n"
+    end
+    def error_response error = {}
+      Protocol::Response::Island.new(error)
+    end
+  end
+
   class Protocol::Command::Status < Protocol::Command
     def to_s
       [ "1.1", "C", "STATUS", {}].to_json + "\r\n"
@@ -448,6 +470,8 @@ module Castoro
         Protocol::Response::Drop.new(operand["error"])
       when "ALIVE"
         Protocol::Response::Alive.new(operand["error"])
+      when "ISLAND"
+        Protocol::Response::Island.new(operand["error"])
       when "STATUS"
         Protocol::Response::Status.new(operand["error"], operand["status"])
       when "MKDIR"
@@ -627,6 +651,14 @@ module Castoro
       operand = {}
       operand["error"] = @error if @error
       [ "1.1", "R", "ALIVE", operand].to_json + "\r\n"
+    end
+  end
+
+  class Protocol::Response::Island < Protocol::Response
+    def to_s
+      operand = {}
+      operand["error"] = @error if @error
+      [ "1.1", "R", "ISLAND", operand].to_json + "\r\n"
     end
   end
 

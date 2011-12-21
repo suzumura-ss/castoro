@@ -171,6 +171,15 @@ describe Castoro::Protocol do
       end
     end
 
+    context 'when argument set ["1.1","C","ISLAND",{"island":"host100","storables":"30","capacity":"1000"}]' do
+      it 'should be able to create an instance of "ISLAND" command.' do
+        command = Castoro::Protocol.parse '["1.1","C","ISLAND",{"island":"host100","storables":30,"capacity":1000}]'
+        command.should be_kind_of(Castoro::Protocol::Command::Island)
+        command.to_s.should be_synonymas_with('["1.1","C","ISLAND",{"island":"host100","storables":30,"capacity":1000}]' + "\r\n")
+        command.to_s.should match(/.+\r\n/)
+      end
+    end
+
     context 'when argument set ["1.1","C","STATUS",{}]' do
       it 'should be able to create an instance of "STATUS" command.' do
         command = Castoro::Protocol.parse '["1.1","C","STATUS",{}]'
@@ -257,6 +266,15 @@ describe Castoro::Protocol do
         response = Castoro::Protocol.parse '["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"]}]'
         response.should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
         response.to_s.should be_synonymas_with('["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"]}]' + "\r\n")
+        response.to_s.should match(/.+\r\n/)
+      end
+    end
+
+    context 'when argument set ["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"hoge"}]' do
+      it 'should be able to create an instance of "CREATE" gateway response.' do
+        response = Castoro::Protocol.parse '["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"hoge"}]'
+        response.should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
+        response.to_s.should be_synonymas_with('["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"hoge"}]' + "\r\n")
         response.to_s.should match(/.+\r\n/)
       end
     end
@@ -464,6 +482,24 @@ describe Castoro::Protocol do
         response= Castoro::Protocol.parse '["1.1","R","ALIVE",{"error":"Unexpected error!"}]'
         response.should be_kind_of(Castoro::Protocol::Response::Alive)
         response.to_s.should be_synonymas_with('["1.1","R","ALIVE",{"error":"Unexpected error!"}]' + "\r\n")
+        response.to_s.should match(/.+\r\n/)
+      end
+    end
+
+    context 'when argument set ["1.1","R","ISLAND",{}]' do
+      it 'should be able to create an instance of "ISLAND" response' do
+        response = Castoro::Protocol.parse '["1.1","R","ISLAND",{}]'
+        response.should be_kind_of(Castoro::Protocol::Response::Island)
+        response.to_s.should be_synonymas_with('["1.1","R","ISLAND",{}]' + "\r\n")
+        response.to_s.should match(/.+\r\n/)
+      end
+    end
+
+    context 'when argument set ["1.1","R","ISLAND",{"error":"Unexpected error!"}]' do
+      it 'should be able to create an instance of "ISLAND" error response.' do
+        response= Castoro::Protocol.parse '["1.1","R","ISLAND",{"error":"Unexpected error!"}]'
+        response.should be_kind_of(Castoro::Protocol::Response::Island)
+        response.to_s.should be_synonymas_with('["1.1","R","ISLAND",{"error":"Unexpected error!"}]' + "\r\n")
         response.to_s.should match(/.+\r\n/)
       end
     end

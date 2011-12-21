@@ -108,6 +108,12 @@ describe Castoro::Protocol::Command do
     end
   end
 
+  context 'when parsed, argument for opecode set "ISLAND"' do
+    it "should be able to create an instance of island command." do
+      Castoro::Protocol::Command.parse("ISLAND", { "island" => "12346abc", "storables" => 15, "capacity" => 12345689 }).should be_kind_of(Castoro::Protocol::Command::Island)
+    end
+  end
+
   context 'when parsed, argument for opecode set "STATUS"' do
     it "should be able to create an instance of status command." do
       Castoro::Protocol::Command.parse("STATUS", nil).should be_kind_of(Castoro::Protocol::Command::Status)
