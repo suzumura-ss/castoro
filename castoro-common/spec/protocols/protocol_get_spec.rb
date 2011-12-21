@@ -74,7 +74,7 @@ describe Castoro::Protocol::Command::Get do
 
         it "island is 'abc45678'." do
           island = @command.island
-          island.should == "abc45678"
+          island.to_s.should == "abc45678"
         end
 
         it "should be able to use #to_s." do
@@ -136,7 +136,7 @@ describe Castoro::Protocol::Response::Get do
 
       it "island is 'abc45678'." do
         island = @response.island
-        island.should == "abc45678"
+        island.to_s.should == "abc45678"
       end
 
       it 'should be #error? false.' do

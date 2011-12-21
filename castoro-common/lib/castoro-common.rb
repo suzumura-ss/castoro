@@ -29,6 +29,7 @@ require "castoro-common/sender"
 require "castoro-common/server"
 require "castoro-common/workers"
 require "castoro-common/workers_helper"
+require "castoro-common/island_id"
 
 # When 1.9.x, It is possible to set it individually.
 # by BasicSocket#do_not_reverse_lookup= method.

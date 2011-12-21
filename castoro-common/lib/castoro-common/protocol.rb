@@ -229,7 +229,7 @@ module Castoro
     attr_reader :basket, :island
     def initialize basket, island = nil
       @basket = basket.to_basket
-      @island = island
+      @island = island ? island.to_island : nil
     end
     def to_s
       operand = {}
@@ -353,11 +353,11 @@ module Castoro
       raise "Nil cannot be set for island." unless island 
       raise "Nil cannot be set for storables." unless storables
       raise "Nil cannot be set for capacity." unless capacity
-      @island, @storables, @capacity = island.to_s, storables.to_i, capacity.to_i
+      @island, @storables, @capacity = island.to_island, storables.to_i, capacity.to_i
     end
     def to_s
       operand = {}
-      operand["island"] = @island
+      operand["island"] = @island.to_s
       operand["storables"] = @storables
       operand["capacity"] = @capacity
       [ "1.1", "C", "ISLAND", operand].to_json + "\r\n"
@@ -529,7 +529,7 @@ module Castoro
       unless @error
         raise "Nil cannot be set for hosts." unless hosts
         @hosts = hosts.to_a
-        @island = island
+        @island = island ? island.to_island : nil
       end
     end
     def each(&block); @hosts.each(&block); end
@@ -598,7 +598,7 @@ module Castoro
       @paths = {}
       unless @error
         @basket = basket.to_basket
-        @island = island
+        @island = island ? island.to_island : nil
 
         raise "paths should be a Hash." unless paths.kind_of? Hash
         @paths = paths.dup

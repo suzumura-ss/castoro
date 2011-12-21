@@ -195,7 +195,7 @@ describe Castoro::Protocol::Response::Create::Gateway do
 
       it 'island is "abc45678".' do
         island = @response.island
-        island.should == "abc45678"
+        island.to_s.should == "abc45678"
       end
 
       it 'hosts is "host100", "host101", "host102".' do

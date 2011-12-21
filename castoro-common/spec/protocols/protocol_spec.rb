@@ -171,11 +171,11 @@ describe Castoro::Protocol do
       end
     end
 
-    context 'when argument set ["1.1","C","ISLAND",{"island":"host100","storables":"30","capacity":"1000"}]' do
+    context 'when argument set ["1.1","C","ISLAND",{"island":"abcdef10","storables":"30","capacity":"1000"}]' do
       it 'should be able to create an instance of "ISLAND" command.' do
-        command = Castoro::Protocol.parse '["1.1","C","ISLAND",{"island":"host100","storables":30,"capacity":1000}]'
+        command = Castoro::Protocol.parse '["1.1","C","ISLAND",{"island":"abcdef10","storables":30,"capacity":1000}]'
         command.should be_kind_of(Castoro::Protocol::Command::Island)
-        command.to_s.should be_synonymas_with('["1.1","C","ISLAND",{"island":"host100","storables":30,"capacity":1000}]' + "\r\n")
+        command.to_s.should be_synonymas_with('["1.1","C","ISLAND",{"island":"abcdef10","storables":30,"capacity":1000}]' + "\r\n")
         command.to_s.should match(/.+\r\n/)
       end
     end
@@ -272,9 +272,15 @@ describe Castoro::Protocol do
 
     context 'when argument set ["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"hoge"}]' do
       it 'should be able to create an instance of "CREATE" gateway response.' do
+<<<<<<< HEAD
         response = Castoro::Protocol.parse '["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"hoge"}]'
         response.should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
         response.to_s.should be_synonymas_with('["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"hoge"}]' + "\r\n")
+=======
+        response = Castoro::Protocol.parse '["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"abcdef10"}]'
+        response.should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
+        response.to_s.should be_synonymas_with('["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"abcdef10"}]' + "\r\n")
+>>>>>>> d9d448e95bce4c720d7abeabec34a81ab909ad28
         response.to_s.should match(/.+\r\n/)
       end
     end

@@ -90,7 +90,7 @@ describe Castoro::Protocol::Response do
 
   context 'when operand set to error, basket, hosts and island.' do
     it "should be able to create an instance of create gateway response." do
-      Castoro::Protocol::Response.parse("CREATE", {"error" => nil, "basket" => "1.2.3", "hosts" => ["peer100", "peer200", "peer300"], "island" => "hoge"}).should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
+      Castoro::Protocol::Response.parse("CREATE", {"error" => nil, "basket" => "1.2.3", "hosts" => ["peer100", "peer200", "peer300"], "island" => "abcdef10"}).should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
     end
   end
 
