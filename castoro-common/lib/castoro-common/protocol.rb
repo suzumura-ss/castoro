@@ -428,7 +428,7 @@ module Castoro
         Protocol::Response::Nop.new(operand["error"])
       when "CREATE"
         if operand.include?("hosts")
-          Protocol::Response::Create::Gateway.new(operand["error"], operand["basket"], operand["hosts"])
+          Protocol::Response::Create::Gateway.new(operand["error"], operand["basket"], operand["hosts"], operand["island"])
         elsif operand.include?("host") and operand.include?("path")
           Protocol::Response::Create::Peer.new(operand["error"], operand["basket"], operand["host"], operand["path"])
         else
@@ -499,18 +499,20 @@ module Castoro
   class Protocol::Response::Create::Gateway < Protocol::Response::Create
     include Enumerable
 
-    attr_reader :hosts
-    def initialize error, basket, hosts
+    attr_reader :hosts, :island
+    def initialize error, basket, hosts, island = nil
       super error, basket
       unless @error
         raise "Nil cannot be set for hosts." unless hosts
         @hosts = hosts.to_a
+        @island = island
       end
     end
     def each(&block); @hosts.each(&block); end
     def [](index); @hosts[index]; end
     def to_s
       operand = {"basket" => (@basket ? @basket.to_s : @basket), "hosts" => @hosts}
+      operand["island"] = @island.to_s if @island
       operand["error"] = @error if @error
       [ "1.1", "R", "CREATE", operand].to_json + "\r\n"
     end
