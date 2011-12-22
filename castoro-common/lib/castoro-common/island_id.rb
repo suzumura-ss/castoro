@@ -29,6 +29,8 @@ module Castoro
     end
 
     def to_s; @string; end
+    def to_str; to_s; end
+
     def to_ip
       [ 0..1, 2..3, 4..5, 6..7 ].map { |r| @string[r].to_i(16) }.join('.')
     end
