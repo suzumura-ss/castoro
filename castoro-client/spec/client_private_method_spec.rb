@@ -68,7 +68,7 @@ describe Castoro::Client do
         }
 
         h, p = nil, nil
-        @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|
+        @client.create_internal(@sender, @peer, @remining_peers, @create, {}){|host, path|
           h = host
           p = path
         }.should be_true
@@ -82,7 +82,7 @@ describe Castoro::Client do
         @sender.should_receive(:send).with(@create, 5.00).exactly(3)
         @sender.should_receive(:stop).exactly(3)
         Proc.new {
-          @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|}
+          @client.create_internal(@sender, @peer, @remining_peers, @create, {}){|host, path|}
         }.should raise_error(Castoro::ClientTimeoutError)
       end
     end
@@ -94,7 +94,7 @@ describe Castoro::Client do
         }
         @sender.should_receive(:stop).once
         Proc.new {
-          @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|}
+          @client.create_internal(@sender, @peer, @remining_peers, @create, {}){|host, path|}
         }.should raise_error(Castoro::ClientAlreadyExistsError)
       end
     end
@@ -106,7 +106,7 @@ describe Castoro::Client do
         }
         @sender.should_receive(:stop).exactly(3)
         Proc.new {
-          @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|}
+          @client.create_internal(@sender, @peer, @remining_peers, @create, {}){|host, path|}
         }.should raise_error(Castoro::ClientError)
       end
     end
@@ -118,7 +118,7 @@ describe Castoro::Client do
         }
         @sender.should_receive(:stop).once
         Proc.new {
-          @client.create_internal(@sender, @peer, [], @create){|host, path|}
+          @client.create_internal(@sender, @peer, [], @create, {}){|host, path|}
         }.should raise_error(Castoro::ClientError)
       end
     end
@@ -130,7 +130,7 @@ describe Castoro::Client do
         }
         @sender.should_receive(:stop).exactly(3)
         Proc.new {
-          @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|}
+          @client.create_internal(@sender, @peer, @remining_peers, @create, {}){|host, path|}
         }.should raise_error(Castoro::ClientError)
       end
     end
@@ -143,7 +143,7 @@ describe Castoro::Client do
         @sender.should_receive(:stop).once
         @client.should_receive(:connect).and_return(false)
         Proc.new {
-          @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|}
+          @client.create_internal(@sender, @peer, @remining_peers, @create, {}){|host, path|}
         }.should raise_error(Castoro::ClientError)
       end
     end
@@ -155,7 +155,7 @@ describe Castoro::Client do
                                         nil)
         @sender.should_receive(:stop).exactly(3)
         Proc.new{
-          @client.create_internal(@sender, @peer, @remining_peers, @create){|host, path|}
+          @client.create_internal(@sender, @peer, @remining_peers, @create, {}){|host, path|}
         }.should raise_error(Castoro::ClientTimeoutError)
       end
     end
@@ -172,7 +172,7 @@ describe Castoro::Client do
         }
 
         h, p = nil, nil
-        @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|
+        @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {|host, path|
           h = host
           p = path
         }
@@ -190,7 +190,7 @@ describe Castoro::Client do
           Castoro::Protocol::Response::Cancel.new nil, @key
         }
         Proc.new {
-          @client.create_internal(@sender, @peer, @remining_peers, @create) {raise Castoro::ClientNoRetryError}
+          @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {raise Castoro::ClientNoRetryError}
         }.should raise_error(Castoro::ClientNoRetryError)
       end
     end
@@ -210,7 +210,7 @@ describe Castoro::Client do
           Castoro::Protocol::Response::Finalize.new nil, @key
         }
 
-        @client.create_internal(@sender, @peer, @remining_peers, @create) {|host,path|
+        @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {|host,path|
           raise TimeoutError if host == "host"
         }
       end
@@ -227,7 +227,7 @@ describe Castoro::Client do
             Castoro::Protocol::Response::Cancel.new nil, @key
           }
           Proc.new {
-            @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
+            @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {|host, path|}
           }.should raise_error(Castoro::ClientTimeoutError)
         end
       end
@@ -253,7 +253,7 @@ describe Castoro::Client do
           }
           @sender.should_receive(:send).with(@get, 5.00).once
           Proc.new {
-            @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
+            @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {|host, path|}
           }.should raise_error(Castoro::ClientTimeoutError)
         end
 
@@ -262,7 +262,7 @@ describe Castoro::Client do
             @sender.should_receive(:send).with(@get, 5.00).once.and_return { 
               Castoro::Protocol::Response::Get.new nil, @key, {"peer" => "path"}
             }
-            @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
+            @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {|host, path|}
           end
         end
 
@@ -270,7 +270,7 @@ describe Castoro::Client do
           it "should raise Castoro::ClientTimeoutError" do
             @sender.should_receive(:send).with(@get, 5.00).once
             Proc.new {
-              @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
+              @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {|host, path|}
             }.should raise_error(Castoro::ClientTimeoutError)
           end
         end
@@ -287,7 +287,7 @@ describe Castoro::Client do
           }
           @sender.should_not_receive(:send).with(@get, 5.00)
           Proc.new {
-            @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
+            @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {|host, path|}
           }.should raise_error(Castoro::ClientTimeoutError)
         end
       end
@@ -306,7 +306,7 @@ describe Castoro::Client do
             Castoro::Protocol::Response::Cancel.new nil, @key
           }
           Proc.new {
-            @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
+            @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {|host, path|}
           }.should raise_error(Castoro::ClientError)
         end
       end
@@ -323,7 +323,7 @@ describe Castoro::Client do
             Castoro::Protocol::Response::Cancel.new nil, @key
           }
           Proc.new {
-            @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
+            @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {|host, path|}
           }.should raise_error(Castoro::ClientError)
         end
       end
@@ -335,7 +335,7 @@ describe Castoro::Client do
           @sender.should_receive(:send).with(@finalize, 5.00).once
           @sender.should_receive(:send).with(@cancel, 5.00).once
           Proc.new {
-            @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
+            @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {|host, path|}
           }.should raise_error(Castoro::ClientTimeoutError)
         end
       end
@@ -350,7 +350,7 @@ describe Castoro::Client do
             Castoro::Protocol::Response.new nil
           }
           Proc.new {
-            @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
+            @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {|host, path|}
           }.should raise_error(Castoro::ClientTimeoutError)
         end
       end
@@ -365,7 +365,7 @@ describe Castoro::Client do
             Castoro::Protocol::Response::Cancel.new "error", @key
           }
           Proc.new {
-            @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
+            @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {|host, path|}
           }.should raise_error(Castoro::ClientTimeoutError)
         end
       end
@@ -380,7 +380,7 @@ describe Castoro::Client do
           @client.instance_variable_get(:@logger).should_receive(:error).exactly(2)
           @client.instance_variable_get(:@logger).should_receive(:debug).exactly(2)
           Proc.new {
-            @client.create_internal(@sender, @peer, @remining_peers, @create) {|host, path|}
+            @client.create_internal(@sender, @peer, @remining_peers, @create, {}) {|host, path|}
           }.should raise_error(Castoro::ClientTimeoutError)
         end
       end

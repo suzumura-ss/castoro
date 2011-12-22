@@ -166,7 +166,7 @@ describe Castoro::Client do
         @sender_mock.should_receive(:send).once.with(@create_command).and_return {
           Castoro::Protocol::Response::Create::Gateway.new nil, @key, @peers
         }
-        @client.should_receive(:create_internal).once.with("connection","peer","remining_peers",@create_command)
+        @client.should_receive(:create_internal).once.with("connection","peer","remining_peers",@create_command, {})
         @client.should_receive(:connect).once.with(@peers).and_yield("connection","peer","remining_peers").and_return(true)
         @client.create(@key, @hints){}
       end
@@ -211,7 +211,7 @@ describe Castoro::Client do
 
     context "key was given Castoro::BasketKey instance." do
       it "#connect and #create_internal should be called once." do
-        @client.should_receive(:create_internal).once.with("connection","peer","remining_peers",@create_command)
+        @client.should_receive(:create_internal).once.with("connection","peer","remining_peers",@create_command, {})
         @client.should_receive(:connect).once.with(@peers).and_yield("connection","peer","remining_peers").and_return(true)
         @client.create_direct(@peers, @key, @hints) {}
       end

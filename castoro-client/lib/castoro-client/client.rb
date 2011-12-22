@@ -194,16 +194,25 @@ module Castoro
     #  res
     #  => {"peer1" => "/foo/bar/baz", "peer2" => "/hoge/fuga"}
     #
-    def get key
+    def get key, options = {}
       @locker.synchronize {
         raise ClientError, "Client is not opened." unless opened?
 
         @logger.info { "[key:#{key}] send GET request to gateways" }
-        res = @sender.send Protocol::Command::Get.new(key)
+        res = @sender.send Protocol::Command::Get.new(key, options[:island])
         raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Get
         raise ClientError, "get command failed - #{res.inspect}." if res.error?
-        res.paths.to_hash
+
+        if options[:island]
+          {"island" => res.island, "paths" => res.paths.to_hash}
+        else
+          res.paths.to_hash
+        end
       }
+    end
+
+    def get_with_island key, island
+      get key, :island => island
     end
 
     ##
@@ -323,8 +332,10 @@ module Castoro
         raise ClientError, "gateway connection failed - #{res.inspect}" if res.error?
 
         peers = res.hosts
+        options = {}
+        options[:island] = res.island if res.island
         connected = connect(peers) { |connection, peer, remining_peers| 
-          create_internal(connection, peer, remining_peers, cmd, &block) 
+          create_internal(connection, peer, remining_peers, cmd, options, &block) 
         }
 
         raise ClientNothingPeerError, "[key:#{key}] There is no Peer that can be connected by TCP." unless connected
@@ -366,7 +377,7 @@ module Castoro
 
         peers = [peer].flatten
         connected = connect(peers) { |connection, peer, remining_peers| 
-          create_internal(connection, peer, remining_peers, cmd, &block) 
+          create_internal(connection, peer, remining_peers, cmd, {}, &block) 
         }
 
         raise ClientNothingPeerError, "[key:#{key}] There is no Peer that can be connected by TCP." unless connected
@@ -423,7 +434,7 @@ module Castoro
       end
     end
 
-    def create_internal connection, peer, remining_peers, cmd, &block
+    def create_internal connection, peer, remining_peers, cmd, options, &block
 
       # CREATE
       @logger.info { "[key:#{cmd.basket}] send CREATE request to peer<#{peer}>" }
@@ -444,7 +455,7 @@ module Castoro
       # choice tcp connection from available one peer(s).
       begin
         # yield
-        yield host, path
+        yield host, path, options
 
         begin
           # FINALIZE
@@ -512,7 +523,7 @@ module Castoro
 
       raise if e.class == ClientAlreadyExistsError
       raise if remining_peers.empty?
-      raise unless connect(remining_peers) { |c, p, ps| create_internal(c, p, ps, cmd, &block) }
+      raise unless connect(remining_peers) { |c, p, ps| create_internal(c, p, ps, cmd, options, &block) }
     end
 
     def delete_internal connection, peer, remining_peers, cmd
