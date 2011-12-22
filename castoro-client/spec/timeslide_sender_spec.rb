@@ -28,8 +28,8 @@ describe Castoro::Client::TimeslideSender do
 
   before(:all) do
     # times.
-    @times_of_start_and_stop = 100
-    @times_of_send           = 1000
+    @times_of_start_and_stop = 10
+    @times_of_send           = 10
 
     # configurations
     @logger = Logger.new(nil)

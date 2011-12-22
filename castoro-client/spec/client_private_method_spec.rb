@@ -48,10 +48,11 @@ describe Castoro::Client do
     @cancel         = Castoro::Protocol::Command::Cancel.new @key, "host", "path"
 
     #TCP sender mock
+    alive = false
     @sender = mock Castoro::Sender::TCP
-    @sender.stub!(:start).with(0.05)
-    @sender.stub!(:stop)
-    @sender.stub!(:alive?).and_return(true)
+    @sender.stub!(:start).with(0.05).and_return { alive = true }
+    @sender.stub!(:stop).and_return { alive = false }
+    @sender.stub!(:alive?).and_return(alive)
     Castoro::Sender::TCP.stub!(:new).and_return @sender
   end
 
@@ -400,7 +401,7 @@ describe Castoro::Client do
     context "if delete command timeout" do
       it "should raise ClientTimeoutError." do
         @sender.stub!(:send).and_return(nil)
-        @sender.should_receive(:stop).once
+        @sender.should_receive(:stop).exactly(3)
         Proc.new{
           @client.delete_internal @sender, @peer, @remining_peers, @delete
         }.should raise_error(Castoro::ClientTimeoutError)
@@ -410,7 +411,7 @@ describe Castoro::Client do
     context "if response is not intended" do
       it "should raise ClientError." do
         @sender.stub!(:send).and_return(Castoro::Protocol::Response::Create.new(nil, @key))
-        @sender.should_receive(:stop).once
+        @sender.should_receive(:stop).exactly(3)
         Proc.new{
           @client.delete_internal @sender, @peer, @remining_peers, @delete
         }.should raise_error(Castoro::ClientError)
@@ -420,7 +421,7 @@ describe Castoro::Client do
     context "if delete command faild" do
       it "should raise ClientError." do
         @sender.stub!(:send).and_return(Castoro::Protocol::Response::Delete.new("error", @key))
-        @sender.should_receive(:stop).once
+        @sender.should_receive(:stop).exactly(3)
         Proc.new{
           @client.delete_internal @sender, @peer, @remining_peers, @delete
         }.should raise_error(Castoro::ClientError)
