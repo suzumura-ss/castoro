@@ -30,9 +30,11 @@ describe Castoro::Client do
     @key_1 = Castoro::BasketKey.new(1, 1, 1)
     @key_2 = Castoro::BasketKey.new(1, 1, 2)
     @key_3 = Castoro::BasketKey.new(1, 1, 3)
-    @get_command_1  = Castoro::Protocol::Command::Get.new @key_1
-    @get_command_2  = Castoro::Protocol::Command::Get.new @key_2
-    @get_command_3  = Castoro::Protocol::Command::Get.new @key_3
+    @key_4 = Castoro::BasketKey.new(1, 1, 4)
+    @get_command_1 = Castoro::Protocol::Command::Get.new @key_1
+    @get_command_2 = Castoro::Protocol::Command::Get.new @key_2
+    @get_command_3 = Castoro::Protocol::Command::Get.new @key_3
+    @get_command_4 = Castoro::Protocol::Command::Get.new @key_4, "abcdef12".to_island
 
     @alive = false
     @sid   = 0
@@ -55,13 +57,16 @@ describe Castoro::Client do
     @client.open
 
     @sender_mock.stub!(:send).with(@get_command_1).and_return {
-      Castoro::Protocol::Response::Get.new nil, @key_1, { "peer"=>"paths" }
+      Castoro::Protocol::Response::Get.new nil, @key_1, { "peer"=>"paths" }, "12345678".to_island
     }
     @sender_mock.stub!(:send).with(@get_command_2).and_return {
       Castoro::Protocol::Response.new nil
     }
     @sender_mock.stub!(:send).with(@get_command_3).and_return {
-      Castoro::Protocol::Response::Get.new "error", @key_3, { "peer"=>"paths" }
+      Castoro::Protocol::Response::Get.new "error", @key_3, { "peer"=>"paths" }, "abcdef12".to_island
+    }
+    @sender_mock.stub!(:send).with(@get_command_4).and_return {
+      Castoro::Protocol::Response::Get.new "nil", @key_4, { "peer"=>"paths" }, "abcdef12".to_island
     }
   end
 
@@ -329,6 +334,49 @@ describe Castoro::Client do
     end
   end
 
+  describe "#get" do
+    context "given island argument" do
+      it "should return peer paths and island." do
+        Proc.new {
+          @client.get(@key_4, { :island => "abcdef12"}).should == { "peer" => "paths", "island" =>  "abcdef12"}
+        }
+      end
+    end
+
+    context "given island argument is nil" do
+      it "should return peer paths and island." do
+        Proc.new {
+          @client.get(@key_4, nil).should == { "peer" => "paths", "island" =>  "abcdef12"}
+        }
+      end
+
+      it "should return peer paths and island." do
+        Proc.new {
+          @client.get(@key_4, { :island => nil}).should == { "peer" => "paths", "island" =>  "abcdef12"}
+        }
+      end
+    end
+  end
+
+  describe "#get_with_island" do
+    context "given island argumet" do
+      it "should return peer paths and island." do
+        Proc.new {
+#          @client.get_with_island(@key_4, { :island => "abcdef12"}).should == { "peer" => "paths", "island" =>  "abcdef12"}
+          @client.get_with_island(@key_4, "abcdef12").should == { "peer" => "paths", "island" =>  "abcdef12"}
+        }
+      end
+    end
+
+    context "given island argumet is nil" do
+      it "should return peer paths and island." do
+        Proc.new {
+          @client.get_with_island(@key_4, nil).should == { "peer" => "paths", "island" =>  "abcdef12"}
+        }
+      end
+    end
+  end
+
   after do
     @key            = nil
     @hints          = nil
@@ -338,9 +386,11 @@ describe Castoro::Client do
     @key_1          = nil
     @key_2          = nil
     @key_3          = nil
+    @key_4          = nil
     @get_command_1  = nil
     @get_command_2  = nil
     @get_command_3  = nil
+    @get_command_4  = nil
     @alive          = nil
     @sid            = nil
     @sender_mock    = nil
