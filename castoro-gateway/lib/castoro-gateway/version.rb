@@ -6,7 +6,7 @@ module Castoro #:nodoc:
         MAJOR  = 0
         MINOR  = 2
         TINY   = 0
-        PRE    = 'pre20111219'
+        PRE    = 'pre'
 
         STRING = [MAJOR, MINOR, TINY, PRE].compact.join('.')
       end

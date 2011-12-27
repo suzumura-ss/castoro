@@ -215,7 +215,7 @@ VALUE Cache::rb_insert_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _
 
 VALUE Cache::rb_erase_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r)
 {
-  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(insert_element_internal), rb_ary_new3(5, self, _p, _c, _t, _r));
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(erase_element_internal), rb_ary_new3(5, self, _p, _c, _t, _r));
 }
 
 VALUE Cache::rb_get_peer_status(VALUE self, VALUE _p)
