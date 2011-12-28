@@ -68,9 +68,6 @@ describe Castoro::Gateway::Facade do
       @facade.instance_variable_get(:@locker).should be_kind_of Monitor
       @facade.instance_variable_get(:@recv_locker).should be_kind_of Monitor
 
-      @facade.instance_variable_get(:@addr).should == "239.192.1.1"
-      @facade.instance_variable_get(:@device).should == "127.0.0.1"
-      @facade.instance_variable_get(:@mreq).should == IPAddr.new("239.192.1.1").hton + IPAddr.new("127.0.0.1").hton
       @facade.instance_variable_get(:@gup).should == UNICAST
       @facade.instance_variable_get(:@gmp).should == MULTICAST
       @facade.instance_variable_get(:@gwp).should == WATCHDOG
@@ -85,8 +82,8 @@ describe Castoro::Gateway::Facade do
         @udpsock.stub!(:bind).with("0.0.0.0", @facade.instance_variable_get(:@gup))
         @udpsock.stub!(:bind).with("0.0.0.0", @facade.instance_variable_get(:@gmp))
         @udpsock.stub!(:bind).with("0.0.0.0", @facade.instance_variable_get(:@gwp))
-        @udpsock.stub!(:setsockopt).with(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, @facade.instance_variable_get(:@mreq))
-        @udpsock.stub!(:setsockopt).with(Socket::IPPROTO_IP, Socket::IP_DROP_MEMBERSHIP, @facade.instance_variable_get(:@mreq))
+        @udpsock.stub!(:setsockopt).with(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, @facade.instance_variable_get(:@mreqs)[0])
+        @udpsock.stub!(:setsockopt).with(Socket::IPPROTO_IP, Socket::IP_DROP_MEMBERSHIP, @facade.instance_variable_get(:@mreqs)[0])
         @udpsock.stub!(:setsockopt).with(Socket::IPPROTO_IP, Socket::IP_MULTICAST_LOOP, 0)
         @udpsock.stub!(:recvfrom)
         @udpsock.stub!(:closed?)
@@ -120,7 +117,7 @@ describe Castoro::Gateway::Facade do
 
       it "UDPSocket#setsockopt should be called 4 times" do
         @udpsock.should_receive(:setsockopt).
-          with(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, @facade.instance_variable_get(:@mreq)).
+          with(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, @facade.instance_variable_get(:@mreqs)[0]).
           exactly(2)
 
         @udpsock.should_receive(:setsockopt).
@@ -144,8 +141,8 @@ describe Castoro::Gateway::Facade do
         @udpsock.stub!(:bind).with("0.0.0.0", @facade.instance_variable_get(:@gup))
         @udpsock.stub!(:bind).with("0.0.0.0", @facade.instance_variable_get(:@gmp))
         @udpsock.stub!(:bind).with("0.0.0.0", @facade.instance_variable_get(:@gwp))
-        @udpsock.stub!(:setsockopt).with(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, @facade.instance_variable_get(:@mreq))
-        @udpsock.stub!(:setsockopt).with(Socket::IPPROTO_IP, Socket::IP_DROP_MEMBERSHIP, @facade.instance_variable_get(:@mreq))
+        @udpsock.stub!(:setsockopt).with(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, @facade.instance_variable_get(:@mreqs)[0])
+        @udpsock.stub!(:setsockopt).with(Socket::IPPROTO_IP, Socket::IP_DROP_MEMBERSHIP, @facade.instance_variable_get(:@mreqs)[0])
         @udpsock.stub!(:setsockopt).with(Socket::IPPROTO_IP, Socket::IP_MULTICAST_LOOP, 0)
         @udpsock.stub!(:recvfrom)
         @udpsock.stub!(:closed?)
@@ -168,7 +165,7 @@ describe Castoro::Gateway::Facade do
 
       it "UDPSocket#setsockopt should be called 2 times" do
         @udpsock.should_receive(:setsockopt).
-          with(Socket::IPPROTO_IP, Socket::IP_DROP_MEMBERSHIP, @facade.instance_variable_get(:@mreq)).
+          with(Socket::IPPROTO_IP, Socket::IP_DROP_MEMBERSHIP, @facade.instance_variable_get(:@mreqs)[0]).
           exactly(2)
 
         @facade.stop

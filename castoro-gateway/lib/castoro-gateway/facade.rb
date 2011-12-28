@@ -46,13 +46,19 @@ module Castoro
         @locker           = Monitor.new
         @recv_locker      = Monitor.new
 
-        @addr             = config["multicast_addr"].to_s
-        @device           = config["multicast_device_addr"].to_s
-        @mreq             = IPAddr.new(@addr).hton + IPAddr.new(@device).hton
         @gup              = config["gateway"]["unicast_port"].to_i
         @gmp              = config["gateway"]["multicast_port"].to_i
         @gwp              = config["gateway"]["watchdog_port"].to_i
         @watchdog_logging = config["gateway"]["watchdog_logging"]
+
+        addr              = config["multicast_addr"].to_s
+        device            = config["multicast_device_addr"].to_s
+        @mreqs = []
+        @mreqs << (IPAddr.new(addr).hton + IPAddr.new(device).hton)
+        if config["island_multicast_addr"] and config["island_multicast_device_addr"]
+          @mreq << (IPAddr.new(config["island_multicast_addr"].to_s).hton +
+                    IPAddr.new(config["island_multicast_device_addr"].to_s).hton)
+        end
       end
 
       ##
@@ -68,12 +74,14 @@ module Castoro
           @unicast.bind("0.0.0.0", @gup)
           @multicast = UDPSocket.new
           @multicast.bind("0.0.0.0", @gmp)
-          @multicast.setsockopt(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, @mreq)
           @multicast.setsockopt(Socket::IPPROTO_IP, Socket::IP_MULTICAST_LOOP, 0)
           @watchdog = UDPSocket.new
           @watchdog.bind("0.0.0.0", @gwp)
-          @watchdog.setsockopt(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, @mreq)
           @watchdog.setsockopt(Socket::IPPROTO_IP, Socket::IP_MULTICAST_LOOP, 0)
+          @mreqs.each { |mreq|
+            @multicast.setsockopt(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, mreq)
+            @watchdog.setsockopt(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, mreq)
+          }
 
           # Thre reception packet is output in the log at #recvfrom.
           audit_sockets = []
@@ -102,8 +110,10 @@ module Castoro
         @locker.synchronize {
           raise "facade already stopped." unless alive?
 
-          @multicast.setsockopt(Socket::IPPROTO_IP, Socket::IP_DROP_MEMBERSHIP, @mreq)
-          @watchdog.setsockopt(Socket::IPPROTO_IP, Socket::IP_DROP_MEMBERSHIP, @mreq)
+          @mreqs.each { |mreq|
+            @multicast.setsockopt(Socket::IPPROTO_IP, Socket::IP_DROP_MEMBERSHIP, mreq)
+            @watchdog.setsockopt(Socket::IPPROTO_IP, Socket::IP_DROP_MEMBERSHIP, mreq)
+          }
           @unicast.close
           @multicast.close
           @watchdog.close
@@ -162,3 +172,4 @@ module Castoro
     end
   end
 end
+

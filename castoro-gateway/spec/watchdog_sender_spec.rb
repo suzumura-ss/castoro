@@ -70,7 +70,7 @@ describe Castoro::Gateway::WatchdogSender do
         @random = mock(Random)
         @random.stub!(:rand).with(60..300).and_return(1)
         Random.stub!(:new).and_return(@random)
-      
+
         @sender = Castoro::Gateway::WatchdogSender.new @logger, @repository, @island, :if_addr => '127.0.0.1'
       end
 

@@ -132,7 +132,7 @@ module Castoro
       # get capacity. 
       #
       def capacity
-        123456789
+        @cache.available_total_space
       end
 
     private

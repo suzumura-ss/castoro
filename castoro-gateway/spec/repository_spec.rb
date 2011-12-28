@@ -165,5 +165,26 @@ describe Castoro::Gateway::Repository do
         repository.dump io
       end
     end
+
+    describe "multicast expectation" do
+      before do
+        @cache.stub!(:active_peer_count).and_return(15)
+        @cache.stub!(:available_total_space).and_return(123456789)
+      end
+
+      context "when get storable peers." do
+        it "should get storables." do
+          repository = Castoro::Gateway::Repository.new @logger, @config
+          repository.storables.should == 15
+        end
+      end
+  
+      context "when get capacity total space of peers." do
+        it "should get capacity." do
+          repository = Castoro::Gateway::Repository.new @logger, @config
+          repository.capacity.should == 123456789
+        end
+      end
+    end
   end
 end

@@ -152,6 +152,18 @@ module Castoro
       @cache.stat(::Castoro::Cache::DSTAT_ACTIVE_PEERS).to_i
     end
 
+    ##
+    # get available total space of peers.
+    #
+    def available_total_space
+      peers = @cache.find_peers
+      peers.map { |p| [p, @cache.get_peer_status(p)] }.select { |k,v|
+        v[:status] >= ::Castoro::Cache::Peer::ACTIVE
+      }.map { |k,v|
+        v[:status] || 0
+      }.inject(0, &:+)
+    end
+
     private
 
     ##

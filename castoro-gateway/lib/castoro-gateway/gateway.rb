@@ -52,7 +52,11 @@ module Castoro
       },
       "peer" => {
         "multicast_port" => 30112
-      }
+      },
+      "master" => nil,
+      "master_multicast_addr" => nil,
+      "island_multicast_addr" => nil,
+      "island_multicast_device_addr" => nil,
     }
     SETTING_TEMPLATE = "" <<
       "<% require 'logger' %>\n" <<
@@ -85,6 +89,7 @@ module Castoro
       @@workers_class         = Workers
       @@repository_class      = Repository
       @@console_server_class  = ConsoleServer
+      @@watchdog_sender_class = WatchdogSender
     end
     dependency_classes_init
 
@@ -125,6 +130,16 @@ module Castoro
         @console = @@console_server_class.new @logger, @repository, @config["gateway"]["console_port"].to_i, :host => "0.0.0.0"
         @console.start
 
+        # start watchdog sender.
+        unless @config["master"]
+          if @config["master_multicast_addr"] and @config["island_multicast_device_addr"]
+            @watchdog_sender = @@watchdog_sender_class.new @logger, @repository, @config["island"],
+                                  :dest_port => @config["gateway"]["multicast_port"],
+                                  :dest_host => @config["master_multicast_addr"],
+                                  :if_addr => @config["island_multicast_device_addr"]
+            @watchdog_sender.start
+          end
+        end
       }
     end
 
@@ -148,6 +163,11 @@ module Castoro
 
         @console.stop
         @console = nil
+
+        if @watchdog_sender
+          @watchdog_sender.stop
+          @watchdog_sender = nil
+        end
 
         @repository = nil
 
