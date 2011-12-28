@@ -22,11 +22,21 @@ require File.dirname(__FILE__) + '/spec_helper.rb'
 describe Castoro::Gateway::WatchdogSender do
   before(:all) do
     @logger = Logger.new nil
+    @repository = Object.new
+    class << @repository
+      def storables
+        15
+      end
+      def capacity
+        123456789
+      end
+    end
+    @island = "ab12cd34".to_island
   end
 
   context "given default argument" do
     before(:all) do
-      @sender = Castoro::Gateway::WatchdogSender.new @logger
+      @sender = Castoro::Gateway::WatchdogSender.new @logger, @repository, @island
     end
 
     it "should not alive" do
@@ -50,6 +60,26 @@ describe Castoro::Gateway::WatchdogSender do
         it "should not alive" do
           @sender.alive?.should == false
         end
+      end
+    end
+
+    describe "multicast expectation" do
+      before do
+        @multicast = mock(Castoro::Sender::UDP::Multicast)
+        Castoro::Sender::UDP::Multicast.stub!(:new).and_yield(@multicast)
+        @random = mock(Random)
+        @random.stub!(:rand).with(60..300).and_return(1)
+        Random.stub!(:new).and_return(@random)
+      
+        @sender = Castoro::Gateway::WatchdogSender.new @logger, @repository, @island, :if_addr => '127.0.0.1'
+      end
+
+      it "should send multicast at regular intervals." do
+        header = Castoro::Protocol::UDPHeader.new('127.0.0.1', 0)
+        command = Castoro::Protocol::Command::Island.new @island, 15, 123456789
+        @multicast.should_receive(:multicast).with(header, command).exactly(3)
+        @sender.start
+        sleep 2.5
       end
     end
 

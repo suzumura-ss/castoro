@@ -144,6 +144,13 @@ module Castoro
       @logger.info { "dump request accepted." }
       @cache.dump io
     end
+    
+    ##
+    # get count of active peers.
+    #
+    def active_peer_count
+      @cache.stat(::Castoro::Cache::DSTAT_ACTIVE_PEERS).to_i
+    end
 
     private
 

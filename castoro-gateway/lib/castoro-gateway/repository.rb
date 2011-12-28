@@ -121,6 +121,20 @@ module Castoro
         @cache.dump io
       end 
 
+      ##
+      # get storables.
+      #
+      def storables
+        @cache.active_peer_count
+      end
+
+      ##
+      # get capacity. 
+      #
+      def capacity
+        123456789
+      end
+
     private
 
       ##

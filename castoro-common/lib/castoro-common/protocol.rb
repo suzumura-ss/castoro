@@ -725,6 +725,13 @@ module Castoro
       @ip, @port, @sid = ip.to_s, port, sid
     end
     def to_s; [@ip, @port, @sid].to_json + "\r\n"; end
+
+    def == other
+      return true  if self.equal? other
+      return false if other.nil?
+      return false unless other.kind_of?(self.class)
+      return (@ip == other.ip and @port == other.port and @sid == other.sid)
+    end
   end
 
 end

@@ -25,10 +25,24 @@ module Castoro
 
     class WatchdogSender
 
-      def initialize logger, options = {}
+      DEFAULT_OPTIONS = {
+        :dest_port => 30109,
+        :dest_host => '239.192.254.254',
+        :if_addr => IPSocket::getaddress(Socket::gethostname),
+      }.freeze
+
+      def initialize logger, repository, island, options = {}
         @logger = logger
+        @repository = repository
+        @island = island.to_island
+        options = options.select { |k,v| DEFAULT_OPTIONS.include?(k) }
+        DEFAULT_OPTIONS.merge(options).each { |k,v|
+          instance_variable_set "@#{k}", v
+        }
+
         @locker = Monitor.new
         @thread = nil
+        @header = Protocol::UDPHeader.new @if_addr, 0
       end
 
       ##
@@ -61,14 +75,20 @@ module Castoro
       private
 
       def sender_loop
-        until Thread.current[:dying]
-          # sender loop...
-          sleep calculate_interval
-        end
+        Sender::UDP::Multicast.new(@logger, @dest_port, @dest_host, @if_addr) { |s|
+          until Thread.current[:dying]
+            s.multicast @header, island_command
+            sleep calculate_interval
+          end
+        }
+      end
+
+      def island_command
+        Protocol::Command::Island.new @island, @repository.storables, @repository.capacity
       end
 
       def calculate_interval
-        rand(5 * 60)
+        Random.new.rand(60..300)
       end
     end
 
