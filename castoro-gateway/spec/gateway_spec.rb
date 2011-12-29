@@ -164,6 +164,38 @@ describe Castoro::Gateway do
       end
     end
 
+    context "given island to configurations" do
+      before do
+        config = {
+          "multicast_addr"        => "239.192.1.2",
+          "multicast_device_addr" => "127.0.0.1",
+          "gateway" => {
+            "console_port"        => 30150,
+            "unicast_port"        => 30151,
+            "multicast_port"      => 30149,
+            "watchdog_port"       => 30153,
+          },
+          "peer" => {
+            "multicast_port"      => 30152
+          },
+          "island_multicast_addr" => "abcdef01",
+        }
+        @g = Castoro::Gateway.new config, @logger
+      end
+
+      it "workers should initialized and start" do
+        @workers.should_receive(:new).
+          with(@logger, @g.instance_variable_get(:@config)["workers"],
+               @facade, @repository,
+               "239.192.1.2",
+               "127.0.0.1",
+               30152,
+               "abcdef01".to_island).exactly(1)
+        @workers.should_receive(:start)
+        @g.start
+      end
+    end
+
     context "when config argument is test configs" do
       before do
         test_configs = {
@@ -205,7 +237,8 @@ describe Castoro::Gateway do
                     @facade, @repository,
                     "239.192.1.2",
                     "127.0.0.1",
-                    30152
+                    30152,
+                    nil
                   ).exactly(1)
           @workers.should_receive(:start)
           @g.start
