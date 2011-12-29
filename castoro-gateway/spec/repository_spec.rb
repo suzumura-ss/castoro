@@ -87,24 +87,65 @@ describe Castoro::Gateway::Repository do
         @cache.stub!(:preferentially_find_peers).with({"class" => "original", "length" => 100}).and_return([])
         repository = Castoro::Gateway::Repository.new @logger, @config
 
-        res = repository.fetch_available_peers command
+        res = repository.fetch_available_peers command, "abcdef01"
         res.should be_kind_of Castoro::Protocol::Response::Create::Gateway
         res.error?.should be_true
       end
     end
 
     context "when fetch availabele_peer from cache with find peers." do
-      it "should return Castoro::Response::Create::Gateway instance that contains the Peers." do
-        @cache.stub!(:preferentially_find_peers).with({"class" => "original", "length" => 100}).and_return(["host1", "host2", "host3"])
-        key = Castoro::BasketKey.new 1, 2, 3
-        command = Castoro::Protocol::Command::Create.new key, {"class" => :original, "length" => 100}
-        repository = Castoro::Gateway::Repository.new @logger, @config
+      context "given island 'abcdef01'" do
+        it "should return Castoro::Response::Create::Gateway instance that contains the Peers." do
+          @cache.stub!(:preferentially_find_peers)
+            .with({"class" => "original", "length" => 100})
+            .and_return(["host1", "host2", "host3"])
+          key = Castoro::BasketKey.new 1, 2, 3
+          command = Castoro::Protocol::Command::Create.new key, {"class" => :original, "length" => 100}
+          repository = Castoro::Gateway::Repository.new @logger, @config
 
-        res = repository.fetch_available_peers command
-        res.should be_kind_of Castoro::Protocol::Response::Create::Gateway
-        res.error?.should be_false
-        res.basket.should == key
-        res.hosts.should  == ["host1", "host2", "host3"]
+          res = repository.fetch_available_peers command, "abcdef01"
+          res.should be_kind_of Castoro::Protocol::Response::Create::Gateway
+          res.error?.should be_false
+          res.basket.should == key
+          res.island.should == "abcdef01".to_island
+          res.hosts.should  == ["host1", "host2", "host3"]
+        end
+      end
+
+      context "given island '12345678'" do
+        it "should set '12345678' to response#island" do
+          @cache.stub!(:preferentially_find_peers)
+            .with({"class" => "original", "length" => 100})
+            .and_return(["host1", "host2", "host3"])
+          key = Castoro::BasketKey.new 1, 2, 3
+          command = Castoro::Protocol::Command::Create.new key, {"class" => :original, "length" => 100}
+          repository = Castoro::Gateway::Repository.new @logger, @config
+
+          res = repository.fetch_available_peers command, "12345678"
+          res.should be_kind_of Castoro::Protocol::Response::Create::Gateway
+          res.error?.should be_false
+          res.basket.should == key
+          res.island.should == "12345678".to_island
+          res.hosts.should  == ["host1", "host2", "host3"]
+        end
+      end
+
+      context "given island nil" do
+        it "should not set response#island" do
+          @cache.stub!(:preferentially_find_peers)
+            .with({"class" => "original", "length" => 100})
+            .and_return(["host1", "host2", "host3"])
+          key = Castoro::BasketKey.new 1, 2, 3
+          command = Castoro::Protocol::Command::Create.new key, {"class" => :original, "length" => 100}
+          repository = Castoro::Gateway::Repository.new @logger, @config
+
+          res = repository.fetch_available_peers command, nil
+          res.should be_kind_of Castoro::Protocol::Response::Create::Gateway
+          res.error?.should be_false
+          res.basket.should == key
+          res.island.should == nil
+          res.hosts.should  == ["host1", "host2", "host3"]
+        end
       end
     end
 

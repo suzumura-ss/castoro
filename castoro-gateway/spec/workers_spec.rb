@@ -72,6 +72,7 @@ describe Castoro::Gateway::Workers do
     end
 
     it "should be able start > stop > start ..." do
+      @facade.stub!(:recv)
       100.times {
         @w.start
         @w.stop
