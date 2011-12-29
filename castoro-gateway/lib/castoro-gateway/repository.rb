@@ -49,8 +49,10 @@ module Castoro
       #
       # +command+::
       #   create command instance.
+      # +island+::
+      #   island id.
       #
-      def fetch_available_peers command
+      def fetch_available_peers command, island
         peers = @cache.preferentially_find_peers command.hints
 
         if peers.empty?
@@ -58,7 +60,7 @@ module Castoro
           command.error_response :message => "It failed in the selection of Peer."
         else
           @logger.info { "[key:#{command.basket}] fetch peers <#{peers}>" }
-          Protocol::Response::Create::Gateway.new(nil, command.basket, peers)
+          Protocol::Response::Create::Gateway.new(nil, command.basket, peers, island)
         end
       end
 
@@ -149,9 +151,10 @@ module Castoro
         paths = @cache.find_by_key(command.basket)
         return nil if paths.empty?
 
-        Protocol::Response::Get.new(false, command.basket, paths)
+        Protocol::Response::Get.new(false, command.basket, paths, command.island)
       end
 
     end
   end
 end
+

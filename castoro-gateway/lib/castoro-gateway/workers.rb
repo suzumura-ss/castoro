@@ -28,13 +28,14 @@ module Castoro
     #
     class Workers < Castoro::Workers
 
-      def initialize logger, count, facade, repository, multicast_addr, device_addr, multicast_port
+      def initialize logger, count, facade, repository, multicast_addr, device_addr, multicast_port, island
         super logger, count
         @facade     = facade
         @repository = repository
         @addr       = multicast_addr
         @device     = device_addr
         @port       = multicast_port
+        @island     = island.to_island
       end
 
     private
@@ -50,15 +51,18 @@ module Castoro
 
                 case d
                 when Protocol::Command::Create
-                  res = @repository.fetch_available_peers d
+                  res = @repository.fetch_available_peers d, @island
                   s.send h, res, h.ip, h.port
 
                 when Protocol::Command::Get
-                  res = @repository.query d
-                  if res
-                    s.send h, res, h.ip, h.port
-                  else
-                    s.multicast h, d
+                  d = Protocol::Command::Get.new(d.basket, @island) if @island and d.island.nil?
+                  if @island == d.island
+                    res = @repository.query d
+                    if res
+                      s.send h, res, h.ip, h.port
+                    else
+                      s.multicast h, d
+                    end
                   end
 
                 when Protocol::Command::Insert

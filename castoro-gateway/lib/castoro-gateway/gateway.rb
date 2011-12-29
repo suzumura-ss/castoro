@@ -121,9 +121,10 @@ module Castoro
         mc_addr   = @config["multicast_addr"].to_s
         mc_device = @config["multicast_device_addr"].to_s
         mc_port   = @config["peer"]["multicast_port"].to_i
+        island    = @config["island_multicast_addr"] ? @config["island_multicast_addr"].to_island : nil
 
         # start workers.
-        @workers = @@workers_class.new @logger, @config["workers"], @facade, @repository, mc_addr, mc_device, mc_port
+        @workers = @@workers_class.new @logger, @config["workers"], @facade, @repository, mc_addr, mc_device, mc_port, island
         @workers.start
 
         # start console server.
