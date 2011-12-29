@@ -50,7 +50,7 @@ describe Castoro::Gateway::Workers do
       dv_addr = "127.0.0.1"
       port    = 12345
 
-      @w = Castoro::Gateway::Workers.new(nil, count, @facade, @repository, mc_addr, dv_addr, port)
+      @w = Castoro::Gateway::Workers.new(nil, count, @facade, @repository, mc_addr, dv_addr, port, nil)
     end
 
     it "should logger equals NilLogger" do
@@ -68,7 +68,7 @@ describe Castoro::Gateway::Workers do
       dv_addr = "127.0.0.1"
       port    = 12345
 
-      @w = Castoro::Gateway::Workers.new(@logger, count, @facade, @repository, mc_addr, dv_addr, port)
+      @w = Castoro::Gateway::Workers.new(@logger, count, @facade, @repository, mc_addr, dv_addr, port, nil)
     end
 
     it "should be able start > stop > start ..." do
@@ -156,7 +156,7 @@ describe Castoro::Gateway::Workers do
         fetch_result = "hoge"
         @repository.should_receive(:fetch_available_peers).
           exactly(7).
-          with(create).
+          with(create, nil).
           and_return(fetch_result)
         @sender.should_receive(:send).
           exactly(7).
@@ -229,6 +229,90 @@ describe Castoro::Gateway::Workers do
         end
       end
       
+    end
+
+    after do
+      @w.stop if @w.alive? rescue nil
+      @w = nil
+    end
+  end
+
+  context "given island id" do
+    before do
+      count   = 3
+      mc_addr = "239.192.1.1"
+      dv_addr = "127.0.0.1"
+      port    = 12345
+      @island = "abcdef01".to_island
+
+      @w = Castoro::Gateway::Workers.new(@logger, count, @facade, @repository, mc_addr, dv_addr, port, @island)
+    end
+
+    context "received CREATE command" do
+      before do
+        @create = Castoro::Protocol::Command::Create.new("1.2.3", { "class" => "original", "length" => 12345 })
+        commands = [ [@header, @create] ] * 3
+        @facade.should_receive(:recv).at_least(1).and_return { commands.shift }
+      end
+
+      it "repository should receive #fetch_available_peers" do
+        fetch_result = "hoge"
+        @repository.should_receive(:fetch_available_peers).
+          with(@create, @island).
+          exactly(3).
+          and_return(fetch_result)
+        @sender.stub!(:send)
+
+        @w.start
+        sleep 1
+      end
+    end
+
+    context "received GET command" do
+      before do
+        @sender.stub!(:send)
+        @sender.stub!(:multicast)
+      end
+
+      context "when same island" do
+        it "repository should receive #query with ('1.2.3', 'abcdef01')" do
+          get = Castoro::Protocol::Command::Get.new("1.2.3", @island)
+          commands = [ [@header, get] ] * 3
+          @facade.should_receive(:recv).at_least(1).and_return { commands.shift }
+          @repository.should_receive(:query).
+            with(Castoro::Protocol::Command::Get.new("1.2.3", @island)).
+            exactly(3)
+
+          @w.start
+          sleep 1
+        end
+      end
+
+      context "when not same island" do
+        it "repository should not receive #query" do
+          get = Castoro::Protocol::Command::Get.new("1.2.3", "12345678")
+          commands = [ [@header, get] ]  * 3
+          @facade.should_receive(:recv).at_least(1).and_return { commands.shift }
+          @repository.should_not_receive(:query)
+
+          @w.start
+          sleep 1
+        end
+      end
+
+      context "when island is nil" do
+        it "repository should receive #query with('1.2.3', 'abcdef01')" do
+          get = Castoro::Protocol::Command::Get.new("1.2.3", nil)
+          commands = [ [@header, get] ]  * 3
+          @facade.should_receive(:recv).at_least(1).and_return { commands.shift }
+          @repository.should_receive(:query).
+            with(Castoro::Protocol::Command::Get.new("1.2.3", @island)).
+            exactly(3)
+  
+          @w.start
+          sleep 1
+        end
+      end
     end
 
     after do

@@ -35,7 +35,7 @@ module Castoro
         @addr       = multicast_addr
         @device     = device_addr
         @port       = multicast_port
-        @island     = island.to_island
+        @island     = island ? island.to_island : nil
       end
 
     private
