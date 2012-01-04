@@ -90,6 +90,7 @@ module Castoro
       @@repository_class      = Repository
       @@console_server_class  = ConsoleServer
       @@watchdog_sender_class = WatchdogSender
+      @@master_workers_class  = MasterWorkers
     end
     dependency_classes_init
 
@@ -112,7 +113,9 @@ module Castoro
         @unicast_count = 0
 
         # start repository.
-        @repository = @@repository_class.new @logger, @config["cache"]
+        unless @config["master"]
+          @repository = @@repository_class.new @logger, @config["cache"]
+        end
 
         # start facade.
         @facade = @@facade_class.new @logger, @config
@@ -124,12 +127,18 @@ module Castoro
         island    = @config["island_multicast_addr"] ? @config["island_multicast_addr"].to_island : nil
 
         # start workers.
-        @workers = @@workers_class.new @logger, @config["workers"], @facade, @repository, mc_addr, mc_device, mc_port, island
+        if @config["master"]
+          @workers = @@master_workers_class.new @logger, @config["workers"], @facade, @repository, mc_addr, mc_device, mc_port, island
+        else
+          @workers = @@workers_class.new @logger, @config["workers"], @facade, @repository, mc_addr, mc_device, mc_port, island
+        end
         @workers.start
 
         # start console server.
-        @console = @@console_server_class.new @logger, @repository, @config["gateway"]["console_port"].to_i, :host => "0.0.0.0"
-        @console.start
+        unless @config["master"]
+          @console = @@console_server_class.new @logger, @repository, @config["gateway"]["console_port"].to_i, :host => "0.0.0.0"
+          @console.start
+        end
 
         # start watchdog sender.
         unless @config["master"]
@@ -156,19 +165,17 @@ module Castoro
       @locker.synchronize {
         raise GatewayError, "gateway already stopped." unless alive?
         
-        @facade.stop
+        @facade.stop if @facade
         @facade = nil
 
-        @workers.stop force
+        @workers.stop force if @workers
         @workers = nil
 
-        @console.stop
+        @console.stop if @console
         @console = nil
 
-        if @watchdog_sender
-          @watchdog_sender.stop
-          @watchdog_sender = nil
-        end
+        @watchdog_sender.stop if @watchdog_sender
+        @watchdog_sender = nil
 
         @repository = nil
 
@@ -181,9 +188,19 @@ module Castoro
     #
     def alive?
       @locker.synchronize {
-        @facade and @facade.alive? and
-          @workers and @workers.alive? and @repository
-          @console and @console.alive? 
+        @alive_proc ||= (
+          if @config["master"]
+            Proc.new {
+              @facade and @facade.alive? and @workers and @workers.alive?
+            }
+          else
+            Proc.new {
+              @facade and @facade.alive? and @workers and @workers.alive? and
+              @repository and @console and @console.alive?
+            }
+          end
+        )
+        @alive_proc.call
       }
     end
 
