@@ -28,20 +28,18 @@ module Castoro
     #
     class MasterWorkers < Castoro::Workers
 
-      def initialize logger, count, facade, repository, multicast_addr, device_addr, multicast_port, island
+      def initialize logger, count, facade, broadcast_addr, device_addr, broadcast_port
         super logger, count
-        @facade     = facade
-        @repository = repository
-        @addr       = multicast_addr
-        @device     = device_addr
-        @port       = multicast_port
-        @island     = island ? island.to_island : nil
+        @facade = facade
+        @addr   = broadcast_addr
+        @device = device_addr
+        @port   = broadcast_port
       end
 
     private
 
       def work
-        Sender::UDP::Multicast.new(@logger, @port, @addr, @device) { |s|
+        Sender::UDP::Broadcast.start(@logger, @port, @addr) { |s|
           nop = Protocol::Response::Nop.new(nil)
 
           until Thread.current[:dying]
@@ -51,29 +49,18 @@ module Castoro
 
                 case d
                 when Protocol::Command::Create
-                  res = @repository.fetch_available_peers d, @island
-                  s.send h, res, h.ip, h.port
+                  #
 
                 when Protocol::Command::Get
-                  d = Protocol::Command::Get.new(d.basket, @island) if @island and d.island.nil?
-                  if @island == d.island
-                    res = @repository.query d
-                    if res
-                      s.send h, res, h.ip, h.port
-                    else
-                      s.multicast h, d
-                    end
+                  if d.island
+                    #
+                  else
+                    s.broadcast h, d
                   end
 
-                when Protocol::Command::Insert
-                  @repository.insert_cache_record d
-
-                when Protocol::Command::Drop
-                  @repository.drop_cache_record d
-
-                when Protocol::Command::Alive
-                  @repository.update_watchdog_status d
-
+                when Protocol::Command::Island
+                  #
+                  
                 when Protocol::Command::Nop
                   s.send h, nop, h.ip, h.port
 

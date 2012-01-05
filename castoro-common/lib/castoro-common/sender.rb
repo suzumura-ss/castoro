@@ -394,16 +394,8 @@ module Castoro
     #
     class UDP::Multicast < UDP
 
-      def self.start logger, port, multicast_addr, device_addr
-        me = UDP.new logger, port, multicast_addr, device_addr
-        me.start
-        if block_given?
-          begin
-            yield me
-          ensure
-            me.stop
-          end
-        end
+      class << self
+        alias :start :new
       end
 
       ##
@@ -455,6 +447,39 @@ module Castoro
 
       def set_sock_opt socket
         socket.setsockopt(Socket::IPPROTO_IP, Socket::IP_MULTICAST_IF, IPAddr.new(@device_addr).hton)
+      end
+
+      def unset_sock_opt socket; end
+    end
+
+    class UDP::Broadcast < UDP
+
+      class << self
+        alias :start :new
+      end
+
+      def initialize logger, port, broadcast_addr
+        @logger = logger || Logger.new(nil)
+        @sockaddr = Socket.pack_sockaddr_in(port, broadcast_addr)
+
+        if block_given?
+          start
+          begin
+            yield self
+          ensure
+            stop
+          end
+        end
+      end
+
+      def broadcast header, data
+        send header, data, @sockaddr
+      end
+
+      private
+
+      def set_sock_opt socket
+        socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_BROADCAST, 1)
       end
 
       def unset_sock_opt socket; end

@@ -128,7 +128,7 @@ module Castoro
 
         # start workers.
         if @config["master"]
-          @workers = @@master_workers_class.new @logger, @config["workers"], @facade, @repository, mc_addr, mc_device, mc_port, island
+          @workers = @@master_workers_class.new @logger, @config["workers"], @facade, mc_addr, mc_device, mc_port
         else
           @workers = @@workers_class.new @logger, @config["workers"], @facade, @repository, mc_addr, mc_device, mc_port, island
         end
