@@ -28,7 +28,7 @@ module Castoro
     #
     class MasterWorkers < Castoro::Workers
 
-      def initialize logger, count, facade, broadcast_addr, device_addr, port, options = {}
+      def initialize logger, count, facade, broadcast_addr, device_addr, port
         super logger, count
         @facade  = facade
         @addr    = broadcast_addr
@@ -49,11 +49,11 @@ module Castoro
 
                 case d
                 when Protocol::Command::Create
-                  @island_status.relay h, d
+                  @island_status.create_relay h, d
 
                 when Protocol::Command::Get
                   if d.island
-                    @island_status.sender(d.island).multicast h, d
+                    @island_status.get_relay h, d
                   else
                     s.broadcast h, d
                   end
@@ -75,8 +75,6 @@ module Castoro
               @logger.debug { e.backtrace.join("\n\t") }
             end
           end
-
-          islands.each { |k,v| v.stop }
         }
       end
 
@@ -92,24 +90,29 @@ module Castoro
       class IslandStatus
         def initialize logger, port, device
           @logger, @port, @device = logger, port, device
+          @locker = Monitor.new
         end
 
+        # start island status.
+        #
         def start
-          @senders = Hash.new { |h,k|
-            island = k.to_island
-            h[island] = Sender::UDP::Multicast.new(@logger, @port, island.to_ip, @device).tap { |s| s.start }
+          @locker.synchronize {
+            @senders = Hash.new { |h,k|
+              island = k.to_island
+              h[island] = Sender::UDP::Multicast.new(@logger, @port, island.to_ip, @device).tap { |s| s.start }
+            }
+            @status = {}
           }
-          @status = {}
         end
 
+        # stop island status.
+        #
         def stop
-          @senders.each { |k,v| v.stop }
-          @senders = nil
-          @status = nil
-        end
-
-        def sender island
-          @senders[island]
+          @locker.synchronize {
+            @senders.each { |k,v| v.stop }
+            @senders = nil
+            @status = nil
+          }
         end
 
         def set island_command
@@ -120,15 +123,30 @@ module Castoro
           self
         end
 
-        def relay create_header, create_command
+        def create_relay create_header, create_command
           island = choice_island(create_command)
           sender(island).multicast(create_header, create_command)
         end
 
+        def get_relay get_header, get_command
+          island = get_command.island
+          sender(island).multicast(get_header, get_command)
+        end
+
         private
 
+        def sender island
+          @senders[island]
+        end
+
         def choice_island create_command
-          # return island
+          weight = (0..(@status.size-1)).map { |x| 2**x }
+          i = -1
+          @status.select { |island, val|
+            val[:capacity] >= create_command.capacity
+          }.map { |k,v|
+            # should sort by capacity
+          }
         end
       end
 

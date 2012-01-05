@@ -43,7 +43,7 @@ module Castoro
       #
       def initialize logger
         @logger = logger || Logger.new(nil)
-        @locker = Mutex.new
+        @locker = Monitor.new
       end
 
       ##
@@ -305,7 +305,7 @@ module Castoro
       #
       def initialize logger
         @logger = logger || Logger.new(nil)
-        @locker = Mutex.new
+        @locker = Monitor.new
         if block_given?
           start
           begin
@@ -414,7 +414,7 @@ module Castoro
       #
       def initialize logger, port, multicast_addr, device_addr
         @logger = logger || Logger.new(nil)
-        @locker = Mutex.new
+        @locker = Monitor.new
         @port = port
         @multicast_addr = multicast_addr
         @device_addr = device_addr
@@ -460,7 +460,9 @@ module Castoro
 
       def initialize logger, port, broadcast_addr
         @logger = logger || Logger.new(nil)
-        @sockaddr = Socket.pack_sockaddr_in(port, broadcast_addr)
+        @locker = Monitor.new
+        @port = port
+        @broadcast_addr = broadcast_addr
 
         if block_given?
           start
@@ -473,7 +475,7 @@ module Castoro
       end
 
       def broadcast header, data
-        send header, data, @sockaddr
+        send header, data, @broadcast_addr, @port
       end
 
       private

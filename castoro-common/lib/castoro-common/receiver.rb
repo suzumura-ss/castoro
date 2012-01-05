@@ -328,11 +328,10 @@ module Castoro
         @mreq = IPAddr.new(multicast_addr).hton + IPAddr.new(device_addr).hton
       end
 
-    private
+      private
 
       def set_sock_opt socket
         socket.setsockopt(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, @mreq)
-        socket.setsockopt(Socket::IPPROTO_IP, Socket::IP_MULTICAST_LOOP, 0)
       end
 
       def unset_sock_opt socket
