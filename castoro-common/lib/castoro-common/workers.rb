@@ -69,6 +69,7 @@ module Castoro
     def start
       @locker.synchronize {
         raise WorkersError, "#{@name} already started." if alive?
+        on_starting
         @threads = (1..@count).map {
           Thread.fork {
             ThreadGroup::Default.add Thread.current
@@ -98,6 +99,7 @@ module Castoro
           @threads.each { |t| t.join } unless force
         end
         @threads = nil
+        on_stopped
       }
     end
 
@@ -131,6 +133,8 @@ module Castoro
       sleep 3
     end
 
+    def on_starting; end
+    def on_stopped; end
   end
 end
 
