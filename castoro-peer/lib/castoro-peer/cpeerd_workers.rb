@@ -348,7 +348,9 @@ module Castoro
             path_a = basket.path_a
             if ( File.exist? path_a )
               basket_text = basket.to_s
-              ticket.push Hash[ 'basket', basket_text, 'paths', { ticket.host => path_a } ]
+              ticket.push Hash[ 'basket', basket_text, 'paths', { ticket.host => path_a } ].tap { |h|
+                h['island'] = args['island'] if args.key?('island')
+              }
               ResponseSenderPL.instance.enq ticket
               t = MulticastCommandSenderTicketPool.instance.create_ticket
               t.push( 'INSERT', Hash[ 'basket', basket_text, 'host', ticket.host, 'path', path_a ] )

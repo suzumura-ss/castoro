@@ -38,6 +38,7 @@ spec = Gem::Specification.new do |s|
   s.require_path = "lib"
   s.bindir = "bin"
   s.required_ruby_version = ">= 1.9"
+  s.authors = ['Castoro project']
 
   s.add_dependency('castoro-common', '>=0.2.0.pre')
   s.add_development_dependency('rspec', '>=2.0.0')
