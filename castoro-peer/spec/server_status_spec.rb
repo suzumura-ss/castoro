@@ -38,7 +38,7 @@ describe Castoro::Peer::ServerStatus do
     end
 
     it "should be set variables correctly." do
-      @s_stat.instance.status.should == Castoro::Peer::ServerStatus::MAINTENANCE
+      @s_stat.instance.status.should == Castoro::Peer::ServerStatus::OFFLINE
       @s_stat.instance.instance_variable_get(:@mutex).should be_kind_of Mutex
     end
   end
@@ -111,8 +111,8 @@ describe Castoro::Peer::ServerStatus do
   end
 
   context "when #status_to_s" do
-    it 'with "ACTIVE" should return "30 online"' do
-      @s_stat.status_to_s(Castoro::Peer::ServerStatus::ACTIVE).should == "30 online"
+    `it 'with "ONLINE" should return "30 online"' do
+      @s_stat.status_to_s(Castoro::Peer::ServerStatus::ONLINE).should == "30 online"
     end
 
     it 'with "30" should return "30 online"' do
@@ -151,8 +151,8 @@ describe Castoro::Peer::ServerStatus do
       @s_stat.status_to_s("20").should == "20 readonly"
     end
 
-    it 'with "MAINTENANCE" should return "10 offline"' do
-      @s_stat.status_to_s(Castoro::Peer::ServerStatus::MAINTENANCE).should == "10 offline"
+    it 'with "OFFLINE" should return "10 offline"' do
+      @s_stat.status_to_s(Castoro::Peer::ServerStatus::OFFLINE).should == "10 offline"
     end
 
     it 'with "10" should return "10 offline"' do

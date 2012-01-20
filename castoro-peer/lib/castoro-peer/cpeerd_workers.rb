@@ -387,12 +387,12 @@ module Castoro
           end
           if ( command_sym )
             accept = case ServerStatus.instance.status
-                     when ServerStatus::ACTIVE       ; true
+                     when ServerStatus::ONLINE       ; true
                      when ServerStatus::DEL_REP      ; command_sym == :CANCEL or command_sym == :FINALIZE or command_sym == :DELETE
                      when ServerStatus::FIN_REP      ; command_sym == :CANCEL or command_sym == :FINALIZE
                      when ServerStatus::REP          ; false
                      when ServerStatus::READONLY     ; false
-                     when ServerStatus::MAINTENANCE  ; false
+                     when ServerStatus::OFFLINE      ; false
                      when ServerStatus::UNKNOWN      ; false
                      else ; false
                      end

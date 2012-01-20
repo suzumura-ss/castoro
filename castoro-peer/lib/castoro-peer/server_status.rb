@@ -30,19 +30,19 @@ module Castoro
     class ServerStatus
       include Singleton
 
-      ACTIVE      = 30
+      ONLINE      = 30
       DEL_REP     = 27
       FIN_REP     = 25
       REP         = 23
       READONLY    = 20
       DEAD        = 12
       DRAIN       = 11
-      MAINTENANCE = 10
+      OFFLINE     = 10
       UNKNOWN     =  0
 
       def initialize
         @mutex = Mutex.new
-        @status = MAINTENANCE
+        @status = OFFLINE
       end
 
       # Todo: has to stop or start the workers to match the status
@@ -68,12 +68,12 @@ module Castoro
       def self.status_name_to_i ( x )
         case ( x )
           # Todo: use constant values
-        when 'online'   , '30' ; ACTIVE
+        when 'online'   , '30' ; ONLINE
         when 'del_rep'  , '27' ; DEL_REP
         when 'fin_rep'  , '25' ; FIN_REP
         when 'rep'      , '23' ; REP
         when 'readonly' , '20' ; READONLY
-        when 'offline'  , '10' ; MAINTENANCE
+        when 'offline'  , '10' ; OFFLINE
         when 'unknown'  , '0'  ; UNKNOWN
         else raise StandardError, "Unknown parameter: #{x} ; mode [offline|readonly|rep|fin_rep|del_rep|online]"
         end
@@ -85,12 +85,12 @@ module Castoro
 
       def self.status_to_s( s )
         case ( s ) 
-        when ACTIVE      , '30' ; '30 online'
+        when ONLINE      , '30' ; '30 online'
         when DEL_REP     , '27' ; '27 del_rep'
         when FIN_REP     , '25' ; '25 fin_rep'
         when REP         , '23' ; '23 rep'
         when READONLY    , '20' ; '20 readonly'
-        when MAINTENANCE , '10' ; '10 offline'
+        when OFFLINE     , '10' ; '10 offline'
         when UNKNOWN     , '0'  ; '0 unknown'
           # else raise StandardError, "Unknown status: #{s}"
         else ; '? ?'
@@ -99,12 +99,12 @@ module Castoro
 
       def replication_activated?
         case ( @status )
-        when ACTIVE       ; true
+        when ONLINE       ; true
         when DEL_REP      ; true
         when FIN_REP      ; true
         when REP          ; true
         when READONLY     ; false
-        when MAINTENANCE  ; false
+        when OFFLINE      ; false
         when UNKNOWN      ; false
         else ; false
         end
