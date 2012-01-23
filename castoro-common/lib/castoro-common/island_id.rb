@@ -23,6 +23,9 @@ module Castoro
   class IslandIdError < CastoroError; end
   class IslandId
     def initialize string
+      if string =~ /^((25[0-5]|2[0-4]\d|1\d\d||[1-9]\d|\d)\.){3}(25[0-5]|2[0-4]\d|1\d\d||[1-9]\d|\d)$/
+        string = string.split('.', 4).map { |o| '%02x' % o.to_i }.join
+      end
       raise IslandIdError, "island id parse error." unless string =~ /^[0123456789abcdef]{8}$/
       @string = string.dup.freeze
       freeze

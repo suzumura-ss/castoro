@@ -56,8 +56,8 @@ module Castoro
         @mreqs = []
         @mreqs << (IPAddr.new(addr).hton + IPAddr.new(device).hton)
         if config["island_multicast_addr"] and config["island_multicast_device_addr"]
-          @mreq << (IPAddr.new(config["island_multicast_addr"].to_s).hton +
-                    IPAddr.new(config["island_multicast_device_addr"].to_s).hton)
+          @mreqs << (IPAddr.new(config["island_multicast_addr"].to_s).hton +
+                     IPAddr.new(config["island_multicast_device_addr"].to_s).hton)
         end
       end
 

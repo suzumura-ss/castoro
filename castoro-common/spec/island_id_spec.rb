@@ -64,6 +64,28 @@ describe Castoro::IslandId do
     end
   end
 
+  context "given string '192.168.0.1'" do
+    before(:all) do
+      @island = Castoro::IslandId.new '192.168.0.1'
+    end
+
+    it "#to_s is 'c0a80001'" do
+      @island.to_s.should == 'c0a80001'
+    end
+
+    it "#to_ip is '192.168.0.1'" do
+      @island.to_ip.should == '192.168.0.1'
+    end
+
+    it "#to_island is self" do
+      @island.to_island.should be_equal @island
+    end
+
+    it "same other instance" do
+      @island.should == Castoro::IslandId.new('c0a80001')
+    end
+  end
+
   context "given nil" do
     it "should raise error" do
       Proc.new {
