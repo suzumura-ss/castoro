@@ -110,6 +110,9 @@ module Castoro
         end
       end
 
+      def equal_or_greater_than? threshold
+        threshold <= @status
+      end
     end
 
   end
