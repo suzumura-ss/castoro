@@ -143,7 +143,7 @@ module Castoro
         # start watchdog sender.
         unless @config["master"]
           if @config["master_multicast_addr"] and @config["island_multicast_device_addr"]
-            @watchdog_sender = @@watchdog_sender_class.new @logger, @repository, @config["island"],
+            @watchdog_sender = @@watchdog_sender_class.new @logger, @repository, @config["island_multicast_addr"],
                                   :dest_port => @config["gateway"]["multicast_port"],
                                   :dest_host => @config["master_multicast_addr"],
                                   :if_addr => @config["island_multicast_device_addr"]
