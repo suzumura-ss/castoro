@@ -31,7 +31,7 @@ describe Castoro::Gateway::MasterWorkers do
 
   describe "given valid constructor argument" do
     before do
-      @w = Castoro::Gateway::MasterWorkers.new @logger, 2, 
+      @w = Castoro::Gateway::MasterWorkers.new @logger, 1,
         @facade, @broadcast_addr, @device_addr, @port
     end
 
@@ -116,6 +116,40 @@ describe Castoro::Gateway::MasterWorkers do
       end
     end
 
+    context "given create request" do
+      before do
+        header = Castoro::Protocol::UDPHeader.new '127.0.0.1', @mock_port, 0
+        key    = Castoro::BasketKey.new(1, 2, 3)
+        hints = { "class" => "original", "length" => 12345 }
+        @create = Castoro::Protocol::Command::Create.new key, hints
+        requests = [
+          [ header, Castoro::Protocol::Command::Island.new('efc00101'.to_island, 1, 1000)  ],
+          [ header, Castoro::Protocol::Command::Island.new('efc00102'.to_island, 2, 10000) ],
+          [ header, Castoro::Protocol::Command::Island.new('efc00103'.to_island, 3, 20000) ],
+          [ header, Castoro::Protocol::Command::Island.new('efc00104'.to_island, 4, 40000) ],
+          [ header, Castoro::Protocol::Command::Island.new('efc00105'.to_island, 5, 60000) ],
+          [ header, @create ],
+        ]
+
+        @facade.stub!(:recv).with(no_args).and_return { requests.shift }
+      end
+
+      it "should send multicast" do
+        received = false
+        receiver = Castoro::Receiver::UDP::Multicast.new(@logger, @port, 'efc00105'.to_island.to_ip, @device_addr) { |h,d,p,i|
+          received = true if d.kind_of?(Castoro::Protocol::Command::Create)
+        }
+        receiver.start
+
+        @w.start
+        sleep 0.5
+
+        receiver.stop
+        received.should == true
+      end
+    end
+
+
     after do
       if @w
         @w.stop rescue nil
@@ -125,3 +159,42 @@ describe Castoro::Gateway::MasterWorkers do
   end
 end
 
+describe Castoro::Gateway::MasterWorkers::IslandStatus do
+  before(:all) do
+    @logger      = Logger.new(ENV['DEBUG'] ? STDOUT : nil)
+    @device_addr = ENV['DEVICE']    || IPSocket.getaddress(Socket.gethostname)
+    @port        = ENV['PORT']      || 30109
+  end
+
+  context "#choice_random" do
+    before do
+      key    = Castoro::BasketKey.new(1, 2, 3)
+      hints = { "class" => "original", "length" => 12345 }
+      @create = Castoro::Protocol::Command::Create.new key, hints
+    end
+
+    it "should choice random island" do
+      islandStatus = Castoro::Gateway::MasterWorkers::IslandStatus.new @logger, @port, @device_addr
+      islandStatus.start
+      islandStatus.set Castoro::Protocol::Command::Island.new('efc00101'.to_island, 1, 1000)
+      islandStatus.set Castoro::Protocol::Command::Island.new('efc00102'.to_island, 2, 10000)
+      islandStatus.set Castoro::Protocol::Command::Island.new('efc00103'.to_island, 3, 20000)
+      islandStatus.set Castoro::Protocol::Command::Island.new('efc00104'.to_island, 4, 40000)
+      islandStatus.set Castoro::Protocol::Command::Island.new('efc00105'.to_island, 5, 60000)
+
+      result = []
+      1000.times {
+        result.push(islandStatus.send(:choice_island, @create).to_s)
+      }
+
+      count = result.inject(Hash.new(0)){|hash, a| hash[a] +=1; hash }
+      count["efc00105"].should >= 400
+      count["efc00105"].should <= 600
+      count["efc00104"].should >= 200
+      count["efc00104"].should <= 400
+      count["efc00103"].should >= 50
+      count["efc00103"].should <= 200
+    end
+  end
+
+end

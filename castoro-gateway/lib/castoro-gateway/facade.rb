@@ -50,14 +50,21 @@ module Castoro
         @gmp              = config["gateway"]["multicast_port"].to_i
         @gwp              = config["gateway"]["watchdog_port"].to_i
         @watchdog_logging = config["gateway"]["watchdog_logging"]
+        @ibp              = config["island_broadcast_port"].to_i unless config["master"]
 
         addr              = config["multicast_addr"].to_s
         device            = config["multicast_device_addr"].to_s
         @mreqs = []
-        @mreqs << (IPAddr.new(addr).hton + IPAddr.new(device).hton)
-        if config["island_multicast_addr"] and config["island_multicast_device_addr"]
-          @mreqs << (IPAddr.new(config["island_multicast_addr"].to_s).hton +
-                     IPAddr.new(config["island_multicast_device_addr"].to_s).hton)
+        @mreqs << (IPAddr.new(addr).hton + IPAddr.new(device).hton) unless config["master"]
+        if config["island_multicast_device_addr"]
+          if config["master"] and config["master_multicast_addr"]
+            @mreqs << (IPAddr.new(config["master_multicast_addr"].to_s).hton +
+                       IPAddr.new(config["island_multicast_device_addr"].to_s).hton)
+          end
+          if (not config["master"]) and config["island_multicast_addr"]
+            @mreqs << (IPAddr.new(config["island_multicast_addr"].to_s).hton +
+                       IPAddr.new(config["island_multicast_device_addr"].to_s).hton)
+          end
         end
       end
 
@@ -78,6 +85,10 @@ module Castoro
           @watchdog = UDPSocket.new
           @watchdog.bind("0.0.0.0", @gwp)
           @watchdog.setsockopt(Socket::IPPROTO_IP, Socket::IP_MULTICAST_LOOP, 0)
+          if @ibp
+            @island = UDPSocket.new
+            @island.bind("0.0.0.0", @ibp)
+          end
           @mreqs.each { |mreq|
             @multicast.setsockopt(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, mreq)
             @watchdog.setsockopt(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, mreq)
@@ -88,6 +99,7 @@ module Castoro
           audit_sockets << @unicast
           audit_sockets << @multicast
           audit_sockets << @watchdog if @watchdog_logging
+          audit_sockets << @island if @island
           audit_sockets.each { |s|
             s.instance_variable_set :@logger, @logger
             class << s
@@ -117,9 +129,11 @@ module Castoro
           @unicast.close
           @multicast.close
           @watchdog.close
+          @island.close if @island
           @unicast = nil
           @multicast = nil
           @watchdog = nil
+          @island = nil
 
           @logger.info { "stopped facade" }
         }
@@ -146,7 +160,7 @@ module Castoro
 
           return nil unless alive?
 
-          sockets = [@unicast, @multicast, @watchdog]
+          sockets = [@unicast, @multicast, @watchdog].tap { |s| s << @island if @island }
           ret = begin
                   IO.select(sockets, nil, nil, RECV_EXPIRE)
                 rescue Errno::EBADF

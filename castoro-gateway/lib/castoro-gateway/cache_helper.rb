@@ -160,7 +160,7 @@ module Castoro
       peers.map { |p| [p, @cache.get_peer_status(p)] }.select { |k,v|
         v[:status] >= ::Castoro::Cache::Peer::ACTIVE
       }.map { |k,v|
-        v[:status] || 0
+        v[:available] || 0
       }.inject(0, &:+)
     end
 

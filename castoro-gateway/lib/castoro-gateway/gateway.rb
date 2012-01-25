@@ -54,9 +54,11 @@ module Castoro
         "multicast_port" => 30112
       },
       "master" => nil,
+      "master_broadcast_addr" => nil,
       "master_multicast_addr" => nil,
       "island_multicast_addr" => nil,
       "island_multicast_device_addr" => nil,
+      "island_broadcast_port" => 30108,
     }
     SETTING_TEMPLATE = "" <<
       "<% require 'logger' %>\n" <<
@@ -128,7 +130,13 @@ module Castoro
 
         # start workers.
         if @config["master"]
-          @workers = @@master_workers_class.new @logger, @config["workers"], @facade, mc_addr, mc_device, mc_port
+          @workers = @@master_workers_class.new @logger,
+                                                @config["workers"],
+                                                @facade,
+                                                @config["master_broadcast_addr"],
+                                                @config["island_multicast_device_addr"],
+                                                @config["gateway"]["multicast_port"],
+                                                @config["island_broadcast_port"]
         else
           @workers = @@workers_class.new @logger, @config["workers"], @facade, @repository, mc_addr, mc_device, mc_port, island
         end

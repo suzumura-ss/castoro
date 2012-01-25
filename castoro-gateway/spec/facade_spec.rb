@@ -35,6 +35,7 @@ SETTINGS = {
     "watchdog_port" => WATCHDOG,
     "watchdog_logging" => false,
   },
+  "master" => true,
 }
 
 describe Castoro::Gateway::Facade do

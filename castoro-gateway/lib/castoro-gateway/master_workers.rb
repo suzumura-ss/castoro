@@ -28,18 +28,19 @@ module Castoro
     #
     class MasterWorkers < Castoro::Workers
 
-      def initialize logger, count, facade, broadcast_addr, device_addr, port
+      def initialize logger, count, facade, broadcast_addr, device_addr, multicast_port, broadcast_port
         super logger, count
-        @facade  = facade
-        @addr    = broadcast_addr
-        @device  = device_addr
-        @port    = port
+        @facade         = facade
+        @addr           = broadcast_addr
+        @device         = device_addr
+        @multicast_port = multicast_port
+        @broadcast_port = broadcast_port
       end
 
       private
 
       def work
-        Sender::UDP::Broadcast.start(@logger, @port, @addr) { |s|
+        Sender::UDP::Broadcast.start(@logger, @broadcast_port, @addr) { |s|
           nop = Protocol::Response::Nop.new(nil)
 
           until Thread.current[:dying]
@@ -60,7 +61,7 @@ module Castoro
 
                 when Protocol::Command::Island
                   @island_status.set d
-                  
+
                 when Protocol::Command::Nop
                   s.send h, nop, h.ip, h.port
 
@@ -79,7 +80,7 @@ module Castoro
       end
 
       def on_starting
-        @island_status = IslandStatus.new @logger, @port, @device
+        @island_status = IslandStatus.new @logger, @multicast_port, @device
         @island_status.start
       end
 
@@ -116,6 +117,7 @@ module Castoro
         end
 
         def set island_command
+          @logger.debug { "set island status #{island_command.island}: #{island_command.storables}, #{island_command.capacity}" }
           @status[island_command.island] = {
             :storables => island_command.storables,
             :capacity => island_command.capacity,
@@ -141,12 +143,14 @@ module Castoro
 
         def choice_island create_command
           weight = (0..(@status.size-1)).map { |x| 2**x }
+          availables = @status.select { |island, stat| stat[:capacity] >= create_command.hints["length"] }.sort_by { rand }
           i = -1
-          @status.select { |island, val|
-            val[:capacity] >= create_command.capacity
-          }.map { |k,v|
-            # should sort by capacity
-          }
+          availables.map { |island, stat|
+            [island, stat, availables.count { |h,v| stat[:capacity] <= v[:capacity] }]
+          }.map { |q|
+            i += 1
+            [q[0], q[1], q[2] * weight[i]]
+          }.sort_by { |x| x[2] }.map { |x| x[0] }.first
         end
       end
 
