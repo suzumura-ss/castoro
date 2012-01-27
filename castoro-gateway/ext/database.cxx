@@ -46,15 +46,15 @@ Database::~Database()
 
 
 // insert
-void Database::insert(const BasketId& id, uint32_t type, uint32_t revision, ID peer, ID base)
+void Database::insert(uint64_t content_id, uint32_t type, uint32_t revision, ID peer, ID base)
 {
-  ContentIdWithType ct(id, type);
+  ContentIdWithType ct(content_id, type);
 
   CachePageMap::iterator it = m_table.find(ct);
   if(it==m_table.end()) {
     // alloc and insert new page.
     CachePage* p = m_pool->alloc();
-    p->init(id, type);
+    p->init(content_id, type);
     std::pair<CachePageMap::iterator, bool> r = m_table.insert(std::make_pair(ct, p));
     if(!r.second) {
       // insert failed.
@@ -66,7 +66,7 @@ void Database::insert(const BasketId& id, uint32_t type, uint32_t revision, ID p
 
   // insert {content_id, type, revision, peer}.
   CachePage* p = (*it).second;
-  if(!(p->insert(id, type, revision, fromID(peer)))) {
+  if(!(p->insert(content_id, type, revision, fromID(peer)))) {
     // drop page because of page is full.
     m_pool->drop(p);
     m_table.erase(it);
@@ -80,18 +80,19 @@ void Database::insert(const BasketId& id, uint32_t type, uint32_t revision, ID p
   update_peer(peer);
 }
 
-void Database::find(const BasketId& id, uint32_t type, uint32_t revision, ArrayOfPeerWithBase& result, bool& removed)
+
+void Database::find(uint64_t content_id, uint32_t type, uint32_t revision, ArrayOfPeerWithBase& result, bool& removed)
 {
   m_requests++;
 
-  ContentIdWithType ct(id, type);
+  ContentIdWithType ct(content_id, type);
   
   CachePageMap::iterator it = m_table.find(ct);
   if(it==m_table.end()) return; // nothing to do.
 
   CachePage* p = (*it).second;
   ArrayOfId peers;
-  if(!(p->find(id, type, revision, peers, removed))) {
+  if(!(p->find(content_id, type, revision, peers, removed))) {
     // drop page because of page is brocken.
     m_pool->drop(p);
     m_table.erase(it);
@@ -112,15 +113,15 @@ void Database::find(const BasketId& id, uint32_t type, uint32_t revision, ArrayO
 }
 
 
-void Database::remove(const BasketId& id, uint32_t type, uint32_t revision, ID peer)
+void Database::remove(uint64_t content_id, uint32_t type, uint32_t revision, ID peer)
 {
-  ContentIdWithType ct(id, type);
+  ContentIdWithType ct(content_id, type);
 
   CachePageMap::iterator it = m_table.find(ct);
   if(it==m_table.end()) return; // nothing to do.
 
   CachePage* p = (*it).second;
-  if(!(p->remove(id, type, revision, fromID(peer)))) {
+  if(!(p->remove(content_id, type, revision, fromID(peer)))) {
     // drop page because of page is empty.
     m_pool->drop(p);
     m_table.erase(it);
@@ -257,16 +258,15 @@ bool Database::dump(CacheDumperAbstract& dumper)
     uint8_t*  revisions = cp->m_revision_hash_r();
     ID3*      peers = cp->m_peers_r();
     ContentIdWithType magic = cp->m_magic_r();
-
     for(size_t ofs = 0; ofs<CACHEPAGE_SIZE; ofs++) {
       ArrayOfId ids;  peers[ofs].pushall(ids);
-      BasketId  bid = magic.basket_id;
+      uint64_t  cid = magic.content_id;
       uint32_t  typ = magic.type;
       uint32_t  rev = revisions[ofs];
       for(size_t pi=0; pi<ids.size(); pi++) {
         ID peer = toID(ids.at(pi));
         ID base = m_paths.find(peer, typ);
-        if(!dumper(bid+(uint64_t)ofs, typ, rev, peer, base)) return false;
+        if(!dumper(cid+ofs, typ, rev, peer, base)) return false;
       }
     }
   }

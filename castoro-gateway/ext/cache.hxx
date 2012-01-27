@@ -23,7 +23,6 @@
 
 #include "ruby.h"
 #include "database.hxx"
-#include "basket.hxx"
 
 // C++/Ruby Wrapper template.
 template<class T> class RubyWrapper
@@ -56,11 +55,11 @@ public:
   inline virtual ~Cache() { try{ if(m_db) delete m_db; } catch(...){} };
 
   // content handlings.
-  inline void insert(BasketId id, uint32_t t, uint32_t r, ID p, ID b) { m_db->insert(id, t, r, p, b); };
-  inline void find(BasketId id, uint32_t t, uint32_t r, ArrayOfPeerWithBase& a, bool& k) {
-    m_db->find(id, t, r, a, k);
+  inline void insert(uint64_t c, uint32_t t, uint32_t r, ID p, ID b) { m_db->insert(c, t, r, p, b); };
+  inline void find(uint64_t c, uint32_t t, uint32_t r, ArrayOfPeerWithBase& a, bool& k) {
+    m_db->find(c, t, r, a, k);
   };
-  inline void remove(BasketId id, uint32_t t, uint32_t r, ID p) { m_db->remove(id, t, r, p); };
+  inline void remove(uint64_t c, uint32_t t, uint32_t r, ID p) { m_db->remove(c, t, r, p); };
 
   // peer handlings.
   inline void set_status(ID p, const PeerStatus& s) { m_db->set_status(p, s); };
@@ -92,6 +91,7 @@ private:
   static VALUE rb_erase_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r);
   static VALUE rb_get_peer_status(VALUE self, VALUE _p);
   static VALUE rb_set_peer_status(VALUE self, VALUE _p, VALUE _s);
+  static VALUE rb_make_nfs_path(VALUE self, VALUE _p, VALUE _b, VALUE _c, VALUE _t, VALUE _r);
 
   static VALUE synchronize(VALUE self);
   static VALUE find_internal(VALUE block_arg, VALUE data, VALUE self);

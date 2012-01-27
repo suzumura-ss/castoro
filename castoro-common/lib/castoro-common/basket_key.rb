@@ -35,11 +35,12 @@ module Castoro
       values = string.to_s.split "."
       raise BasketKeyError, "basket key parse error." unless values.length == 3
 
-      unless values.all? { |v| v =~ /^[0-9]+$/ }
-        raise BasketKeyError, "basket key parse error."
-      end
+      args = values.map { |v|
+        raise BasketKeyError, "basket key parse error." unless v =~ /^(0x)?[0-9A-Fa-f]+$/
+        v.to_i($1 ? 16 : 10)
+      }
 
-      BasketKey.new values[0], values[1], values[2]
+      BasketKey.new *args
     end
 
     attr_reader :content, :type, :revision

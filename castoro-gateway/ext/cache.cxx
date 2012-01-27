@@ -19,7 +19,6 @@
  */
 
 #include "cache.hxx"
-#include "basket.hxx"
 
 static VALUE rb_cCastoro, rb_cCache, rb_cPeers, rb_cPeer;
 
@@ -82,6 +81,7 @@ VALUE Cache::define_class(VALUE _p)
   rb_define_method(c, "erase_element", RUBY_METHOD_FUNC(rb_erase_element), 4);
   rb_define_method(c, "get_peer_status", RUBY_METHOD_FUNC(rb_get_peer_status), 1);
   rb_define_method(c, "set_peer_status", RUBY_METHOD_FUNC(rb_set_peer_status), 2);
+  rb_define_private_method(c, "make_nfs_path", RUBY_METHOD_FUNC(rb_make_nfs_path), 5);
   rb_eval_string(make_nfs_path);
   rb_eval_string(member_puts);
 
@@ -182,9 +182,9 @@ public:
   };
   virtual inline ~Dumper() {};
 
-  virtual bool operator()(const BasketId& id, uint32_t typ, uint32_t rev, ID peer, ID base) {
+  virtual bool operator()(uint64_t cid, uint32_t typ, uint32_t rev, ID peer, ID base) {
     rb_funcall(rb_funcall(self, rb_intern("class"), 0), operator_member_puts, 6,
-              f, ID2SYM(peer), ID2SYM(base), id.to_num(), LONG2FIX(typ), LONG2FIX(rev));
+              f, ID2SYM(peer), ID2SYM(base), ULL2NUM(cid), LONG2FIX(typ), LONG2FIX(rev));
     return true;
   };
 
@@ -228,6 +228,11 @@ VALUE Cache::rb_set_peer_status(VALUE self, VALUE _p, VALUE _s)
   return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(set_peer_status_internal), rb_ary_new3(3, self, _p, _s));
 }
 
+VALUE Cache::rb_make_nfs_path(VALUE self, VALUE _p, VALUE _b, VALUE _c, VALUE _t, VALUE _r)
+{
+  return rb_funcall(rb_cCache, operator_make_nfs_path, 5, _p, _b, _c, _t, _r);
+}
+
 VALUE Cache::synchronize(VALUE self)
 {
   VALUE monitor = rb_ivar_get(self, operator_locker);
@@ -244,15 +249,14 @@ VALUE Cache::find_internal(VALUE block_arg, VALUE data, VALUE self)
   ArrayOfPeerWithBase a;
   bool removed = false;
 
-  BasketId id(_c);
-  get_self(_self)->find(id, NUM2INT(_t), NUM2INT(_r), a, removed);
+  get_self(_self)->find(NUM2ULL(_c), NUM2INT(_t), NUM2INT(_r), a, removed);
   if(removed) return Qnil;
 
   VALUE result = rb_class_new_instance(0, &stub, rb_cArray);
   for(unsigned int i=0; i<a.size(); i++) {
     ID peer = a.at(i).peer;
     ID base = a.at(i).base;
-    VALUE nfs = rb_funcall(rb_cCache, operator_make_nfs_path, 5,
+    VALUE nfs = rb_funcall(_self, operator_make_nfs_path, 5,
         ID2SYM(peer), ID2SYM(base), _c, _t, _r);
     rb_funcall(result, operator_push, 1, nfs);
   }
@@ -414,8 +418,7 @@ VALUE Peer::define_class(VALUE _p)
 VALUE Peer::rb_insert(VALUE self, VALUE _c, VALUE _t, VALUE _r, VALUE _b)
 {
   Peer* p = get_self(self);
-  BasketId id(_c);
-  p->m_cache->insert(id, NUM2INT(_t), NUM2INT(_r), p->m_peer, rb_to_id(_b));
+  p->m_cache->insert(NUM2ULL(_c), NUM2INT(_t), NUM2INT(_r), p->m_peer, rb_to_id(_b));
   return Qnil;
 }
 
@@ -423,8 +426,7 @@ VALUE Peer::rb_insert(VALUE self, VALUE _c, VALUE _t, VALUE _r, VALUE _b)
 VALUE Peer::rb_remove(VALUE self, VALUE _c, VALUE _t, VALUE _r)
 {
   Peer* p = get_self(self);
-  BasketId id(_c);
-  p->m_cache->remove(id, NUM2INT(_t), NUM2INT(_r), p->m_peer);
+  p->m_cache->remove(NUM2ULL(_c), NUM2INT(_t), NUM2INT(_r), p->m_peer);
   return Qnil;
 }
 

@@ -86,6 +86,37 @@ describe Castoro::BasketKey do
     end
   end
 
+  context "when string '0x1f.0xff.0x10' is specified for the #parse" do
+    before do
+      @key = Castoro::BasketKey.parse "0x1f.0xff.0x10"
+    end
+
+    it "should return Castoro::BasketKey instance" do
+      @key.class.should == Castoro::BasketKey
+    end
+
+    it "should content 31" do
+      @key.content.should == 31
+    end
+
+    it "should type 255" do
+      @key.type.should == 255
+    end
+
+    it "should revision 16" do
+      @key.revision.should == 16
+    end
+
+    it "should to_s '31.255.16'" do
+      @key.to_s.should == "31.255.16"
+    end
+
+    it "should equal decimal equivalent of basket" do
+      key = Castoro::BasketKey.new 31, 255, 16
+      @key.should == key
+    end
+  end
+
   context "when content=-1, type=2, revision=3 is specified." do
     it "should raise Castoro::BasketKeyError" do
       Proc.new {

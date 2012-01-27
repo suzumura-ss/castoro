@@ -26,8 +26,7 @@ WATCHDOG  = 30153
 
 SETTINGS = {
   "multicast_addr" => "239.192.1.1",
-#  "multicast_device_addr" => IPSocket::getaddress(Socket::gethostname),
-  "multicast_device_addr" => "127.0.0.1",
+  "multicast_device_addr" => IPSocket::getaddress(Socket::gethostname),
   "gateway" => {
     "console_port" => CONSOLE,
     "unicast_port" => UNICAST,
@@ -36,6 +35,8 @@ SETTINGS = {
     "watchdog_logging" => false,
   },
   "master" => true,
+  "master_multicast_addr" => "239.192.254.254",
+  "island_multicast_device_addr" =>  `/sbin/ip -o addr| sed -ne '/ eth0 *inet /p;'`.split[3].to_s.split('/')[0],
 }
 
 describe Castoro::Gateway::Facade do

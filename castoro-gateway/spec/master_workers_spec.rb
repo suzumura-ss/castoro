@@ -26,13 +26,14 @@ describe Castoro::Gateway::MasterWorkers do
     @device_addr    = ENV['DEVICE']    || IPSocket.getaddress(Socket.gethostname)
     @port           = ENV['PORT']      || 30109
     @mock_port      = ENV['MOCK_PORT'] || 30110
+    @broadcast_port = ENV['BROADCAST_PORT'] || 30108
     @facade = Object.new
   end
 
   describe "given valid constructor argument" do
     before do
       @w = Castoro::Gateway::MasterWorkers.new @logger, 1,
-        @facade, @broadcast_addr, @device_addr, @port
+        @facade, @broadcast_addr, @device_addr, @port, @broadcast_port
     end
 
     it "should be able to start" do
@@ -78,7 +79,7 @@ describe Castoro::Gateway::MasterWorkers do
 
       it "should send broadcast" do
         received = false
-        receiver = Castoro::Receiver::UDP.new(@logger, @port) { |h, d, p, i|
+        receiver = Castoro::Receiver::UDP.new(@logger, @broadcast_port) { |h, d, p, i|
           received = true if d.kind_of?(Castoro::Protocol::Command::Get)
         }
         receiver.start
