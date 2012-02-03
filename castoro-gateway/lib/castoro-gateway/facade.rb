@@ -46,22 +46,22 @@ module Castoro
         @locker           = Monitor.new
         @recv_locker      = Monitor.new
 
-        @gup              = config["gateway"]["unicast_port"].to_i
-        @gmp              = config["gateway"]["multicast_port"].to_i
-        @gwp              = config["gateway"]["watchdog_port"].to_i
-        @watchdog_logging = config["gateway"]["watchdog_logging"]
-        @ibp              = config["island_broadcast_port"].to_i unless config["master"]
+        @gup              = config["gateway_unicast_port"].to_i
+        @gmp              = config["gateway_multicast_port"].to_i
+        @gwp              = config["gateway_watchdog_port"].to_i
+        @watchdog_logging = config["gateway_watchdog_logging"]
+        @ibp              = config["island_broadcast_port"].to_i if config["type"] == "island"
 
-        addr              = config["multicast_addr"].to_s
-        device            = config["multicast_device_addr"].to_s
+        addr              = config["peer_multicast_addr"].to_s
+        device            = config["peer_multicast_device_addr"].to_s
         @mreqs = []
-        @mreqs << (IPAddr.new(addr).hton + IPAddr.new(device).hton) unless config["master"]
+        @mreqs << (IPAddr.new(addr).hton + IPAddr.new(device).hton) if ["original", "island"].include?(config["type"])
         if config["island_multicast_device_addr"]
-          if config["master"] and config["master_multicast_addr"]
+          if ["master"].include?(config["type"]) and config["master_multicast_addr"]
             @mreqs << (IPAddr.new(config["master_multicast_addr"].to_s).hton +
                        IPAddr.new(config["island_multicast_device_addr"].to_s).hton)
           end
-          if (not config["master"]) and config["island_multicast_addr"]
+          if ["island"].include?(config["type"]) and config["island_multicast_addr"]
             @mreqs << (IPAddr.new(config["island_multicast_addr"].to_s).hton +
                        IPAddr.new(config["island_multicast_device_addr"].to_s).hton)
           end

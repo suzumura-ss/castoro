@@ -41,6 +41,16 @@ module Castoro
         config = config[options[:env]]
 
         [*config["require"]].each { |r| require r } if config["require"]
+
+        group = config["group"] || Gateway::DEFAULT_SETTINGS["group"]
+        if group
+          gid = begin
+                  group.kind_of?(Integer) ? Etc.getgrgid(group.to_i).gid : Etc.getgrnam(group.to_s).gid
+                rescue ArgumentError
+                  raise "con't find group for #{group}"
+                end
+          Process::Sys.setegid(gid)
+        end
   
         user = config["user"] || Gateway::DEFAULT_SETTINGS["user"]
         

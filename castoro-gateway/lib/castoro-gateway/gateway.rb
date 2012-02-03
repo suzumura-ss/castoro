@@ -34,38 +34,35 @@ module Castoro
       "require" => [],
       "logger" => " Proc.new { |logfile| Logger.new(logfile) } ",
       "user" => "castoro",
+      "group" => nil,
       "workers" => 5,
       "loglevel" => Logger::INFO,
-      "multicast_addr" => "239.192.1.1",
-      "multicast_device_addr" => IPSocket::getaddress(Socket::gethostname),
+      "type" => "original",
+      "gateway_console_port" => 30110,
+      "gateway_unicast_port" => 30111,
+      "gateway_multicast_port" => 30109,
+      "gateway_watchdog_port" => 30113,
+      "gateway_watchdog_logging" => false,
+      "peer_multicast_addr" => "239.192.1.1",
+      "peer_multicast_device_addr" => IPSocket::getaddress(Socket::gethostname),
+      "peer_multicast_port" => 30112,
+      "master_multicast_addr" => "239.192.254.254",
+      "island_broadcast_addr" => nil,
+      "island_broadcast_port" => 30108,
+      "island_multicast_addr" => nil,
+      "island_multicast_device_addr" => IPSocket::getaddress(Socket::gethostname),
       "cache" => {
         "watchdog_limit" => 15,
         "return_peer_number" => 5,
         "cache_size" => 500000,
       },
-      "gateway" => {
-        "console_port" => 30110,
-        "unicast_port" => 30111,
-        "multicast_port" => 30109,
-        "watchdog_port" => 30113,
-        "watchdog_logging" => false,
-      },
-      "peer" => {
-        "multicast_port" => 30112
-      },
-      "master" => nil,
-      "master_broadcast_addr" => nil,
-      "master_multicast_addr" => nil,
-      "island_multicast_addr" => nil,
-      "island_multicast_device_addr" => nil,
-      "island_broadcast_port" => 30108,
     }
     SETTING_TEMPLATE = "" <<
       "<% require 'logger' %>\n" <<
       {
         "default" => DEFAULT_SETTINGS.merge(
           "loglevel" => "<%= Logger::INFO %>",
-          "multicast_device_addr" => "<%= `/sbin/ip -o addr| sed -ne '/ eth0 *inet /p;'`.split[3].to_s.split('/')[0] %>"
+          "peer_multicast_device_addr" => "<%= `/sbin/ip -o addr| sed -ne '/ eth0 *inet /p;'`.split[3].to_s.split('/')[0] %>"
         )
       }.to_yaml
 
@@ -115,7 +112,7 @@ module Castoro
         @unicast_count = 0
 
         # start repository.
-        unless @config["master"]
+        if ["original", "island"].include?(@config["type"])
           @repository = @@repository_class.new @logger, @config["cache"]
         end
 
@@ -123,19 +120,19 @@ module Castoro
         @facade = @@facade_class.new @logger, @config
         @facade.start
 
-        mc_addr   = @config["multicast_addr"].to_s
-        mc_device = @config["multicast_device_addr"].to_s
-        mc_port   = @config["peer"]["multicast_port"].to_i
+        mc_addr   = @config["peer_multicast_addr"].to_s
+        mc_device = @config["peer_multicast_device_addr"].to_s
+        mc_port   = @config["peer_multicast_port"].to_i
         island    = @config["island_multicast_addr"] ? @config["island_multicast_addr"].to_island : nil
 
         # start workers.
-        if @config["master"]
+        if ["master"].include?(@config["type"])
           @workers = @@master_workers_class.new @logger,
                                                 @config["workers"],
                                                 @facade,
-                                                @config["master_broadcast_addr"],
+                                                @config["island_broadcast_addr"],
                                                 @config["island_multicast_device_addr"],
-                                                @config["gateway"]["multicast_port"],
+                                                @config["gateway_multicast_port"],
                                                 @config["island_broadcast_port"]
         else
           @workers = @@workers_class.new @logger, @config["workers"], @facade, @repository, mc_addr, mc_device, mc_port, island
@@ -143,16 +140,16 @@ module Castoro
         @workers.start
 
         # start console server.
-        unless @config["master"]
-          @console = @@console_server_class.new @logger, @repository, @config["gateway"]["console_port"].to_i, :host => "0.0.0.0"
+        if ["original", "island"].include?(@config["type"])
+          @console = @@console_server_class.new @logger, @repository, @config["gateway_console_port"].to_i, :host => "0.0.0.0"
           @console.start
         end
 
         # start watchdog sender.
-        unless @config["master"]
+        if ["island"].include?(@config["type"])
           if @config["master_multicast_addr"] and @config["island_multicast_device_addr"]
             @watchdog_sender = @@watchdog_sender_class.new @logger, @repository, @config["island_multicast_addr"],
-                                  :dest_port => @config["gateway"]["multicast_port"],
+                                  :dest_port => @config["gateway_multicast_port"],
                                   :dest_host => @config["master_multicast_addr"],
                                   :if_addr => @config["island_multicast_device_addr"]
             @watchdog_sender.start
@@ -197,11 +194,17 @@ module Castoro
     def alive?
       @locker.synchronize {
         @alive_proc ||= (
-          if @config["master"]
+          case @config["type"]
+          when "master"
             Proc.new {
               @facade and @facade.alive? and @workers and @workers.alive?
             }
-          else
+          when "island"
+            Proc.new {
+              @facade and @facade.alive? and @workers and @workers.alive? and
+              @repository and @console and @console.alive? and @watchdog_sender and @watchdog_sender.alive?
+            }
+          else # "original"
             Proc.new {
               @facade and @facade.alive? and @workers and @workers.alive? and
               @repository and @console and @console.alive?

@@ -164,64 +164,128 @@ default:
     multicast_port: 30112
 </pre>
 
-h3. logger
+h3. configuration key details.
+
+h4. logger
 
 String that can be evaluated by eval,
 Proc object that returns Logger.
 
-h3. user
+h4. user
 
 Effective user for gateway program.
 
-h3. workers
+h4. workers
 
 count of worker processes.
 
-h3. loglevel
+h4. loglevel
 
 logger level. must set to be between 0 and 5.
 It conforms to the enumeration value of Logger::Severity.
 
-h3. multicast_addr
+h4. type
 
-Address for multicast.
+"original", "master", "island" either.
 
-h3. multicast_device_addr
+h4. gateway_console_port
 
-Network interface address for multicast.
+TCP Port number for console.
+for original and island.
 
-h3. cache => watchdog_limit
+h4. gateway_unicast_port
+
+UDP Port number for unicast. (Client to Gateway)
+for original and master.
+
+h4. gateway_multicast_port
+
+UDP Port number for multicast. (Peer to Gateway)
+for original and island.
+
+h4. gateway_watchdog_port
+
+UDP Port number for watchdog. (Peer to Gateway)
+for original and island.
+
+h4. gateway_watchdog_logging
+
+When true, watchdog packet logging.
+for original and island.
+
+h4. peer_multicast_addr
+
+Address for multicast. (Gateway to Peer, and Peer to Gateway)
+for original and island.
+
+h4. peer_multicast_device_addr
+
+Network interface address for peer_multicast_addr
+for original and island.
+
+h4. peer_multicast_port
+
+UDP Port number for multicast. (Gateway to Peer)
+for original and island.
+
+h4. master_multicast_addr
+
+Multicast address for master-gateway.
+for master and island.
+
+h4. island_broadcast_addr
+
+Broadcast address for island.
+for master.
+
+h4. island_broadcast_port
+
+Port number for island broadcast.
+for master and island.
+
+h4. island_multicast_addr
+
+Multicast address for island.
+for island.
+
+h4. island_multicast_device_addr
+
+Network interface address for island_multicast_addr
+for master and island.
+
+h4. cache => watchdog_limit
 
 Timeout second for watchdog.
 
-h3. cache => return_peer_number
+h4. cache => return_peer_number
 
 Count of peer hostname per return.
 
-h3. cache => cache_size
+h4. cache => cache_size
 
 Cache size (Bytes)
 
-h3. gateway => console_port
+h3. configurations key list
 
-TCP Port number for console.
+|key|value-type|original|master|island|default|
+|require|Array[String]|required|required|required|[]|
+|logger|String|required|required|required|<code>" Proc.new { |logfile| Logger.new(logfile) } "</code>|
+|user|String/Integer|required|required|required|castoro|
+|group|String/Integer|||||
+|workers|Integer|required|required|required|5|
+|loglevel|Integer|required|required|required|1 (Logger::INFO)|
+|type|String|required|required|required|original|
+|gateway_console_port|Integer|required||required|30110|
+|gateway_unicast_port|Integer|required|required||30111|
+|gateway_multicast_port|Integer|required||required|30109|
+|gateway_watchdog_port|Integer|required||required|30113|
+|gateway_watchdog_logging|Boolean|required||required|false|
+|peer_multicast_addr|String|required||required|239.192.1.1|
+|peer_multicast_device_addr|String|required||required||
+|peer_multicast_port|Integer|required||required|30112|
+|master_multicast_addr|String||required|required|239.192.254.254|
+|island_broadcast_addr|String||required|||
+|island_broadcast_port|Integer||required|required|30108|
+|island_multicast_addr|String|||required||
+|island_multicast_device_addr|String||required|required||
 
-h3. gateway => unicast_port
-
-UDP Port number for unicast. (Client to Gateway)
-
-h3. gateway => multicast_port
-
-UDP Port number for multicast. (Peer to Gateway)
-
-h3. gateway => watchdog_port
-
-UDP Port number for watchdog. (Peer to Gateway)
-
-h3. gateway => watchdog_logging
-
-When true, watchdog packet logging.
-
-h3. peer => multicast_port
-
-UDP Port number for multicast. (Gateway to Peer)

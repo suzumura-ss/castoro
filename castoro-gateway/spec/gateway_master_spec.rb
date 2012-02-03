@@ -27,7 +27,7 @@ describe Castoro::Gateway do
   describe "given master configurations" do
     before do
       config = {
-        "master" => true,
+        "type" => "master",
       }
       @g = Castoro::Gateway.new config, @logger
     end

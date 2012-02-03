@@ -167,18 +167,14 @@ describe Castoro::Gateway do
     context "given island to configurations" do
       before do
         config = {
-          "multicast_addr"        => "239.192.1.2",
-          "multicast_device_addr" => "127.0.0.1",
-          "gateway" => {
-            "console_port"        => 30150,
-            "unicast_port"        => 30151,
-            "multicast_port"      => 30149,
-            "watchdog_port"       => 30153,
-          },
-          "peer" => {
-            "multicast_port"      => 30152
-          },
-          "island_multicast_addr" => "abcdef01",
+          "peer_multicast_addr"        => "239.192.1.2",
+          "peer_multicast_device_addr" => "127.0.0.1",
+          "gateway_console_port"       => 30150,
+          "gateway_unicast_port"       => 30151,
+          "gateway_multicast_port"     => 30149,
+          "gateway_watchdog_port"      => 30153,
+          "peer_multicast_port"        => 30152,
+          "island_multicast_addr"      => "abcdef01",
         }
         @g = Castoro::Gateway.new config, @logger
       end
@@ -199,17 +195,13 @@ describe Castoro::Gateway do
     context "when config argument is test configs" do
       before do
         test_configs = {
-          "multicast_addr"        => "239.192.1.2",
-          "multicast_device_addr" => "127.0.0.1",
-          "gateway" => {
-            "console_port"        => 30150,
-            "unicast_port"        => 30151,
-            "multicast_port"      => 30149,
-            "watchdog_port"       => 30153,
-          },
-          "peer" => {
-            "multicast_port"      => 30152
-          }
+          "peer_multicast_addr"        => "239.192.1.2",
+          "peer_multicast_device_addr" => "127.0.0.1",
+          "gateway_console_port"       => 30150,
+          "gateway_unicast_port"       => 30151,
+          "gateway_multicast_port"     => 30149,
+          "gateway_watchdog_port"      => 30153,
+          "peer_multicast_port"        => 30152,
         }
         @g = Castoro::Gateway.new test_configs, @logger
       end
