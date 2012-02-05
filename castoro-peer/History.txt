@@ -1,3 +1,8 @@
+=== 0.1.4 2012-01-20
+
+* fixed issue #55 - Do not respond to a GET request when the status is offline
+* fixed issue #54 - Identifiers of operation status have become to match their display names
+
 === 0.1.3 2011-11-07
 
 * fixed issue #27 - Made it sure that a basket would be deleted even if it happens right after its creation.

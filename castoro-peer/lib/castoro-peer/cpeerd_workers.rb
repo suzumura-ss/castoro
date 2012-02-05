@@ -327,6 +327,21 @@ module Castoro
 
 
       class CommandProcessor < Worker
+        class Ignore < Exception ; end
+
+        @@Commands = {
+          'NOP'      => :NOP,
+          'GET'      => :GET,
+          'CREATE'   => :CREATE,
+          'CLONE'    => :CLONE,
+          'DELETE'   => :DELETE,
+          'CANCEL'   => :CANCEL,
+          'FINALIZE' => :FINALIZE,
+          'INSERT'   => :INSERT,
+          'DROP'     => :DROP,
+          'ALIVE'    => :ALIVE,
+        }
+
         def initialize( pipeline )
           @pipeline = pipeline
           super
@@ -337,82 +352,75 @@ module Castoro
           ticket = @pipeline.deq
           ticket.mark
           command, args = ticket.channel.parse
+          ticket.command, ticket.args, = command, args
           basket_text = args[ 'basket' ]
-          # Todo: basket_text.nil? and raise an exception
           basket = Basket.new_from_text( basket_text ) if basket_text
-          ticket.command, ticket.args, ticket.basket = command, args, basket
-          ticket.host = @hostname
-          command_sym = nil
-          case command
-          when 'GET'
-            path_a = basket.path_a
-            if ( File.exist? path_a )
-              basket_text = basket.to_s
-              ticket.push Hash[ 'basket', basket_text, 'paths', { ticket.host => path_a } ].tap { |h|
-                h['island'] = args['island'] if args.key?('island')
-              }
-              ResponseSenderPL.instance.enq ticket
-              t = MulticastCommandSenderTicketPool.instance.create_ticket
-              t.push( 'INSERT', Hash[ 'basket', basket_text, 'host', ticket.host, 'path', path_a ] )
-              MulticastCommandSenderPL.instance.enq t
+          ticket.host, ticket.basket = @hostname, basket
+
+          command_sym = @@Commands[ command ] or raise BadRequestError, "Unknown command: #{command}"
+          threshold = case command_sym
+                      when :CREATE            ; ServerStatus::ONLINE
+                      when :DELETE            ; ServerStatus::DEL_REP
+                      when :FINALIZE, :CANCEL ; ServerStatus::FIN_REP
+                      #                       ; ServerStatus::REP
+                      when :GET, :NOP         ; ServerStatus::READONLY
+                      else    # :INSERT, :DROP, :ALIVE, :CLONE
+                        raise Ignore
+                      end
+
+          unless ServerStatus.instance.equal_or_greater_than? threshold
+            Log.warning( "#{command_sym}: ServerStatusError server status: #{ServerStatus.instance.status_name}: #{basket}" )
+            if command_sym == :GET and not ticket.channel.tcp? 
+              raise Ignore
             else
-              ticket.mark
-              if ( ticket.channel.tcp? )
-                raise NotFoundError, path_a 
-              else
-                ticket.finish
-                Log.debug( "Get received, but not found: #{basket_text}" ) if $DEBUG
-                #########
-                ####  basket id is required
-                #########
-                Log.debug( sprintf( "%s %.1fms [%s] %s is not found", ticket.command.slice(0,3), ticket.duration * 1000, 
-                                    ( ticket.durations.map { |x| "%.1f" % (x * 1000) } ).join(', '), basket_text ) ) if $DEBUG
-                CommandReceiverTicketPool.instance.delete( ticket )
-              end
-            end
-          when 'NOP'
-            ticket.push Hash[]
-            ResponseSenderPL.instance.enq ticket
-          when 'INSERT'
-            # Todo: Do nothing
-          when 'DROP'
-            # Todo: Do nothing
-          when 'ALIVE'
-            # Todo: Do nothing
-          when 'CREATE'  ; command_sym = :CREATE
-          when 'CLONE'   ; command_sym = :CLONE
-          when 'DELETE'  ; command_sym = :DELETE
-          when 'CANCEL'  ; command_sym = :CANCEL
-          when 'FINALIZE'; command_sym = :FINALIZE
-          else
-            raise BadRequestError, "Unknown command: #{command}"
-          end
-          if ( command_sym )
-            accept = case ServerStatus.instance.status
-                     when ServerStatus::ACTIVE       ; true
-                     when ServerStatus::DEL_REP      ; command_sym == :CANCEL or command_sym == :FINALIZE or command_sym == :DELETE
-                     when ServerStatus::FIN_REP      ; command_sym == :CANCEL or command_sym == :FINALIZE
-                     when ServerStatus::REP          ; false
-                     when ServerStatus::READONLY     ; false
-                     when ServerStatus::MAINTENANCE  ; false
-                     when ServerStatus::UNKNOWN      ; false
-                     else ; false
-                     end
-            if ( accept )
-              ticket.command_sym = command_sym
-              BasketStatusQueryDatabasePL.instance.enq ticket
-            else
-              Log.warning( "#{command_sym.to_s}: ServerStatusError server status: #{ServerStatus.instance.status_name}: #{basket}" )
               raise ServerStatusError, "server status: #{ServerStatus.instance.status_name}"
             end
-          else
-            # Todo:
-            # INSERT, DROP, ALIVE are implemented in crepd_workers.rb
-            CommandReceiverTicketPool.instance.delete( ticket )
           end
+
+          case command_sym
+          when :GET
+            do_get ticket, basket, args['island']
+          when :NOP
+            ticket.push Hash[]
+            ResponseSenderPL.instance.enq ticket
+          else   # :CREATE, :DELETE, :FINALIZE, :CANCEL
+            ticket.command_sym = command_sym
+            BasketStatusQueryDatabasePL.instance.enq ticket
+          end
+
+        rescue Ignore
+          CommandReceiverTicketPool.instance.delete( ticket )
         rescue => e
           ticket.push e
           ResponseSenderPL.instance.enq ticket
+        end
+
+        def do_get ticket, basket, island
+          path_a = basket.path_a
+          if ( File.exist? path_a )
+            basket_text = basket.to_s
+            ticket.push Hash[ 'basket', basket_text, 'paths', { ticket.host => path_a } ].tap do |h|
+              h['island'] = island if island
+            end
+            ResponseSenderPL.instance.enq ticket
+            t = MulticastCommandSenderTicketPool.instance.create_ticket
+            t.push( 'INSERT', Hash[ 'basket', basket_text, 'host', ticket.host, 'path', path_a ] )
+            MulticastCommandSenderPL.instance.enq t
+          else
+            ticket.mark
+            if ( ticket.channel.tcp? )
+              raise NotFoundError, path_a 
+            else
+              ticket.finish
+              Log.debug( "Get received, but not found: #{basket_text}" ) if $DEBUG
+              #########
+              ####  basket id is required
+              #########
+              Log.debug( sprintf( "%s %.1fms [%s] %s is not found", ticket.command.slice(0,3), ticket.duration * 1000, 
+                                  ( ticket.durations.map { |x| "%.1f" % (x * 1000) } ).join(', '), basket_text ) ) if $DEBUG
+              CommandReceiverTicketPool.instance.delete( ticket )
+            end
+          end
         end
       end
 

@@ -246,7 +246,7 @@ module Castoro
           @p, @r, @d, @w, @alive_packet_sender = p, r, d, w, alive_packet_sender
           super
           @error = false
-          # @lsat_min = ServerStatus::ACTIVE
+          # @lsat_min = ServerStatus::ONLINE
         end
 
         def serve
@@ -256,7 +256,7 @@ module Castoro
             @w.each { |x| error = true if x.error }
 #            p [ @error, error, @error != error ]
 
-            min = error ? ServerStatus::REP : ServerStatus::ACTIVE
+            min = error ? ServerStatus::REP : ServerStatus::ONLINE
             if ( @p.mode and @p.mode != '' )
               p_mode = ServerStatus.status_name_to_i @p.mode
               if ( ServerStatus::REP <= p_mode )
@@ -385,7 +385,7 @@ module Castoro
         end
 
         def do_shutdown
-          ServerStatus.instance.status = ServerStatus::MAINTENANCE 
+          ServerStatus.instance.status = ServerStatus::OFFLINE 
           @alive_packet_sender.send_alive_packet
           # Todo:
           Thread.new {
