@@ -129,7 +129,7 @@ module Castoro
     class TypeIdClassifier
       def initialize entries, fallback
         @cache = Hash.new do |cache, type|  # if the cache misses, examine the type and assign it
-          range, converter = entries.find { |range, converter| range.cover? type }
+          range, converter = entries.find { |key, value| key.cover? type }
           cache[ type ] = converter || fallback  # if the type does not match, use the fallback module
         end
       end

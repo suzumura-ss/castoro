@@ -137,73 +137,41 @@ describe Castoro::BasketKeyConverter do
     end
   end
 
-end
+  class Converter
+    attr_reader :converter
 
+    def initialize args
+      @converter = Castoro::BasketKeyConverter.new args
+      a = run_thread_a
+      b = run_thread_b
+      a.join
+      b.join
+    end
 
-__END__
-  samples = { 
-    :string => 
-    [
-     [ "654321.1.1",                 "654321.1.1" ],
-     [ "3210987654321.2000.1",       "3210987654321.2000.1" ],
-     [ "1234567890.3333.1",          "1234567890.3333.1" ],
-     [ "78901234.3333.1",            "78901234.3333.1" ],
-     [ "0xaaa.1000.1",               "0x0000000000000aaa.1000.1" ],
-     [ "0x0123456789ABCDEF.1000.1",  "0x0123456789abcdef.1000.1" ],
-     [ "0x00fedcba98765432.1234.5",  "0x00fedcba98765432.1234.5" ],
-     [ "0x6789abcdef.9999.4",        "444691369455.9999.4" ],
-    ],
-
-    :path =>
-    [    
-     [ "654321.1.1",                  "/data/1/baskets/a/0/000/654/654321.1.1" ],
-     [ "3210987654321.2000.1",        "/data/2000/baskets/a/3210/987/654/3210987654321.2000.1" ],
-     [ "1234567890.3333.1",           "/data/3333/baskets/a/1/234/567/1234567890.3333.1" ],
-     [ "78901234.3333.1",             "/data/3333/baskets/a/0/078/901/78901234.3333.1" ],
-     [ "0xaaa.1000.1",                "/data/1000/baskets/a/0/000/000/000/000/0000000000000aaa.1000.1" ],
-     [ "0x0123456789ABCDEF.1000.1",   "/data/1000/baskets/a/0/123/456/789/abc/0123456789abcdef.1000.1" ],
-     [ "0x00fedcba98765432.1234.5",   "/data/1234/baskets/a/0/0fe/dcb/a98/765/00fedcba98765432.1234.5" ],
-     [ "0x6789abcdef.9999.4",         "/data/9999/baskets/a/444/691/369/444691369455.9999.4" ],
-    ],
-
-    :converter_module =>
-    [
-     [ "1",     Castoro::BasketKeyConverter::Module::Dec40Seq ],
-     [ "2000",  Castoro::BasketKeyConverter::Module::Dec40Seq ],
-     [ "3333",  Castoro::BasketKeyConverter::Module::Dec40Seq ],
-     [ "3333",  Castoro::BasketKeyConverter::Module::Dec40Seq ],
-     [ "1000",  Castoro::BasketKeyConverter::Module::Hex64Seq ],
-     [ "1000",  Castoro::BasketKeyConverter::Module::Hex64Seq ],
-     [ "1234",  Castoro::BasketKeyConverter::Module::Hex64Seq ],
-     [ "9999",  Castoro::BasketKeyConverter::Module::Dec40Seq ],
-    ],
-  }
-
-  [:string, :path, :converter_module].each do |method|
-    describe "##{method}" do
-
-      before(:each) do
-        args = {
-          "Dec40Seq" => "1-999, 2000, 3000-3999",
-          "Hex64Seq" => "1000-1999",
-        }
-        @converter = Castoro::BasketKeyConverter.new args
-      end
-
-      samples[ method ].each do |entry|
-        input, output = entry
-        it "#{input} should be converted to #{output}" do
-          case method
-          when :path
-            basket = input.to_basket
-            (@converter.__send__ method, "/data", basket).should == output
-          else
-            basket = input.to_basket
-            (@converter.__send__ method, basket).should == output
-          end
-        end
+    def run_thread_a
+      Thread.new do
+        @converter.converter_module( 100 ) == Castoro::BasketKeyConverter::Module::Dec40Seq or
+          raise RuntimeError, "the conversion has been wrongly done."
       end
     end
 
+    def run_thread_b
+      Thread.new do
+        @converter.converter_module( 300 ) == Castoro::BasketKeyConverter::Module::Hex64Seq or
+          raise RuntimeError, "the conversion has been wrongly done."
+      end
+    end
   end
+
+  describe "Multithreading environment" do
+    it "Under the circumstances where two threads chase, conversion should be done correctly" do
+      count = 10000
+
+      count.times do
+        Converter.new( "Dec40Seq" => "100-200", "Hex64Seq" => "300-400" )
+      end
+
+    end
+  end
+
 end
