@@ -23,6 +23,7 @@ require "json"
 
 require "castoro-common/exception"
 require "castoro-common/basket_key"
+require "castoro-common/basket_key_converter"
 require "castoro-common/protocol"
 require "castoro-common/receiver"
 require "castoro-common/sender"
