@@ -70,8 +70,9 @@ describe Castoro::BasketKeyConverter do
       "Dec40Seq" => "1-999, 2000, 3000-3999",
       "Hex64Seq" => "1000-1999",
     }
+    base_dir = "/data"
 
-    converter = Castoro::BasketKeyConverter.new args
+    converter = Castoro::BasketKeyConverter.new( args, { :base_dir => base_dir } )
 
     samples.each do |entry|
       input, output = entry
@@ -115,7 +116,7 @@ describe Castoro::BasketKeyConverter do
 
     converter_test( samples ) do |converter, input, output|
       basket = input.to_basket
-      converter.path( "/data", basket ).should == output
+      converter.path( basket ).should == output
     end
   end
 

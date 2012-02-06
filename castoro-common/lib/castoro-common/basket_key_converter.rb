@@ -20,14 +20,15 @@
 module Castoro
   class BasketKeyConverter
 
-    def initialize args
+    def initialize args, options = {}
       @entries = parse args
+      @base_dir = options[ :base_dir ]
       check_overwrap @entries.keys
       @cache = Hash.new { |cache, type| examine(cache, type) }
     end
 
-    def path base_dir, basket
-      @cache[ basket.type ].path base_dir, basket
+    def path basket
+      @cache[ basket.type ].path @base_dir, basket
     end
 
     def string basket
