@@ -21,21 +21,21 @@ module Castoro
   class BasketKeyConverter
 
     def initialize args
-      entries = parse args
-      check_overwrap entries.keys
-      @classifier = TypeIdClassifier.new entries, Module::Dec40Seq
+      @entries = parse args
+      check_overwrap @entries.keys
+      @cache = Hash.new { |cache, type| examine(cache, type) }
     end
 
     def path base_dir, basket
-      @classifier.converter_module(basket.type).path base_dir, basket
+      @cache[ basket.type ].path base_dir, basket
     end
 
     def string basket
-      @classifier.converter_module(basket.type).string basket
+      @cache[ basket.type ].string basket
     end
 
     def converter_module type
-      @classifier.converter_module type
+      @cache[ type ]
     end
 
     private
@@ -67,6 +67,12 @@ module Castoro
           end
         end
       end
+    end
+
+    # if the cache misses, examine the type and assign it
+    def examine cache, type
+      range, converter = @entries.find { |key, value| key.cover? type }
+      cache[ type ] = converter || Module::Dec40Seq  # if the type does not match, use the fallback module
     end
 
     def find_module name
@@ -123,19 +129,6 @@ module Castoro
         end
 
         module_function :path, :string, :mid, :dir
-      end
-    end
-
-    class TypeIdClassifier
-      def initialize entries, fallback
-        @cache = Hash.new do |cache, type|  # if the cache misses, examine the type and assign it
-          range, converter = entries.find { |key, value| key.cover? type }
-          cache[ type ] = converter || fallback  # if the type does not match, use the fallback module
-        end
-      end
-
-      def converter_module type
-        @cache[ type ]
       end
     end
 
