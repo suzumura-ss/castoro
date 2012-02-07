@@ -168,7 +168,7 @@ module Castoro
       def initialize
         c = Configurations.instance
         @w = []
-        @w << UdpCommandReceiver.new( ExpressCommandReceiverPL.instance, c.PeerMulticastUDPCommandPort )
+        @w << UdpCommandReceiver.new( ExpressCommandReceiverPL.instance, c.PeerUDPCommandPort )
 
         # Todo: neither INSERT nor DROP is interested here
         # #@w << UdpCommandReceiver.new( RegularCommandReceiverPL.instance, c.GatewayUDPCommandPort )
