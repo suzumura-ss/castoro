@@ -254,6 +254,7 @@ module Castoro
         File.open( @file , File::RDONLY ) do |f|
           while line = f.gets do
             next if line =~ /\A\#/
+            next if line =~ /\A\;/
             next if line =~ /\A\s*\Z/
             line.chomp!
             # p line
