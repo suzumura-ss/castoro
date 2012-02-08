@@ -144,8 +144,8 @@ module Castoro
          :CrepdHealthCheckPort,
 
          :BasketBaseDir,
-         :NumberOfExpressCommandProcessor,
-         :NumberOfRegularCommandProcessor,
+         :NumberOfUDPCommandProcessor,
+         :NumberOfTCPCommandProcessor,
          :NumberOfBasketStatusQueryDB,
          :NumberOfCsmController,
          :NumberOfUdpResponseSender,

@@ -60,8 +60,8 @@ module Castoro
       end
     end
 
-#    class RegularCommandReceiverTicketPool < SingletonTicketPool
-#      def fullname; 'Regular command receiver ticket pool' ; end
+#    class TCPCommandReceiverTicketPool < SingletonTicketPool
+#      def fullname; 'TCP command receiver ticket pool' ; end
 #      def nickname; 'rcr' ; end
 #
 #      def create_ticket
@@ -69,8 +69,8 @@ module Castoro
 #      end
 #    end
 
-#    class ExpressCommandReceiverTicketPool < RegularCommandReceiverTicketPool
-#      def fullname; 'Express command receiver ticket pool' ; end
+#    class UDPCommandReceiverTicketPool < TCPCommandReceiverTicketPool
+#      def fullname; 'UDP command receiver ticket pool' ; end
 #      def nickname; 'ecr' ; end
 #    end
 
@@ -87,13 +87,13 @@ module Castoro
 # Pipelines
 ########################################################################
 
-    class RegularCommandReceiverPL < SingletonPipeline
-      def fullname; 'Regular command receiver pipeline' ; end
+    class TCPCommandReceiverPL < SingletonPipeline
+      def fullname; 'TCP command receiver pipeline' ; end
       def nickname; 'rc' ; end
     end
 
-    class ExpressCommandReceiverPL < SingletonPipeline
-      def fullname; 'Express command receiver pipeline' ; end
+    class UDPCommandReceiverPL < SingletonPipeline
+      def fullname; 'UDP command receiver pipeline' ; end
       def nickname; 'ec' ; end
     end
 
@@ -155,8 +155,8 @@ module Castoro
       STATISTICS_TARGETS = [
                             CommandReceiverTicketPool,
                             MulticastCommandSenderTicketPool,
-                            RegularCommandReceiverPL,
-                            ExpressCommandReceiverPL,
+                            TCPCommandReceiverPL,
+                            UDPCommandReceiverPL,
                             BasketStatusQueryDatabasePL,
                             CsmControllerPL,
                             MulticastCommandSenderPL,
@@ -168,18 +168,18 @@ module Castoro
       def initialize
         c = Configurations.instance
         @w = []
-        @w << UdpCommandReceiver.new( ExpressCommandReceiverPL.instance, c.PeerUDPCommandPort )
+        @w << UdpCommandReceiver.new( UDPCommandReceiverPL.instance, c.PeerUDPCommandPort )
 
         # Todo: neither INSERT nor DROP is interested here
-        # #@w << UdpCommandReceiver.new( RegularCommandReceiverPL.instance, c.GatewayUDPCommandPort )
+        # #@w << UdpCommandReceiver.new( TCPCommandReceiverPL.instance, c.GatewayUDPCommandPort )
 
         # Todo: ALIVE is not interested here
-        # @w << UdpCommandReceiver.new( RegularCommandReceiverPL.instance, c.WatchDogUDPCommandPort )
+        # @w << UdpCommandReceiver.new( TCPCommandReceiverPL.instance, c.WatchDogUDPCommandPort )
 
         @w << TcpCommandAcceptor.new( TcpAcceptorPL.instance, c.PeerTCPCommandPort )
-        5.times { @w << TcpCommandReceiver.new( TcpAcceptorPL.instance, RegularCommandReceiverPL.instance ) }
-        c.NumberOfExpressCommandProcessor.times   { @w << CommandProcessor.new( ExpressCommandReceiverPL.instance ) }
-        c.NumberOfRegularCommandProcessor.times   { @w << CommandProcessor.new( RegularCommandReceiverPL.instance ) }
+        5.times { @w << TcpCommandReceiver.new( TcpAcceptorPL.instance, TCPCommandReceiverPL.instance ) }
+        c.NumberOfUDPCommandProcessor.times   { @w << CommandProcessor.new( UDPCommandReceiverPL.instance ) }
+        c.NumberOfTCPCommandProcessor.times   { @w << CommandProcessor.new( TCPCommandReceiverPL.instance ) }
         c.NumberOfBasketStatusQueryDB.times { @w << BasketStatusQueryDB.new() }
         c.NumberOfCsmController.times      { @w << CsmController.new() }
         c.NumberOfUdpResponseSender.times  { @w << UdpResponseSender.new( UdpResponseSenderPL.instance ) }
