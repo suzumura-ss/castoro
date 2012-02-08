@@ -81,8 +81,10 @@ module Castoro; class Gateway
         COMMON_SETTINGS.each { |k,v| result[k] = options[k] || v }
         DEFAULT_SETTINGS[result["type"]].each { |k,v| result[k] = options[k] || v }
 
-        result["cache"] = {}; options["cache"] ||= {}
-        CACHE_SETTINGS.each { |k,v| result["cache"][k] = options["cache"][k] || v }
+        if ["original", "island"].include?(result["type"])
+          result["cache"] = {}; options["cache"] ||= {}
+          CACHE_SETTINGS.each { |k,v| result["cache"][k] = options["cache"][k] || v }
+        end
       }
     }
 
