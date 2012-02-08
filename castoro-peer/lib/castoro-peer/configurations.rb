@@ -136,12 +136,10 @@ module Castoro
          :ReplicationTCPCommunicationPort,
 
          :CmondMaintenancePort,
-         :CgetdMaintenancePort,
          :CpeerdMaintenancePort,
          :CrepdMaintenancePort,
 
          :CmondHealthCheckPort,
-         :CgetdHealthCheckPort,
          :CpeerdHealthCheckPort,
          :CrepdHealthCheckPort,
 
@@ -231,12 +229,10 @@ module Castoro
         @entries[ :StorageGroupsFile ] or raise ConfigurationError, "StorageGroupsFile is not sepecfied in #{@file}"
 
         @entries[ :CmondMaintenancePort ] or raise ConfigurationError, "CmondMaintenancePort is not sepecfied in #{@file}"
-        @entries[ :CgetdMaintenancePort ] or raise ConfigurationError, "CgetdMaintenancePort is not sepecfied in #{@file}"
         @entries[ :CpeerdMaintenancePort ] or raise ConfigurationError, "CpeerdMaintenancePort is not sepecfied in #{@file}"
         @entries[ :CrepdMaintenancePort ] or raise ConfigurationError, "CrepdMaintenancePort is not sepecfied in #{@file}"
 
         @entries[ :CmondHealthCheckPort ] or raise ConfigurationError, "CmondHealthCheckPort is not sepecfied in #{@file}"
-        @entries[ :CgetdHealthCheckPort ] or raise ConfigurationError, "CgetdHealthCheckPort is not sepecfied in #{@file}"
         @entries[ :CpeerdHealthCheckPort ] or raise ConfigurationError, "CpeerdHealthCheckPort is not sepecfied in #{@file}"
         @entries[ :CrepdHealthCheckPort ] or raise ConfigurationError, "CrepdHealthCheckPort is not sepecfied in #{@file}"
         
