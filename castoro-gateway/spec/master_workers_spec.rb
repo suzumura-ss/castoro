@@ -143,7 +143,7 @@ describe Castoro::Gateway::MasterWorkers do
         receiver.start
 
         @w.start
-        sleep 0.5
+        sleep 1.0
 
         receiver.stop
         received.should == true

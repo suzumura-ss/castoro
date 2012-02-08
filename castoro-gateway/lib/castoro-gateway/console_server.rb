@@ -181,8 +181,7 @@ module Castoro
 
       def accept
         accepted = @accept_locker.synchronize {
-          return nil unless @tcp_server
-          return nil unless IO.select([@tcp_server], nil, nil, @accept_expire)
+          return nil unless select
           @tcp_server.accept
         } 
 
@@ -194,6 +193,14 @@ module Castoro
           end
         end
       end
+
+      def select
+        IO.select([@tcp_server], nil, nil, @accept_expire)
+      rescue
+        return nil unless @tcp_server
+        raise
+      end
     end
   end
 end
+

@@ -24,9 +24,9 @@ UNICAST   = 30151
 MULTICAST = 30159
 WATCHDOG  = 30153
 
-SETTINGS = {
+SETTINGS = Castoro::Gateway::Configuration.new({
   "peer_multicast_addr" => "239.192.1.1",
-  "peer_multicast_device_addr" => IPSocket::getaddress(Socket::gethostname),
+  "peer_multicast_device" => "eth0",
   "gateway_console_port" => CONSOLE,
   "gateway_unicast_port" => UNICAST,
   "gateway_multicast_port" => MULTICAST,
@@ -34,8 +34,8 @@ SETTINGS = {
   "gateway_watchdog_logging" => false,
   "type" => "original",
   "master_multicast_addr" => "239.192.254.254",
-  "island_multicast_device_addr" =>  `/sbin/ip -o addr| sed -ne '/ eth0 *inet /p;'`.split[3].to_s.split('/')[0],
-}
+  "island_multicast_device" =>  "eth0",
+})
 
 describe Castoro::Gateway::Facade do
   before do

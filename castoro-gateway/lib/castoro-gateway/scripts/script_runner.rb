@@ -42,7 +42,7 @@ module Castoro
 
         [*config["require"]].each { |r| require r } if config["require"]
 
-        group = config["group"] || Gateway::DEFAULT_SETTINGS["group"]
+        group = config["group"] || Gateway::Configuration.new()["group"]
         if group
           gid = begin
                   group.kind_of?(Integer) ? Etc.getgrgid(group.to_i).gid : Etc.getgrnam(group.to_s).gid
@@ -52,7 +52,7 @@ module Castoro
           Process::Sys.setegid(gid)
         end
   
-        user = config["user"] || Gateway::DEFAULT_SETTINGS["user"]
+        user = config["user"] || Gateway::Configuration.new()["user"]
         
         uid = begin
                 user.kind_of?(Integer) ? Etc.getpwuid(user.to_i).uid : Etc.getpwnam(user.to_s).uid 
@@ -71,7 +71,7 @@ module Castoro
           logger = if config["logger"]
                      eval(config["logger"].to_s).call(options[:log])
                    else
-                     eval(Gateway::DEFAULT_SETTINGS["logger"]).call(options[:log])
+                     eval(Gateway::Configuration.new()["logger"]).call(options[:log])
                    end
   
           # daemonize and create pidfile.
@@ -119,7 +119,7 @@ module Castoro
       end
   
       def self.setup options
-        STDERR.puts "*** Stopping Castoro::Gateway daemon..."
+        STDERR.puts "*** Setup Castoro::Gateway daemon..."
         STDERR.puts "--- setup configuration file to #{options[:conf]}..."
   
         if File.exist?(options[:conf])
@@ -129,7 +129,7 @@ module Castoro
         confdir = File.dirname(options[:conf])
         FileUtils.mkdir_p confdir unless File.directory?(confdir)
         open(options[:conf], "w") { |f|
-          f.puts Gateway::SETTING_TEMPLATE
+          f.puts Gateway::Configuration.setting_template(options[:type] || "original")
         }
         
       rescue => e

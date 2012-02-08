@@ -30,9 +30,10 @@ describe Castoro::Gateway do
     end
 
     it "should be set default settings." do
-      @g.instance_variable_get(:@config).should == Castoro::Gateway::DEFAULT_SETTINGS
+      default_config = Castoro::Gateway::Configuration.new
+      @g.instance_variable_get(:@config).should == default_config
       @g.instance_variable_get(:@logger).should be_kind_of Logger
-      @g.instance_variable_get(:@logger).level.should == Castoro::Gateway::DEFAULT_SETTINGS["loglevel"].to_i
+      @g.instance_variable_get(:@logger).level.should == default_config["loglevel"].to_i
     end
 
     it "should alive? false." do
@@ -166,16 +167,17 @@ describe Castoro::Gateway do
 
     context "given island to configurations" do
       before do
-        config = {
-          "peer_multicast_addr"        => "239.192.1.2",
-          "peer_multicast_device_addr" => "127.0.0.1",
-          "gateway_console_port"       => 30150,
-          "gateway_unicast_port"       => 30151,
-          "gateway_multicast_port"     => 30149,
-          "gateway_watchdog_port"      => 30153,
-          "peer_multicast_port"        => 30152,
-          "island_multicast_addr"      => "abcdef01",
-        }
+        config = Castoro::Gateway::Configuration.new({
+          "type" => "island",
+          "peer_multicast_addr"    => "239.192.1.2",
+          "peer_multicast_device"  => "eth0",
+          "gateway_console_port"   => 30150,
+          "gateway_unicast_port"   => 30151,
+          "gateway_multicast_port" => 30149,
+          "gateway_watchdog_port"  => 30153,
+          "peer_multicast_port"    => 30152,
+          "island_multicast_addr"  => "239.192.254.254",
+        })
         @g = Castoro::Gateway.new config, @logger
       end
 
@@ -184,9 +186,9 @@ describe Castoro::Gateway do
           with(@logger, @g.instance_variable_get(:@config)["workers"],
                @facade, @repository,
                "239.192.1.2",
-               "127.0.0.1",
+               Castoro::Utils.network_interfaces["eth0"][:ip],
                30152,
-               "abcdef01".to_island).exactly(1)
+               "239.192.254.254".to_island).exactly(1)
         @workers.should_receive(:start)
         @g.start
       end
@@ -195,13 +197,13 @@ describe Castoro::Gateway do
     context "when config argument is test configs" do
       before do
         test_configs = {
-          "peer_multicast_addr"        => "239.192.1.2",
-          "peer_multicast_device_addr" => "127.0.0.1",
-          "gateway_console_port"       => 30150,
-          "gateway_unicast_port"       => 30151,
-          "gateway_multicast_port"     => 30149,
-          "gateway_watchdog_port"      => 30153,
-          "peer_multicast_port"        => 30152,
+          "peer_multicast_addr"    => "239.192.1.2",
+          "peer_multicast_device"  => "eth0",
+          "gateway_console_port"   => 30150,
+          "gateway_unicast_port"   => 30151,
+          "gateway_multicast_port" => 30149,
+          "gateway_watchdog_port"  => 30153,
+          "peer_multicast_port"    => 30152,
         }
         @g = Castoro::Gateway.new test_configs, @logger
       end
@@ -228,7 +230,7 @@ describe Castoro::Gateway do
                     @logger, @g.instance_variable_get(:@config)["workers"],
                     @facade, @repository,
                     "239.192.1.2",
-                    "127.0.0.1",
+                    Castoro::Utils.network_interfaces["eth0"][:ip],
                     30152,
                     nil
                   ).exactly(1)

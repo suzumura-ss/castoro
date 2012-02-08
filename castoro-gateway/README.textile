@@ -21,6 +21,7 @@ Usage: castoro-gateway setup [options]
     -v, --verbose                    verbose
     -f, --force                      Override config file
     -c, --conf <configfile>          Config file
+    -t, --type <gateway type>        Gateway type, [original(default) master island]
 </pre>
 
 h3. castoro-gateway start
@@ -200,8 +201,8 @@ for original and master.
 
 h4. gateway_multicast_port
 
-UDP Port number for multicast. (Peer to Gateway)
-for original and island.
+UDP Port number for multicast. (Peer to Gateway, Island to Master)
+for original and master and island.
 
 h4. gateway_watchdog_port
 
@@ -218,9 +219,9 @@ h4. peer_multicast_addr
 Address for multicast. (Gateway to Peer, and Peer to Gateway)
 for original and island.
 
-h4. peer_multicast_device_addr
+h4. peer_multicast_device
 
-Network interface address for peer_multicast_addr
+Network interface name for peer_multicast_addr
 for original and island.
 
 h4. peer_multicast_port
@@ -233,11 +234,6 @@ h4. master_multicast_addr
 Multicast address for master-gateway.
 for master and island.
 
-h4. island_broadcast_addr
-
-Broadcast address for island.
-for master.
-
 h4. island_broadcast_port
 
 Port number for island broadcast.
@@ -248,9 +244,9 @@ h4. island_multicast_addr
 Multicast address for island.
 for island.
 
-h4. island_multicast_device_addr
+h4. island_multicast_device
 
-Network interface address for island_multicast_addr
+Network interface name for island_multicast_addr
 for master and island.
 
 h4. cache => watchdog_limit
@@ -277,15 +273,14 @@ h3. configurations key list
 |type|String|required|required|required|original|
 |gateway_console_port|Integer|required||required|30110|
 |gateway_unicast_port|Integer|required|required||30111|
-|gateway_multicast_port|Integer|required||required|30109|
+|gateway_multicast_port|Integer|required|required|required|30109|
 |gateway_watchdog_port|Integer|required||required|30113|
 |gateway_watchdog_logging|Boolean|required||required|false|
 |peer_multicast_addr|String|required||required|239.192.1.1|
-|peer_multicast_device_addr|String|required||required||
+|peer_multicast_device|String|required||required|eth0|
 |peer_multicast_port|Integer|required||required|30112|
 |master_multicast_addr|String||required|required|239.192.254.254|
-|island_broadcast_addr|String||required|||
 |island_broadcast_port|Integer||required|required|30108|
 |island_multicast_addr|String|||required||
-|island_multicast_device_addr|String||required|required||
+|island_multicast_device|String||required|required|eth0|
 
