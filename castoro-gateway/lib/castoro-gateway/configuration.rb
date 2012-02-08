@@ -96,6 +96,7 @@ module Castoro; class Gateway
       conf = @@set_default_options.call({
         "type" => type,
         "loglevel" => "<%= Logger::INFO %>",
+        "island_multicast_addr" => "TODO: please specify multicast address",
       })
       "<% require 'logger' %>\n" << ({ "default" => conf }.to_yaml)
     end
@@ -137,16 +138,6 @@ module Castoro; class Gateway
     def is_island_or_master_when  ; yield if island? or master?; end
 
     private
-
-    def set_default_options options = {}
-      {}.tap { |result|
-        COMMON_SETTINGS.each { |k,v| result[k] = options[k] || v }
-        DEFAULT_SETTINGS[result["type"]].each { |k,v| result[k] = options[k] || v }
-
-        result["cache"] = {}; options["cache"] ||= {}
-        CACHE_SETTINGS.each { |k,v| result["cache"][k] = options["cache"][k] || v }
-      }
-    end
 
     def validate options
       options.tap { |opt|
