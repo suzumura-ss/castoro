@@ -174,7 +174,7 @@ module Castoro
         # #@w << UdpCommandReceiver.new( RegularCommandReceiverPL.instance, c.GatewayUDPCommandPort )
 
         # Todo: ALIVE is not interested here
-        # @w << UdpCommandReceiver.new( RegularCommandReceiverPL.instance, c.WatchDogCommandPort )
+        # @w << UdpCommandReceiver.new( RegularCommandReceiverPL.instance, c.WatchDogUDPCommandPort )
 
         @w << TcpCommandAcceptor.new( TcpAcceptorPL.instance, c.PeerTCPCommandPort )
         5.times { @w << TcpCommandReceiver.new( TcpAcceptorPL.instance, RegularCommandReceiverPL.instance ) }

@@ -131,7 +131,7 @@ module Castoro
          :GatewayUDPCommandPort,
          :PeerTCPCommandPort,
          :PeerUDPCommandPort,
-         :WatchDogCommandPort,
+         :WatchDogUDPCommandPort,
          :ReplicationTCPCommandPort,
          :ReplicationUDPCommandPort,
          :ReplicationTCPCommunicationPort,
