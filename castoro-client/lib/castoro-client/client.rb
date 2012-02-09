@@ -195,24 +195,33 @@ module Castoro
     #  => {"peer1" => "/foo/bar/baz", "peer2" => "/hoge/fuga"}
     #
     def get key, options = {}
-      @locker.synchronize {
-        raise ClientError, "Client is not opened." unless opened?
-
-        @logger.info { "[key:#{key}] send GET request to gateways" }
-        res = @sender.send Protocol::Command::Get.new(key, options[:island])
-        raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Get
-        raise ClientError, "get command failed - #{res.inspect}." if res.error?
-
-        if options[:island]
-          {"island" => res.island, "paths" => res.paths.to_hash}
-        else
-          res.paths.to_hash
-        end
-      }
+      res = get_internal key, options
+      if options[:island]
+        {"island" => res.island, "paths" => res.paths.to_hash}
+      else
+        res.paths.to_hash
+      end
     end
 
+    ##
+    # Get basket with island.
+    #
+    # === Args
+    #
+    # +key+::     The basket key.
+    # +island+::  Island id.
+    #
+    # === Example
+    #
+    #  k = Castoro::BasketKey.new(123456, :original, 1)
+    #  i = Castoro::IslandId.new("239.192.1.2")
+    #  res = client.get_with_island k, i
+    #  res
+    #  => {"paths" => {"peer1" => "/foo/bar/baz", "peer2" => "/hoge/fuga"}, "island" => "efc00102"}
+    #
     def get_with_island key, island
-      get key, :island => island
+      res = get_internal key, :island => island
+      {"island" => res.island, "paths" => res.paths.to_hash}
     end
 
     ##
@@ -228,8 +237,11 @@ module Castoro
     # === Example
     #
     #  k = Castoro::BasketKey.new(123456, :original, 1)
-    #  client.create(k, "length" => 99999, "class" => :original) { |host, path|
+    #  client.create(k, "length" => 99999, "class" => :original) { |host, path, options|
     #    # It accessed the mountpoint by using the value of host and path...
+    #
+    #    # options details
+    #    # * :island => castoro island-id.
     #
     #    # When the block ends normally, finalize is issued.
     #    # When the block terminates abnormally, cancel is issued.
@@ -397,13 +409,13 @@ module Castoro
     #  k = Castoro::BasketKey.new(123456, :original, 1)
     #  client.delete k
     #
-    def delete key
+    def delete key, options = {}
       @locker.synchronize {
         raise ClientError, "Client is not opened." unless opened?
 
         key = key.to_basket
 
-        peers = get(key).keys.dup
+        peers = get(key, options).keys.dup
 
         # shuffle.
         (sid % peers.length).times { peers.push(peers.shift) }
@@ -420,6 +432,24 @@ module Castoro
       }
     end
 
+    ##
+    # Delete basket with island.
+    #
+    # === Args
+    #
+    # +key+::     The basket key.
+    # +island+::  island id.
+    #
+    # === Example
+    #
+    #  k = Castoro::BasketKey.new(123456, :original, 1)
+    #  i = Castoro::IslandId.new("239.192.1.2")
+    #  client.delete_with_island k, i
+    #
+    def delete_with_island key, island
+      delete key, :island => island
+    end
+
     private
 
     def normalize_gateway(g)
@@ -432,6 +462,19 @@ module Castoro
         elems = g.split(":")
         "#{elems[0]}:#{(elems[1] || GATEWAY_DEFAULT_PORT)}"
       end
+    end
+
+    def get_internal key, options = {}
+      @locker.synchronize {
+        raise ClientError, "Client is not opened." unless opened?
+
+        @logger.info { "[key:#{key}] send GET request to gateways" }
+        res = @sender.send Protocol::Command::Get.new(key, options[:island])
+        raise ClientError, "Response not intended. - #{res.class}" unless res.kind_of? Protocol::Response::Get
+        raise ClientError, "get command failed - #{res.inspect}." if res.error?
+
+        res
+      }
     end
 
     def create_internal connection, peer, remining_peers, cmd, options, &block

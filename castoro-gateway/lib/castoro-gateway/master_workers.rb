@@ -56,6 +56,7 @@ module Castoro
                   if d.island
                     @island_status.get_relay h, d
                   else
+                    @logger.info { "[key:#{d.basket}] broadcast" }
                     s.broadcast h, d
                   end
 
@@ -117,7 +118,7 @@ module Castoro
         end
 
         def set island_command
-          @logger.debug { "set island status #{island_command.island}: #{island_command.storables}, #{island_command.capacity}" }
+          @logger.info { "set island status #{island_command.island}: #{island_command.storables}, #{island_command.capacity}" }
           @status[island_command.island] = {
             :storables => island_command.storables,
             :capacity => island_command.capacity,
@@ -127,11 +128,13 @@ module Castoro
 
         def create_relay create_header, create_command
           island = choice_island(create_command)
+          @logger.info { "[key:#{create_command.basket}] choiced island: #{island}" }
           sender(island).multicast(create_header, create_command)
         end
 
         def get_relay get_header, get_command
           island = get_command.island
+          @logger.info { "[key:#{get_command.basket}] relay to #{island}" }
           sender(island).multicast(get_header, get_command)
         end
 
