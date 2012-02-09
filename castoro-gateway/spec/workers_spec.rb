@@ -244,7 +244,7 @@ describe Castoro::Gateway::Workers do
       mc_addr = "239.192.1.1"
       dv_addr = "127.0.0.1"
       port    = 12345
-      @island = "abcdef01".to_island
+      @island = "ebcdef01".to_island
 
       @w = Castoro::Gateway::Workers.new(@logger, count, @facade, @repository, mc_addr, dv_addr, port, @island)
     end
@@ -276,7 +276,7 @@ describe Castoro::Gateway::Workers do
       end
 
       context "when same island" do
-        it "repository should receive #query with ('1.2.3', 'abcdef01')" do
+        it "repository should receive #query with ('1.2.3', 'ebcdef01')" do
           get = Castoro::Protocol::Command::Get.new("1.2.3", @island)
           commands = [ [@header, get] ] * 3
           @facade.should_receive(:recv).at_least(1).and_return { commands.shift }
@@ -291,7 +291,7 @@ describe Castoro::Gateway::Workers do
 
       context "when not same island" do
         it "repository should not receive #query" do
-          get = Castoro::Protocol::Command::Get.new("1.2.3", "12345678")
+          get = Castoro::Protocol::Command::Get.new("1.2.3", "e2345678")
           commands = [ [@header, get] ]  * 3
           @facade.should_receive(:recv).at_least(1).and_return { commands.shift }
           @repository.should_not_receive(:query)
@@ -302,7 +302,7 @@ describe Castoro::Gateway::Workers do
       end
 
       context "when island is nil" do
-        it "repository should receive #query with('1.2.3', 'abcdef01')" do
+        it "repository should receive #query with('1.2.3', 'ebcdef01')" do
           get = Castoro::Protocol::Command::Get.new("1.2.3", nil)
           commands = [ [@header, get] ]  * 3
           @facade.should_receive(:recv).at_least(1).and_return { commands.shift }

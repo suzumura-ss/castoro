@@ -63,10 +63,10 @@ describe Castoro::Gateway do
     @content2_path = "/expdsk/1/baskets/a/0/000/000/2.1.1"
     @udp_header    = Castoro::Protocol::UDPHeader.new(@localhost, @client_port)
 
-    @conf = {
+    @conf = Castoro::Gateway::Configuration.new({
       "workers" => 5,
       "peer_multicast_addr" => "239.192.1.2",
-      "peer_multicast_device_addr" => @localhost,
+      "peer_multicast_device" => "eth0",
       "cache" => {
         "cache_size" => 1000000
       },
@@ -75,7 +75,7 @@ describe Castoro::Gateway do
       "gateway_multicast_port" => 30149,
       "gateway_watchdog_port" => 30153,
       "peer_multicast_port" => 30152,
-    }
+    })
 
     # mock for console server forker.
     forker = Proc.new { |server_socket, client_socket, &block|
@@ -110,7 +110,7 @@ describe Castoro::Gateway do
     status = Castoro::Protocol::Command::Status.new
     res = @console.send status, 2.0
     res.should be_kind_of(Castoro::Protocol::Response::Status)
-    res.status["CACHE_EXPIRE"].should            == Castoro::Gateway::DEFAULT_SETTINGS["cache"]["watchdog_limit"]
+    res.status["CACHE_EXPIRE"].should            == Castoro::Gateway::Configuration.new()["cache"]["watchdog_limit"]
     res.status["CACHE_REQUESTS"].should          == 0
     res.status["CACHE_HITS"].should              == 0
     res.status["CACHE_COUNT_CLEAR"].should       == 0

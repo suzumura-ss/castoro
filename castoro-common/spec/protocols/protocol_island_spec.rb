@@ -40,16 +40,16 @@ describe Castoro::Protocol::Command::Island do
 
   context 'given island, storables and capacity.' do
     it "should be able to an instance of island command." do
-      Castoro::Protocol::Command::Island.new("abcdef01", 30, 1000).should be_kind_of(Castoro::Protocol::Command::Island)
+      Castoro::Protocol::Command::Island.new("ebcdef01", 30, 1000).should be_kind_of(Castoro::Protocol::Command::Island)
     end
 
     context "when initialized" do
       before do
-        @command = Castoro::Protocol::Command::Island.new "abcdef10", 30, 1000
+        @command = Castoro::Protocol::Command::Island.new "ebcdef10", 30, 1000
       end
 
-      it "island is 'abcdef10'" do
-        @command.island.to_s.should == "abcdef10"
+      it "island is 'ebcdef10'" do
+        @command.island.to_s.should == "ebcdef10"
       end
 
       it "storables is 30" do
@@ -62,7 +62,7 @@ describe Castoro::Protocol::Command::Island do
 
       it "should be able to use #to_s." do
         JSON.parse(@command.to_s).should ==
-          JSON.parse('["1.1","C","ISLAND",{"island":"abcdef10","storables":30,"capacity":1000}]' + "\r\n")
+          JSON.parse('["1.1","C","ISLAND",{"island":"ebcdef10","storables":30,"capacity":1000}]' + "\r\n")
       end
 
       it "should be able to return error_response without argument." do

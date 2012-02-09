@@ -90,7 +90,7 @@ describe Castoro::Protocol::Response do
 
   context 'when operand set to error, basket, hosts and island.' do
     it "should be able to create an instance of create gateway response." do
-      Castoro::Protocol::Response.parse("CREATE", {"error" => nil, "basket" => "1.2.3", "hosts" => ["peer100", "peer200", "peer300"], "island" => "abcdef10"}).should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
+      Castoro::Protocol::Response.parse("CREATE", {"error" => nil, "basket" => "1.2.3", "hosts" => ["peer100", "peer200", "peer300"], "island" => "ebcdef10"}).should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
     end
   end
 
@@ -120,7 +120,7 @@ describe Castoro::Protocol::Response do
 
   context 'when parsed, argument for opecode set "GET" with argument for hosts of operand set "" and set island' do
     it "should be able to create an instance of get response." do
-      Castoro::Protocol::Response.parse("GET", {"error" => nil, "basket" => "1.2.3", "paths" => { "peer100" => "/path/1.2.3", "peer200" => "/path/1.2.3" }, "island" => "abc45678"}).should be_kind_of(Castoro::Protocol::Response::Get)
+      Castoro::Protocol::Response.parse("GET", {"error" => nil, "basket" => "1.2.3", "paths" => { "peer100" => "/path/1.2.3", "peer200" => "/path/1.2.3" }, "island" => "ebc45678"}).should be_kind_of(Castoro::Protocol::Response::Get)
     end
   end
 

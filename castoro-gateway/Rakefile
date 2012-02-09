@@ -34,12 +34,12 @@ spec = Gem::Specification.new do |s|
   s.summary = "This(it) is gateway for Castoro which is distributed abstraction filesystem."
   s.description = s.summary
   s.executables = Dir.glob("bin/**/*").map { |f| File.basename(f) }
-  s.files = %w(History.txt LICENSE README.textile COPYING.LESSER Rakefile) + Dir.glob("{bin,ext,lib,spec}/**/*")
+  s.files = %w(History.txt LICENSE README.textile COPYING.LESSER Rakefile) + Dir.glob("{bin,ext,lib,spec,resources}/**/*")
   s.require_path = "lib"
   s.bindir = "bin"
   s.authors = ['Castoro project']
 
-  s.extensions = ["ext/extconf.rb"]
+  s.extensions = ["ext/cache/extconf.rb", "ext/utils/extconf.rb"]
 
   s.add_dependency('castoro-common', '>=0.2.0.pre')
   s.add_development_dependency('rspec', '>=2.0.0')

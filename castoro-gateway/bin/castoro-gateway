@@ -44,15 +44,16 @@ COMMAND_OPTIONS = {
   },
   :setup => {
     :force => false,
-    :conf => '/etc/castoro/gateway.conf'
+    :conf => '/etc/castoro/gateway.conf',
+    :type => "original",
   },
   :status => {
     :verbose => false,
-    :port => Castoro::Gateway::DEFAULT_SETTINGS["gateway_console_port"].to_i,
+    :port => Castoro::Gateway::Configuration.new()["gateway_console_port"].to_i,
   },
   :dump => {
     :verbose => false,
-    :port => Castoro::Gateway::DEFAULT_SETTINGS["gateway_console_port"].to_i,
+    :port => Castoro::Gateway::Configuration.new()["gateway_console_port"].to_i,
   }
 }
 
@@ -141,6 +142,9 @@ parser = OptionParser.new do |parser|
       else
         opt[:conf] = Pathname.new(File.join(Pathname.pwd, v)).to_s
       end
+    end
+    parser.on('-t TYPE', '--type <gateway type>', 'Gateway type, [original(default) master island]') do |v|
+      opt[:type] = v.to_s
     end
 
   when :status

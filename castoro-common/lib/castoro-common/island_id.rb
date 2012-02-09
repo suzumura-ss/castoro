@@ -24,9 +24,15 @@ module Castoro
   class IslandId
     def initialize string
       if string =~ /^((25[0-5]|2[0-4]\d|1\d\d||[1-9]\d|\d)\.){3}(25[0-5]|2[0-4]\d|1\d\d||[1-9]\d|\d)$/
+        octets = string.split('.').map(&:to_i)
+        raise IslandIdError, "#{string} should be Class-D ip address." unless octets.size == 4
+        raise IslandIdError, "#{string} should be Class-D ip address." unless octets.all? { |o| (0..255).include?(o) }
+        raise IslandIdError, "#{string} should be Class-D ip address." unless ((octets[0] & 255) >> 4) == 14
+
         string = string.split('.', 4).map { |o| '%02x' % o.to_i }.join
       end
       raise IslandIdError, "island id parse error." unless string =~ /^[0123456789abcdef]{8}$/
+      raise IslandIdError, "#{string} should start character 'e'." unless string[0,1] == 'e'
       @string = string.dup.freeze
       freeze
     end
@@ -52,7 +58,7 @@ end
 # helpers
 class String
   def to_island
-    Castoro::IslandId.new self   
+    Castoro::IslandId.new self
   end
 end
 class Object

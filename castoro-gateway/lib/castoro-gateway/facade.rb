@@ -50,22 +50,22 @@ module Castoro
         @gmp              = config["gateway_multicast_port"].to_i
         @gwp              = config["gateway_watchdog_port"].to_i
         @watchdog_logging = config["gateway_watchdog_logging"]
-        @ibp              = config["island_broadcast_port"].to_i if config["type"] == "island"
+        config.is_island_when { @ibp = config["island_broadcast_port"].to_i }
 
-        addr              = config["peer_multicast_addr"].to_s
-        device            = config["peer_multicast_device_addr"].to_s
+        ifs                = Castoro::Utils.network_interfaces
+        peer_device_addr   = (ifs[config["peer_multicast_device"]] || {})[:ip]
+        island_device_addr = (ifs[config["island_multicast_device"]] || {})[:ip]
+
         @mreqs = []
-        @mreqs << (IPAddr.new(addr).hton + IPAddr.new(device).hton) if ["original", "island"].include?(config["type"])
-        if config["island_multicast_device_addr"]
-          if ["master"].include?(config["type"]) and config["master_multicast_addr"]
-            @mreqs << (IPAddr.new(config["master_multicast_addr"].to_s).hton +
-                       IPAddr.new(config["island_multicast_device_addr"].to_s).hton)
-          end
-          if ["island"].include?(config["type"]) and config["island_multicast_addr"]
-            @mreqs << (IPAddr.new(config["island_multicast_addr"].to_s).hton +
-                       IPAddr.new(config["island_multicast_device_addr"].to_s).hton)
-          end
-        end
+        config.is_original_or_island_when {
+          @mreqs << (IPAddr.new(config["peer_multicast_addr"]).hton + IPAddr.new(peer_device_addr).hton)
+        }
+        config.is_master_when {
+          @mreqs << (IPAddr.new(config["master_multicast_addr"]).hton + IPAddr.new(island_device_addr).hton)
+        }
+        config.is_island_when {
+          @mreqs << (IPAddr.new(config["island_multicast_addr"]).hton + IPAddr.new(island_device_addr).hton)
+        }
       end
 
       ##

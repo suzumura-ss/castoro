@@ -184,7 +184,7 @@ describe Castoro::Protocol::Response::Create::Gateway do
 
     context "given basket, hosts and island." do
       before do
-        @response = Castoro::Protocol::Response::Create::Gateway.new nil, "1.2.3", [ "host100", "host101", "host102" ], "abc45678"
+        @response = Castoro::Protocol::Response::Create::Gateway.new nil, "1.2.3", [ "host100", "host101", "host102" ], "ebc45678"
       end
 
       it 'basket is "1.2.3".' do
@@ -193,9 +193,9 @@ describe Castoro::Protocol::Response::Create::Gateway do
         basket.to_s.should == "1.2.3"
       end
 
-      it 'island is "abc45678".' do
+      it 'island is "ebc45678".' do
         island = @response.island
-        island.to_s.should == "abc45678"
+        island.to_s.should == "ebc45678"
       end
 
       it 'hosts is "host100", "host101", "host102".' do
@@ -225,7 +225,7 @@ describe Castoro::Protocol::Response::Create::Gateway do
 
       it 'should be able to use #to_s.' do
         JSON.parse(@response.to_s).should ==
-          JSON.parse('["1.1","R","CREATE",{"basket":"1.2.3","hosts":["host100","host101","host102"],"island":"abc45678"}]' + "\r\n")
+          JSON.parse('["1.1","R","CREATE",{"basket":"1.2.3","hosts":["host100","host101","host102"],"island":"ebc45678"}]' + "\r\n")
       end
     end
   end
