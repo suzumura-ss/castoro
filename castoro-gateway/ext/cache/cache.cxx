@@ -42,8 +42,8 @@ static const char make_nfs_path[] =
   "   '%s:%s/%d/%03d/%03d/%d.%d.%d'%[p, b, g, m, k, c, t, r];" \
   "end; end; end;";
 static const char member_puts[] =
-  "module Castoro; class Cache; def self.member_puts(f, p, b, c, t, r);" \
-  "   f.puts %[  #{p}: #{b}/#{c}.#{t}.#{r}]" \
+  "module Castoro; class Cache; def self.member_puts(f, p, c, t, r);" \
+  "   f.puts %[  #{p}: #{c}.#{t}.#{r}]" \
   "end; end; end;";
 static void check_ruby_version()
 {
@@ -77,7 +77,7 @@ VALUE Cache::define_class(VALUE _p)
   rb_define_method(c, "peers",  RUBY_METHOD_FUNC(rb_alloc_peers), 0);
   rb_define_method(c, "dump",  RUBY_METHOD_FUNC(rb_dump), 1);
   rb_define_method(c, "find_peers", RUBY_METHOD_FUNC(rb_find_peers), -1);
-  rb_define_method(c, "insert_element", RUBY_METHOD_FUNC(rb_insert_element), 5);
+  rb_define_method(c, "insert_element", RUBY_METHOD_FUNC(rb_insert_element), 4);
   rb_define_method(c, "erase_element", RUBY_METHOD_FUNC(rb_erase_element), 4);
   rb_define_method(c, "get_peer_status", RUBY_METHOD_FUNC(rb_get_peer_status), 1);
   rb_define_method(c, "set_peer_status", RUBY_METHOD_FUNC(rb_set_peer_status), 2);
@@ -182,9 +182,9 @@ public:
   };
   virtual inline ~Dumper() {};
 
-  virtual bool operator()(uint64_t cid, uint32_t typ, uint32_t rev, ID peer, ID base) {
-    rb_funcall(rb_funcall(self, rb_intern("class"), 0), operator_member_puts, 6,
-              f, ID2SYM(peer), ID2SYM(base), ULL2NUM(cid), LONG2FIX(typ), LONG2FIX(rev));
+  virtual bool operator()(uint64_t cid, uint32_t typ, uint32_t rev, ID peer) {
+    rb_funcall(rb_funcall(self, rb_intern("class"), 0), operator_member_puts, 5,
+              f, ID2SYM(peer), ULL2NUM(cid), LONG2FIX(typ), LONG2FIX(rev));
     return true;
   };
 
@@ -208,9 +208,9 @@ VALUE Cache::rb_find_peers(int argc, VALUE* argv, VALUE self)
   return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(find_peers_internal), args);
 }
 
-VALUE Cache::rb_insert_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r, VALUE _b)
+VALUE Cache::rb_insert_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r)
 {
-  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(insert_element_internal), rb_ary_new3(6, self, _p, _c, _t, _r, _b));
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(insert_element_internal), rb_ary_new3(5, self, _p, _c, _t, _r));
 }
 
 VALUE Cache::rb_erase_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r)
@@ -255,10 +255,7 @@ VALUE Cache::find_internal(VALUE block_arg, VALUE data, VALUE self)
   VALUE result = rb_class_new_instance(0, &stub, rb_cArray);
   for(unsigned int i=0; i<a.size(); i++) {
     ID peer = a.at(i).peer;
-    ID base = a.at(i).base;
-    VALUE nfs = rb_funcall(_self, operator_make_nfs_path, 5,
-        ID2SYM(peer), ID2SYM(base), _c, _t, _r);
-    rb_funcall(result, operator_push, 1, nfs);
+    rb_funcall(result, operator_push, 1, rb_funcall(ID2SYM(peer), rb_intern("to_s"), 0));
   }
   return result;
 }
@@ -312,11 +309,10 @@ VALUE Cache::insert_element_internal(VALUE block_arg, VALUE data, VALUE self)
   VALUE _c    = rb_ary_entry(data, 2);
   VALUE _t    = rb_ary_entry(data, 3);
   VALUE _r    = rb_ary_entry(data, 4);
-  VALUE _b    = rb_ary_entry(data, 5);
 
   VALUE peers = rb_funcall(_self, rb_intern("peers"), 0);
   VALUE peer  = rb_funcall(peers, rb_intern("[]"), 1, _p);
-  return rb_funcall(peer, rb_intern("insert"), 4, _c, _t, _r, _b);
+  return rb_funcall(peer, rb_intern("insert"), 3, _c, _t, _r);
 }
 
 VALUE Cache::erase_element_internal(VALUE block_arg, VALUE data, VALUE self)
@@ -401,7 +397,7 @@ VALUE Peer::define_class(VALUE _p)
 {
   VALUE c = rb_define_class_under(_p, "Peer", rb_cObject);
 
-  rb_define_method(c, "insert",  RUBY_METHOD_FUNC(rb_insert), 4);
+  rb_define_method(c, "insert",  RUBY_METHOD_FUNC(rb_insert), 3);
   rb_define_method(c, "erase",  RUBY_METHOD_FUNC(rb_remove), 3);
   rb_define_method(c, "status=", RUBY_METHOD_FUNC(rb_set_status), 1);
   rb_define_method(c, "status",  RUBY_METHOD_FUNC(rb_get_status), 0);
@@ -415,10 +411,10 @@ VALUE Peer::define_class(VALUE _p)
 }
 
 
-VALUE Peer::rb_insert(VALUE self, VALUE _c, VALUE _t, VALUE _r, VALUE _b)
+VALUE Peer::rb_insert(VALUE self, VALUE _c, VALUE _t, VALUE _r)
 {
   Peer* p = get_self(self);
-  p->m_cache->insert(NUM2ULL(_c), NUM2INT(_t), NUM2INT(_r), p->m_peer, rb_to_id(_b));
+  p->m_cache->insert(NUM2ULL(_c), NUM2INT(_t), NUM2INT(_r), p->m_peer);
   return Qnil;
 }
 

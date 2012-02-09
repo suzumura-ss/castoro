@@ -73,10 +73,8 @@ module Castoro
       #   insert command instance.
       #
       def insert_cache_record command
-        elems = command.path.split("/")
-        base_path = elems[0..(elems.size-4-1)].join("/")
-        @logger.info { "[key:#{command.basket}] insert cache <#{command.host}> <#{base_path}>" }
-        @cache.insert command.basket, command.host, base_path
+        @logger.info { "[key:#{command.basket}] insert cache <#{command.host}>" }
+        @cache.insert command.basket, command.host
       end
 
       ##

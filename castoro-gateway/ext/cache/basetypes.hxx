@@ -46,7 +46,6 @@ namespace Gateway {
   // for Result of Database#find(content_id, type, revision).
   typedef struct {
     ID  peer;       // Peer name by ID(ruby).
-    ID  base;       // Peer base_dir by ID(ruby).
   } PeerWithBase;
   typedef std::vector<PeerWithBase> ArrayOfPeerWithBase;
 

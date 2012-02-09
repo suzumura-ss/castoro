@@ -27,28 +27,6 @@
 namespace Castoro {
 namespace Gateway {
 
-  // { peer, type } => base_path mapping.
-  typedef std::map<PeerIdWithType, ID> BasePathMap_SUPER;
-  class BasePathMap :public BasePathMap_SUPER
-  {
-  public:
-    inline void insert(ID peer, uint32_t type, ID value) {
-      PeerIdWithType key(peer, type);
-      iterator it = BasePathMap_SUPER::find(key);
-      if(it==end()) {
-        BasePathMap_SUPER::insert(std::make_pair(key, value));
-      } else {
-        (*it).second = value;
-      }
-    };
-    inline ID find(ID peer, uint32_t type) {
-      PeerIdWithType key(peer, type);
-      iterator it = BasePathMap_SUPER::find(key);
-      return (it==end())? 0: (*it).second;
-    };
-  };
-
-
   // { peer } <=> { peer code } mapping.
   typedef uint16_t  PEERH;
   class PeerHash {

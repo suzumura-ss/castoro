@@ -36,8 +36,13 @@ module Castoro; class Gateway
       "watchdog_limit" => 15,
       "return_peer_number" => 5,
       "cache_size" => 500000,
+      "converter_base_dir" => "/expdsk",
       "options" => {},
     }.freeze
+    CONVERTER_SETTINGS = {
+      "Dec40Seq" => "0-65535",
+      "Hex64Seq" => "",
+    }
 
     DEFAULT_SETTINGS = {
       "original" => {
@@ -84,6 +89,9 @@ module Castoro; class Gateway
         if ["original", "island"].include?(result["type"])
           result["cache"] = {}; options["cache"] ||= {}
           CACHE_SETTINGS.each { |k,v| result["cache"][k] = options["cache"][k] || v }
+
+          result["cache"]["converter"] = {}; options["cache"]["converter"] = {}
+          CONVERTER_SETTINGS.each { |k,v| result["cache"]["converter"][k] = options["cache"]["converter"][k] || v }
         end
       }
     }
@@ -98,7 +106,8 @@ module Castoro; class Gateway
         "loglevel" => "<%= Logger::INFO %>",
         "island_multicast_addr" => "TODO: please specify multicast address",
       })
-      "<% require 'logger' %>\n" << ({ "default" => conf }.to_yaml)
+      "<% require 'logger' %>\n" <<
+      { "default" => conf }.to_yaml.split(/(\r|\n|\r\n)/).select { |l| !l.strip.empty? }.join("\n")
     end
 
     def initialize options = {}

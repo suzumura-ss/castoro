@@ -553,7 +553,6 @@ void test_Database_random()
       printf("  m_status :%4u", db.m_status_r()->size());
       printf("  m_peerh.v :%4u", db.m_peerh_r()->m_hash2id_r()->size());
       printf("  m_peerh.m :%4u", db.m_peerh_r()->m_id2hash_r()->size());
-      printf("  m_paths :%4u\n", db.m_paths_r()->size());
       fflush(stdout);
     }
   }

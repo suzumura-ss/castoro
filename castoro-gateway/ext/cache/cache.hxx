@@ -55,7 +55,7 @@ public:
   inline virtual ~Cache() { try{ if(m_db) delete m_db; } catch(...){} };
 
   // content handlings.
-  inline void insert(uint64_t c, uint32_t t, uint32_t r, ID p, ID b) { m_db->insert(c, t, r, p, b); };
+  inline void insert(uint64_t c, uint32_t t, uint32_t r, ID p) { m_db->insert(c, t, r, p); };
   inline void find(uint64_t c, uint32_t t, uint32_t r, ArrayOfPeerWithBase& a, bool& k) {
     m_db->find(c, t, r, a, k);
   };
@@ -87,7 +87,7 @@ private:
   static VALUE rb_alloc_peers(VALUE self);
   static VALUE rb_dump(VALUE self, VALUE _f);
   static VALUE rb_find_peers(int argc, VALUE* argv, VALUE self);
-  static VALUE rb_insert_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r, VALUE _b);
+  static VALUE rb_insert_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r);
   static VALUE rb_erase_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r);
   static VALUE rb_get_peer_status(VALUE self, VALUE _p);
   static VALUE rb_set_peer_status(VALUE self, VALUE _p, VALUE _s);
@@ -143,7 +143,7 @@ private:
 public:
   // Ruby bindings
   static VALUE define_class(VALUE _p);
-  static VALUE rb_insert(VALUE self, VALUE _c, VALUE _t, VALUE _r, VALUE _b);
+  static VALUE rb_insert(VALUE self, VALUE _c, VALUE _t, VALUE _r);
   static VALUE rb_remove(VALUE self, VALUE _c, VALUE _t, VALUE _r);
   static VALUE rb_set_status(VALUE self, VALUE _s);
   static VALUE rb_get_status(VALUE self);

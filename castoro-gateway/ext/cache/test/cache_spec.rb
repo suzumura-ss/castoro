@@ -19,9 +19,9 @@
 
 require File.join(File.dirname(__FILE__), '../cache.so')
 
-PEER1 = "std100"; BASE1="/expdsk/baskets/r"
-PEER2 = "std101"; BASE2="/expdsk/baskets/w"
-PEER3 = "std102"; BASE3="/expdsk/baskets/a"
+PEER1 = "std100"
+PEER2 = "std101"
+PEER3 = "std102"
 ACTIVE = { :status => Castoro::Cache::Peer::ACTIVE, :available => 10*1000*1000*1000 }
 ACTIVE_100 = { :status => Castoro::Cache::Peer::ACTIVE, :available => 100 }
 ACTIVE_1000 = { :status => Castoro::Cache::Peer::ACTIVE, :available => 1000 }
@@ -35,18 +35,6 @@ def buildpath(p, b, c, t, r)
   g, m = m.divmod 1000
   "%s:%s/%d/%03d/%03d/%d.%d.%d"%[p, b, g, m, k, c, t, r]
 end
-
-def nfs1(c, t, r); buildpath PEER1, BASE1, c, t, r; end
-def nfs2(c, t, r); buildpath PEER2, BASE2, c, t, r; end
-def nfs3(c, t, r); buildpath PEER3, BASE3, c, t, r; end
-
-def check_range this, id, expr
-  this.peers[PEER1].insert(id,0,0,BASE1)
-  this.find(id,0,0)[0].should =~ expr
-  this.peers[PEER1].insert(id+999,0,0,BASE1)
-  this.find(id+999,0,0)[0].should =~ expr
-end
-
 
 describe Castoro::Cache do
   context "when initialize" do
@@ -79,7 +67,7 @@ describe Castoro::Cache do
   context "when insert a item" do
     before do
       @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
-      @cache.peers[PEER1].insert(1,2,3,BASE1)
+      @cache.peers[PEER1].insert(1,2,3)
     end
 
     it "should be empty when insert and remove it" do
@@ -93,12 +81,12 @@ describe Castoro::Cache do
 
     it "should be one item when mark active" do
       @cache.peers[PEER1].status = ACTIVE
-      @cache.find(1,2,3).should == [nfs1(1,2,3)]
+      @cache.find(1,2,3).should == [PEER1]
     end
 
     it "should be one item when mark readonly" do
       @cache.peers[PEER1].status = READONLY
-      @cache.find(1,2,3).should == [nfs1(1,2,3)]
+      @cache.find(1,2,3).should == [PEER1]
     end
 
     it "should be empty when mark maintenance" do
@@ -115,8 +103,8 @@ describe Castoro::Cache do
   context "when insert 2 items into same peer" do
     before do
       @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
-      @cache.peers[PEER1].insert(1,2,3,BASE1)
-      @cache.peers[PEER1].insert(4,5,6,BASE1)
+      @cache.peers[PEER1].insert(1,2,3)
+      @cache.peers[PEER1].insert(4,5,6)
     end
 
     it "should be empty when insert, but NOT activated" do
@@ -126,14 +114,14 @@ describe Castoro::Cache do
 
     it "should be one item when and mark active" do
       @cache.peers[PEER1].status = ACTIVE
-      @cache.find(1,2,3).should == [nfs1(1,2,3)]
-      @cache.find(4,5,6).should == [nfs1(4,5,6)]
+      @cache.find(1,2,3).should == [PEER1]
+      @cache.find(4,5,6).should == [PEER1]
     end
 
     it "should be empty when mark readonly" do
       @cache.peers[PEER1].status = READONLY
-      @cache.find(1,2,3).should == [nfs1(1,2,3)]
-      @cache.find(4,5,6).should == [nfs1(4,5,6)]
+      @cache.find(1,2,3).should == [PEER1]
+      @cache.find(4,5,6).should == [PEER1]
     end
 
     it "should be empty when mark maintenance" do
@@ -151,8 +139,8 @@ describe Castoro::Cache do
   context "when insert 2 items into different peers" do
     before do
       @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
-      @cache.peers[PEER1].insert(1,2,3,BASE1)
-      @cache.peers[PEER2].insert(1,2,3,BASE2)
+      @cache.peers[PEER1].insert(1,2,3)
+      @cache.peers[PEER2].insert(1,2,3)
     end
 
     it "should be empty when insert, but NOT activated" do
@@ -161,7 +149,7 @@ describe Castoro::Cache do
 
     it "should be one item when mark active one" do
       @cache.peers[PEER1].status = ACTIVE
-      @cache.find(1,2,3).should == [nfs1(1,2,3)]
+      @cache.find(1,2,3).should == [PEER1]
     end
 
     context "-> activated" do
@@ -171,19 +159,19 @@ describe Castoro::Cache do
       end
         
       it "should be two items mark active all" do
-        @cache.find(1,2,3).should == [nfs1(1,2,3),nfs2(1,2,3)]
+        @cache.find(1,2,3).should == [PEER1,PEER2]
       end
 
       it "should be empty when mark readonly" do
         @cache.peers[PEER1].status = READONLY
-        @cache.find(1,2,3).should == [nfs1(1,2,3),nfs2(1,2,3)]
+        @cache.find(1,2,3).should == [PEER1,PEER2]
         @cache.peers[PEER2].status = READONLY
-        @cache.find(1,2,3).should == [nfs1(1,2,3),nfs2(1,2,3)]
+        @cache.find(1,2,3).should == [PEER1,PEER2]
       end
 
       it "should be empty when mark maintenance" do
         @cache.peers[PEER1].status = MAINTENANCE
-        @cache.find(1,2,3).should == [nfs2(1,2,3)]
+        @cache.find(1,2,3).should == [PEER2]
         @cache.peers[PEER2].status = MAINTENANCE
         @cache.find(1,2,3).should be_empty
       end
@@ -198,29 +186,29 @@ describe Castoro::Cache do
   context "when remove item" do
     before do
       @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
-      @cache.peers[PEER1].insert(1,2,3,BASE1)
-      @cache.peers[PEER2].insert(1,2,3,BASE2)
-      @cache.peers[PEER3].insert(1,2,3,BASE3)
+      @cache.peers[PEER1].insert(1,2,3)
+      @cache.peers[PEER2].insert(1,2,3)
+      @cache.peers[PEER3].insert(1,2,3)
       @cache.peers[PEER1].status = ACTIVE
       @cache.peers[PEER2].status = ACTIVE
       @cache.peers[PEER3].status = ACTIVE
-      @cache.peers[PEER1].insert(2,2,3,BASE1)
+      @cache.peers[PEER1].insert(2,2,3)
     end
 
     it "should be found 3 peers when remove unknown item" do
       @cache.peers["unknown"].erase(1,2,3)
-      @cache.find(1,2,3).should == [nfs1(1,2,3),nfs2(1,2,3),nfs3(1,2,3)]
+      @cache.find(1,2,3).should == [PEER1,PEER2,PEER3]
     end
 
     it "should be found 2 peer when remove 1 item" do
       @cache.peers[PEER3].erase(1,2,3)
-      @cache.find(1,2,3).should == [nfs1(1,2,3),nfs2(1,2,3)]
+      @cache.find(1,2,3).should == [PEER1,PEER2]
     end
 
     it "should be found 2 peer when remove 1 item" do
       @cache.peers[PEER2].erase(1,2,3)
       @cache.peers[PEER3].erase(1,2,3)
-      @cache.find(1,2,3).should == [nfs1(1,2,3)]
+      @cache.find(1,2,3).should == [PEER1]
     end
 
     it "should be found no peers when remove all." do
@@ -296,79 +284,17 @@ describe Castoro::Cache do
     end
   end
 
-  context "when content id is large" do
-    before do
-      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
-      @cache.peers[PEER1].status = ACTIVE
-    end
-
-    it "part of path should be '/0/000/000/' when id < 1000" do
-      check_range @cache, 0, %r{/0/000/000/}
-    end
-
-    it "part of path should be '/0/000/001/' when 1000<= id <=1999" do
-      check_range @cache, 1*1000, %r{/0/000/001/}
-    end
-
-    it "part of path should be '/0/000/999/' when 999,000<= id <=999,999" do
-      check_range @cache, 999*1000, %r{/0/000/999/}
-    end
-
-    it "part of path should be '/0/001/000/' when 1,000,000<= id <=1,000,999" do
-      check_range @cache, 1*1000*1000, %r{/0/001/000/}
-    end
-
-    it "part of path should be '/0/999/000/' when 999,000,000<= id <=999,000,999" do
-      check_range @cache, 999*1000*1000, %r{/0/999/000/}
-    end
-
-    it "part of path should be '/1/000/000/' when 1,000,000,000<= id <=1,000,000,999" do
-      check_range @cache, 1*1000*1000*1000, %r{/1/000/000/}
-    end
-
-    it "part of path should be '/1000/000/000/' when 1,000,000,000,000<= id <=1,000,000,000,999" do
-      check_range @cache, 1000*1000*1000*1000, %r{/1000/000/000/}
-    end
-
-    after do
-      @cache = nil
-    end
-  end
-
-
-  context "when make_nfs_path is overloaded" do
-    before do
-      @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
-      @cache.peers[PEER1].status = ACTIVE
-      class << @cache
-        def make_nfs_path(p, b, c, t, r)
-          {:host=>p.to_s, :path=>"#{b}/#{c}.#{t}@#{r}"}
-        end
-      end
-    end
-
-    it "path should be 'peer:/base/cid.type@rev'" do
-      @cache.peers[PEER1].insert(1,2,3,BASE1)
-      @cache.find(1,2,3).should == [{:host=>PEER1, :path=>"#{BASE1}/1.2@3"}]
-    end
-
-    after do
-      @cache = nil
-    end
-  end
-
-
   context "watchdog expires" do
     before do
       @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10, :watchdog_limit => 1)
-      @cache.peers[PEER1].insert(1,2,3,BASE1)
-      @cache.peers[PEER2].insert(1,2,3,BASE2)
+      @cache.peers[PEER1].insert(1,2,3)
+      @cache.peers[PEER2].insert(1,2,3)
     end
 
     it "should be include peer1, peer2" do
       @cache.peers[PEER1].status = ACTIVE
       @cache.peers[PEER2].status = ACTIVE
-      @cache.find(1,2,3).should == [nfs1(1,2,3),nfs2(1,2,3)]
+      @cache.find(1,2,3).should == [PEER1,PEER2]
     end
     
     it "should not be include peer1 when timeout" do
@@ -376,7 +302,7 @@ describe Castoro::Cache do
       @cache.peers[PEER2].status = ACTIVE
       sleep 2.0
       @cache.peers[PEER2].status = ACTIVE
-      @cache.find(1,2,3).should == [nfs2(1,2,3)]
+      @cache.find(1,2,3).should == [PEER2]
     end
 
     describe "#watchdog_limit" do
@@ -394,9 +320,9 @@ describe Castoro::Cache do
   context "dump cache" do
     before do
       @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10)
-      @cache.peers[PEER1].insert(1,2,3,BASE1)
-      @cache.peers[PEER2].insert(1,2,3,BASE2)
-      @cache.peers[PEER3].insert(1,2,3,BASE3)
+      @cache.peers[PEER1].insert(1,2,3)
+      @cache.peers[PEER2].insert(1,2,3)
+      @cache.peers[PEER3].insert(1,2,3)
       @cache.peers[PEER1].status = ACTIVE
       @cache.peers[PEER2].status = READONLY
       @cache.peers[PEER3].status = MAINTENANCE
@@ -411,9 +337,9 @@ describe Castoro::Cache do
       end
       @cache.dump(result).should be_true
       result.should == <<__RESULT__
-  std100: /expdsk/baskets/r/1.2.3
-  std101: /expdsk/baskets/w/1.2.3
-  std102: /expdsk/baskets/a/1.2.3
+  std100: 1.2.3
+  std101: 1.2.3
+  std102: 1.2.3
 __RESULT__
     end
 
@@ -426,8 +352,8 @@ __RESULT__
   context "cache stat" do
     before do
       @cache = Castoro::Cache.new(Castoro::Cache::PAGE_SIZE * 10, :watchdog_limit => 5)
-      @cache.peers[PEER1].insert(1,2,3,BASE1)
-      @cache.peers[PEER2].insert(1,2,3,BASE2)
+      @cache.peers[PEER1].insert(1,2,3)
+      @cache.peers[PEER2].insert(1,2,3)
       @cache.peers[PEER1].status = ACTIVE
       @cache.peers[PEER2].status = READONLY
       @cache.find(1,2,3)

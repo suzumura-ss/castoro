@@ -51,6 +51,11 @@ CACHE_SETTINGS = {
           storeables.include?(peer)
         }
       }",
+  "converter_base_dir" => "/expdsk",
+  "converter" => {
+    "Dec40Seq" => "0-65535",
+    "Hex64Seq" => "",
+  },  
 }
 
 
@@ -100,9 +105,9 @@ describe Castoro::BasketCache do
       logger = Logger.new nil
       @cache = Castoro::BasketCache.new logger, CACHE_SETTINGS
 
-      @cache.insert(keys[0], "peer100", "/expdsk/baskets")
-      @cache.insert(keys[1], "peer101", "/expdsk/baskets")
-      @cache.insert(keys[2], "peer102", "/expdsk/baskets")
+      @cache.insert(keys[0], "peer100")
+      @cache.insert(keys[1], "peer101")
+      @cache.insert(keys[2], "peer102")
     end
 
     it "should be changed the status of the page size." do
@@ -125,7 +130,7 @@ describe Castoro::BasketCache do
       io.rewind
       io.read.split("\n").size.should == 3
       io.rewind
-      io.read.should == "  peer102: /expdsk/baskets/1357902.0.3\n  peer101: /expdsk/baskets/4567890.1.2\n  peer100: /expdsk/baskets/291.1.3\n"
+      io.read.should == "  peer102: 1357902.0.3\n  peer101: 4567890.1.2\n  peer100: 291.1.3\n"
     end
 
     context "and remove it with 1 storage is active" do
@@ -203,13 +208,13 @@ describe Castoro::BasketCache do
 
       it "should be able to find the inserted items." do
         @cache.find_by_key(keys[0]).should == {
-            "peer100" => "/expdsk/baskets/0/000/000/291.1.3",
+            "peer100" => "/expdsk/1/baskets/a/0/000/000/291.1.3",
         }
         @cache.find_by_key(keys[1]).should == {
-            "peer101" => "/expdsk/baskets/0/004/567/4567890.1.2",
+            "peer101" => "/expdsk/1/baskets/a/0/004/567/4567890.1.2",
         }
         @cache.find_by_key(keys[2]).should == {
-            "peer102" => "/expdsk/baskets/0/001/357/1357902.0.3",
+            "peer102" => "/expdsk/0/baskets/a/0/001/357/1357902.0.3",
         }
       end
 
@@ -241,13 +246,13 @@ describe Castoro::BasketCache do
 
       it "should be found the insert items." do
         @cache.find_by_key(keys[0]).should == {
-            "peer100" => "/expdsk/baskets/0/000/000/291.1.3",
+          "peer100" => "/expdsk/1/baskets/a/0/000/000/291.1.3",
         }
         @cache.find_by_key(keys[1]).should == {
-            "peer101" => "/expdsk/baskets/0/004/567/4567890.1.2",
+          "peer101" => "/expdsk/1/baskets/a/0/004/567/4567890.1.2",
         }
         @cache.find_by_key(keys[2]).should == {
-            "peer102" => "/expdsk/baskets/0/001/357/1357902.0.3",
+          "peer102" => "/expdsk/0/baskets/a/0/001/357/1357902.0.3",
         }
       end
 

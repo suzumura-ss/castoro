@@ -26,6 +26,12 @@ module Castoro
       @return_peer_number = config["return_peer_number"]
       @filter             = eval(config["filter"].to_s) || Proc.new{ |peers| peers }
 
+      # converter
+      converter_options = {}.tap { |opt|
+        opt[:base_dir] = config["converter_base_dir"] if config["converter_base_dir"]
+      }
+      @converter          = BasketKeyConverter.new(config["converter"], converter_options)
+
       # cache options.
       options = {}.tap { |h| (config["options"] || {}).each { |k,v| h[k.to_sym] = v } }
       options[:watchdog_limit] = config["watchdog_limit"] if config["watchdog_limit"]
@@ -38,7 +44,7 @@ module Castoro
       @weight  = weighting_coefficient @return_peer_number
     end
 
-    def insert basket, host, base_path
+    def insert basket, host
       raise "Nil cannot be set to basket." if basket.nil?
       raise "Nil cannot be set to host."   if host.nil?
       basket = basket.to_basket
@@ -46,7 +52,7 @@ module Castoro
       @logger.debug {
         "insert into cache data, host => #{host}, key => #{basket.content},#{basket.type},#{basket.revision}, base_path => #{base_path}"
       }
-      @cache.insert_element(host, basket.content, basket.type, basket.revision, base_path)
+      @cache.insert_element(host, basket.content, basket.type, basket.revision)
     end
 
     def erase_by_peer_and_key host, basket
@@ -67,9 +73,8 @@ module Castoro
       @logger.debug { "find cache data by key, #{basket.content},#{basket.type},#{basket.revision}" }
 
       {}.tap { |result|
-        (@cache.find(basket.content, basket.type, basket.revision)||[]).each { |path|
-          elements = path.split(":")
-          result[elements[0]] = elements[1]
+        (@cache.find(basket.content, basket.type, basket.revision)||[]).each { |peer|
+          result[peer] = @converter.path(basket)
         }
       }
     end

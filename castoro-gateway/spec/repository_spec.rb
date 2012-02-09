@@ -154,7 +154,7 @@ describe Castoro::Gateway::Repository do
         @cache.stub!(:insert)
         key = Castoro::BasketKey.new 1, 2, 3
         command = Castoro::Protocol::Command::Insert.new key, "host", "path1/path2/path3/path4/path5"
-        @cache.should_receive(:insert).with(key, "host", "path1").exactly(1)
+        @cache.should_receive(:insert).with(key, "host").exactly(1)
 
         repository = Castoro::Gateway::Repository.new @logger, @config
         repository.insert_cache_record command

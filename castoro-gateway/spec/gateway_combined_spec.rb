@@ -195,6 +195,7 @@ describe Castoro::Gateway do
     end
       
     it "should be change the status." do
+      sleep 1.0
       status = Castoro::Protocol::Command::Status.new
       res = @console.send status, 2.0
       res.should be_kind_of(Castoro::Protocol::Response::Status)
@@ -254,7 +255,7 @@ describe Castoro::Gateway do
           @console.send_and_recv_stream(dump, 2.0) { |res|
             dump_res = res
           }
-          dump_res.should == "  peer100: /expdsk/1/baskets/a/1.1.1\n"
+          dump_res.should == "  peer100: 1.1.1\n"
         end
   
         context "when the basket was added" do
@@ -271,7 +272,7 @@ describe Castoro::Gateway do
             @console.send_and_recv_stream(dump, 2.0) { |res|
               dump_res = res
             }
-            dump_res.should == "  peer100: /expdsk/1/baskets/a/1.1.1\n  peer200: /expdsk/1/baskets/a/1.1.1\n"
+            dump_res.should == "  peer100: 1.1.1\n  peer200: 1.1.1\n"
           end
   
           context "when the query cache" do 
@@ -367,7 +368,7 @@ describe Castoro::Gateway do
                   @console.send_and_recv_stream(dump, 2.0) { |res|
                     dump_res = res
                   }
-                  dump_res.should == "  peer100: /expdsk/1/baskets/a/1.1.1\n"
+                  dump_res.should == "  peer100: 1.1.1\n"
                 end
                
                 context "when the cache is emptied" do

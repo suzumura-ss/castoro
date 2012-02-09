@@ -46,7 +46,7 @@ Database::~Database()
 
 
 // insert
-void Database::insert(uint64_t content_id, uint32_t type, uint32_t revision, ID peer, ID base)
+void Database::insert(uint64_t content_id, uint32_t type, uint32_t revision, ID peer)
 {
   ContentIdWithType ct(content_id, type);
 
@@ -72,9 +72,6 @@ void Database::insert(uint64_t content_id, uint32_t type, uint32_t revision, ID 
     m_table.erase(it);
     return;
   }
-
-  // update peer/type/base pair.
-  m_paths.insert(peer, type, base);
 
   // update peer status.
   update_peer(peer);
@@ -102,11 +99,8 @@ void Database::find(uint64_t content_id, uint32_t type, uint32_t revision, Array
     ID peer = toID(peers.at(idx));
     PeerStatusMap::iterator pi = m_status.find(peer);
     if((pi!=m_status.end()) && (*pi).second.is_readable()) {
-      ID base = m_paths.find(peer, type);
-      if(base) {
-        PeerWithBase pb = { peer, base };
-        result.push_back(pb);
-      }
+      PeerWithBase pb = { peer };
+      result.push_back(pb);
     }
   }
   if(result.size()>0) m_hits++;
@@ -265,8 +259,7 @@ bool Database::dump(CacheDumperAbstract& dumper)
       uint32_t  rev = revisions[ofs];
       for(size_t pi=0; pi<ids.size(); pi++) {
         ID peer = toID(ids.at(pi));
-        ID base = m_paths.find(peer, typ);
-        if(!dumper(cid+ofs, typ, rev, peer, base)) return false;
+        if(!dumper(cid+ofs, typ, rev, peer)) return false;
       }
     }
   }

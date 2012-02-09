@@ -61,7 +61,7 @@ namespace Gateway {
   public:
     inline CacheDumperAbstract() {};
     virtual inline ~CacheDumperAbstract() {};
-    virtual bool operator()(uint64_t cid, uint32_t typ, uint32_t rev, ID peer, ID base) = 0;
+    virtual bool operator()(uint64_t cid, uint32_t typ, uint32_t rev, ID peer) = 0;
   };
 
 
@@ -71,7 +71,7 @@ namespace Gateway {
     virtual ~Database();
 
     // content handlings.
-    void insert(uint64_t content_id, uint32_t type, uint32_t revision, ID peer, ID base);
+    void insert(uint64_t content_id, uint32_t type, uint32_t revision, ID peer);
     void find(uint64_t content_id, uint32_t type, uint32_t revision, ArrayOfPeerWithBase& result, bool& removed);
     void remove(uint64_t content_id, uint32_t type, uint32_t revision, ID peer);
 
@@ -113,7 +113,6 @@ namespace Gateway {
     attr_reader_ref(CachePageMap, m_table);
     attr_reader_ref(PeerStatusMap, m_status);
     attr_reader_ref(PeerHash, m_peerh);
-    attr_reader_ref(BasePathMap, m_paths);
 
   private:
     uint32_t        m_expire;   // Cache expires by sec.
@@ -121,7 +120,6 @@ namespace Gateway {
     CachePageMap    m_table;    // Active cache pages.
     PeerStatusMap   m_status;   // peer ID => PeerStatus
     PeerHash        m_peerh;    // peer ID => PeerH
-    BasePathMap     m_paths;    // {peer ID,type} => base path ID
     uint64_t        m_requests; // #find request count.
     uint64_t        m_hits;     // #find request hit count.
 
