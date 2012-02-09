@@ -126,11 +126,11 @@ describe Castoro::Protocol do
       end
     end
 
-    context 'when argument set ["1.1","C","GET",{"basket":"987654321.1.2","island":"abc45678"}]' do
+    context 'when argument set ["1.1","C","GET",{"basket":"987654321.1.2","island":"ebc45678"}]' do
       it 'should be able to create an instance of "GET" command.' do
-        command = Castoro::Protocol.parse '["1.1","C","GET",{"basket":"987654321.1.2","island":"abc45678"}]'
+        command = Castoro::Protocol.parse '["1.1","C","GET",{"basket":"987654321.1.2","island":"ebc45678"}]'
         command.should be_kind_of(Castoro::Protocol::Command::Get)
-        command.to_s.should be_synonymas_with('["1.1","C","GET",{"basket":"987654321.1.2","island":"abc45678"}]' + "\r\n")
+        command.to_s.should be_synonymas_with('["1.1","C","GET",{"basket":"987654321.1.2","island":"ebc45678"}]' + "\r\n")
         command.to_s.should match(/.+\r\n/)
       end
     end
@@ -171,11 +171,11 @@ describe Castoro::Protocol do
       end
     end
 
-    context 'when argument set ["1.1","C","ISLAND",{"island":"abcdef10","storables":"30","capacity":"1000"}]' do
+    context 'when argument set ["1.1","C","ISLAND",{"island":"ebcdef10","storables":"30","capacity":"1000"}]' do
       it 'should be able to create an instance of "ISLAND" command.' do
-        command = Castoro::Protocol.parse '["1.1","C","ISLAND",{"island":"abcdef10","storables":30,"capacity":1000}]'
+        command = Castoro::Protocol.parse '["1.1","C","ISLAND",{"island":"ebcdef10","storables":30,"capacity":1000}]'
         command.should be_kind_of(Castoro::Protocol::Command::Island)
-        command.to_s.should be_synonymas_with('["1.1","C","ISLAND",{"island":"abcdef10","storables":30,"capacity":1000}]' + "\r\n")
+        command.to_s.should be_synonymas_with('["1.1","C","ISLAND",{"island":"ebcdef10","storables":30,"capacity":1000}]' + "\r\n")
         command.to_s.should match(/.+\r\n/)
       end
     end
@@ -270,11 +270,11 @@ describe Castoro::Protocol do
       end
     end
 
-    context 'when argument set ["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"hoge"}]' do
+    context 'when argument set ["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"ebcdef10"}]' do
       it 'should be able to create an instance of "CREATE" gateway response.' do
-        response = Castoro::Protocol.parse '["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"abcdef10"}]'
+        response = Castoro::Protocol.parse '["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"ebcdef10"}]'
         response.should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
-        response.to_s.should be_synonymas_with('["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"abcdef10"}]' + "\r\n")
+        response.to_s.should be_synonymas_with('["1.1","R","CREATE",{"basket":"123456789.1.2","hosts":["host101","host102","host100"],"island":"ebcdef10"}]' + "\r\n")
         response.to_s.should match(/.+\r\n/)
       end
     end
@@ -378,11 +378,11 @@ describe Castoro::Protocol do
       end
     end
 
-    context 'when argument set ["1.1","R","GET",{"basket":"123456789.1.2","paths":{"host1":"path1/2/3/4","host2":"path5/6/7/8"},"island":"abc45678"}]' do
+    context 'when argument set ["1.1","R","GET",{"basket":"123456789.1.2","paths":{"host1":"path1/2/3/4","host2":"path5/6/7/8"},"island":"ebc45678"}]' do
       it 'should be able to create an instance of "GET" response' do
-        response = Castoro::Protocol.parse '["1.1","R","GET",{"basket":"123456789.1.2","paths":{"host1":"path1/2/3/4","host2":"path5/6/7/8"},"island":"abc45678"}]'
+        response = Castoro::Protocol.parse '["1.1","R","GET",{"basket":"123456789.1.2","paths":{"host1":"path1/2/3/4","host2":"path5/6/7/8"},"island":"ebc45678"}]'
         response.should be_kind_of(Castoro::Protocol::Response::Get)
-        response.to_s.should be_synonymas_with('["1.1","R","GET",{"basket":"123456789.1.2","paths":{"host1":"path1/2/3/4","host2":"path5/6/7/8"},"island":"abc45678"}]' + "\r\n")
+        response.to_s.should be_synonymas_with('["1.1","R","GET",{"basket":"123456789.1.2","paths":{"host1":"path1/2/3/4","host2":"path5/6/7/8"},"island":"ebc45678"}]' + "\r\n")
         response.to_s.should match(/.+\r\n/)
       end
     end

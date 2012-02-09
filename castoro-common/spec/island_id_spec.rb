@@ -20,17 +20,17 @@
 require File.dirname(__FILE__) + '/spec_helper.rb'
 
 describe Castoro::IslandId do
-  context "given string '01234567'" do
+  context "given string 'e1234567'" do
     before(:all) do
-      @island = Castoro::IslandId.new '01234567'
+      @island = Castoro::IslandId.new 'e1234567'
     end
 
-    it "#to_s is '01234567'" do
-      @island.to_s.should == '01234567'
+    it "#to_s is 'e1234567'" do
+      @island.to_s.should == 'e1234567'
     end
 
-    it "#to_ip is '1.35.69.103'" do
-      @island.to_ip.should == '1.35.69.103'
+    it "#to_ip is '225.35.69.103'" do
+      @island.to_ip.should == '225.35.69.103'
     end
 
     it "#to_island is self" do
@@ -38,21 +38,21 @@ describe Castoro::IslandId do
     end
 
     it "same other instance" do
-      @island.should == Castoro::IslandId.new('01234567')
+      @island.should == Castoro::IslandId.new('e1234567')
     end
   end
 
-  context "given string '0abcdef9'" do
+  context "given string 'eabcdef9'" do
     before(:all) do
-      @island = Castoro::IslandId.new '0abcdef9'
+      @island = Castoro::IslandId.new 'eabcdef9'
     end
 
-    it "#to_s is '0abcdef9'" do
-      @island.to_s.should == '0abcdef9'
+    it "#to_s is 'eabcdef9'" do
+      @island.to_s.should == 'eabcdef9'
     end
 
-    it "#to_ip is '10.188.222.249'" do
-      @island.to_ip.should == '10.188.222.249'
+    it "#to_ip is '234.188.222.249'" do
+      @island.to_ip.should == '234.188.222.249'
     end
 
     it "#to_island is self" do
@@ -60,29 +60,47 @@ describe Castoro::IslandId do
     end
 
     it "same other instance" do
-      @island.should == Castoro::IslandId.new('0abcdef9')
+      @island.should == Castoro::IslandId.new('eabcdef9')
     end
   end
 
-  context "given string '192.168.0.1'" do
-    before(:all) do
-      @island = Castoro::IslandId.new '192.168.0.1'
+  describe "givn ip address" do
+    context "given ip address '239.168.0.1'" do
+      before(:all) do
+        @island = Castoro::IslandId.new '239.168.0.1'
+      end
+
+      it "#to_s is 'efa80001'" do
+        @island.to_s.should == 'efa80001'
+      end
+
+      it "#to_ip is '239.168.0.1'" do
+        @island.to_ip.should == '239.168.0.1'
+      end
+
+      it "#to_island is self" do
+        @island.to_island.should be_equal @island
+      end
+
+      it "same other instance" do
+        @island.should == Castoro::IslandId.new('efa80001')
+      end
     end
 
-    it "#to_s is 'c0a80001'" do
-      @island.to_s.should == 'c0a80001'
+    context "given not multicast address" do
+      it "should raise error" do
+        Proc.new {
+          Castoro::IslandId.new '192.168.0.1'
+        }.should raise_error(Castoro::IslandIdError)
+      end
     end
+  end
 
-    it "#to_ip is '192.168.0.1'" do
-      @island.to_ip.should == '192.168.0.1'
-    end
-
-    it "#to_island is self" do
-      @island.to_island.should be_equal @island
-    end
-
-    it "same other instance" do
-      @island.should == Castoro::IslandId.new('c0a80001')
+  context "given 8 length letters" do
+    it "should raise error" do
+      Proc.new {
+        Castoro::IslandId.new 'c0a80001'
+      }.should raise_error(Castoro::IslandIdError)
     end
   end
 
@@ -105,9 +123,9 @@ describe Castoro::IslandId do
   describe "helper" do
     describe "String class" do
       it "convertable by #to_island" do
-        "ab12de34".to_island.should be_kind_of Castoro::IslandId
+        "eb12de34".to_island.should be_kind_of Castoro::IslandId
       end
-    end   
+    end
   end
 end
 

@@ -80,7 +80,7 @@ describe Castoro::Protocol::Command do
 
   context 'when parsed, argument for opecode set "GET"' do
     it "should be able to create an instance of get command with island." do
-      Castoro::Protocol::Command.parse("GET", { "basket" => "1.2.3" , "island" => "abc45678"}).should be_kind_of(Castoro::Protocol::Command::Get)
+      Castoro::Protocol::Command.parse("GET", { "basket" => "1.2.3" , "island" => "ebc45678"}).should be_kind_of(Castoro::Protocol::Command::Get)
     end
   end
 
@@ -110,7 +110,7 @@ describe Castoro::Protocol::Command do
 
   context 'when parsed, argument for opecode set "ISLAND"' do
     it "should be able to create an instance of island command." do
-      Castoro::Protocol::Command.parse("ISLAND", { "island" => "12346abc", "storables" => 15, "capacity" => 12345689 }).should be_kind_of(Castoro::Protocol::Command::Island)
+      Castoro::Protocol::Command.parse("ISLAND", { "island" => "e2346abc", "storables" => 15, "capacity" => 12345689 }).should be_kind_of(Castoro::Protocol::Command::Island)
     end
   end
 

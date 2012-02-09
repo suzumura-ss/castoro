@@ -63,7 +63,7 @@ describe Castoro::Protocol::Command::Get do
 
       context "given basket and island." do
         before do
-          @command = Castoro::Protocol::Command::Get.new "1.2.4", "abc45678"
+          @command = Castoro::Protocol::Command::Get.new "1.2.4", "ebc45678"
         end
 
         it "basket is '1.2.4'." do
@@ -72,14 +72,14 @@ describe Castoro::Protocol::Command::Get do
           basket.to_s.should == "1.2.4"
         end
 
-        it "island is 'abc45678'." do
+        it "island is 'ebc45678'." do
           island = @command.island
-          island.to_s.should == "abc45678"
+          island.to_s.should == "ebc45678"
         end
 
         it "should be able to use #to_s." do
           JSON.parse(@command.to_s).should ==
-            JSON.parse('["1.1","C","GET",{"basket":"1.2.4","island":"abc45678"}]' + "\r\n")
+            JSON.parse('["1.1","C","GET",{"basket":"1.2.4","island":"ebc45678"}]' + "\r\n")
         end
       end
     end
@@ -121,7 +121,7 @@ describe Castoro::Protocol::Response::Get do
 
     context "given basket, hosts and island." do
       before do
-        @response = Castoro::Protocol::Response::Get.new(nil, "1.2.4", {"host3"=>"path1/2/3/4","host4"=>"path5/6/7/8"}, "abc45678")
+        @response = Castoro::Protocol::Response::Get.new(nil, "1.2.4", {"host3"=>"path1/2/3/4","host4"=>"path5/6/7/8"}, "ebc45678")
       end
 
       it 'basket is "1.2.4".' do
@@ -134,9 +134,9 @@ describe Castoro::Protocol::Response::Get do
         @response.paths.should == {"host3"=>"path1/2/3/4", "host4"=>"path5/6/7/8"}
       end
 
-      it "island is 'abc45678'." do
+      it "island is 'ebc45678'." do
         island = @response.island
-        island.to_s.should == "abc45678"
+        island.to_s.should == "ebc45678"
       end
 
       it 'should be #error? false.' do
@@ -145,7 +145,7 @@ describe Castoro::Protocol::Response::Get do
 
       it 'should be able to use #to_s.' do
         JSON.parse(@response.to_s).should ==
-          JSON.parse('["1.1","R","GET",{"basket":"1.2.4","paths":{"host3":"path1/2/3/4","host4":"path5/6/7/8"},"island":"abc45678"}]' + "\r\n")
+          JSON.parse('["1.1","R","GET",{"basket":"1.2.4","paths":{"host3":"path1/2/3/4","host4":"path5/6/7/8"},"island":"ebc45678"}]' + "\r\n")
       end
     end
   end
