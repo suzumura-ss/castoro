@@ -31,7 +31,7 @@ describe Castoro::Gateway::WatchdogSender do
         123456789
       end
     end
-    @island = "ab12cd34".to_island
+    @island = "eb12cd34".to_island
   end
 
   context "given default argument" do

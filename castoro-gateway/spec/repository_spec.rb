@@ -94,7 +94,7 @@ describe Castoro::Gateway::Repository do
     end
 
     context "when fetch availabele_peer from cache with find peers." do
-      context "given island 'abcdef01'" do
+      context "given island 'ebcdef01'" do
         it "should return Castoro::Response::Create::Gateway instance that contains the Peers." do
           @cache.stub!(:preferentially_find_peers)
             .with({"class" => "original", "length" => 100})
@@ -103,17 +103,17 @@ describe Castoro::Gateway::Repository do
           command = Castoro::Protocol::Command::Create.new key, {"class" => :original, "length" => 100}
           repository = Castoro::Gateway::Repository.new @logger, @config
 
-          res = repository.fetch_available_peers command, "abcdef01"
+          res = repository.fetch_available_peers command, "ebcdef01"
           res.should be_kind_of Castoro::Protocol::Response::Create::Gateway
           res.error?.should be_false
           res.basket.should == key
-          res.island.should == "abcdef01".to_island
+          res.island.should == "ebcdef01".to_island
           res.hosts.should  == ["host1", "host2", "host3"]
         end
       end
 
-      context "given island '12345678'" do
-        it "should set '12345678' to response#island" do
+      context "given island 'e2345678'" do
+        it "should set 'e2345678' to response#island" do
           @cache.stub!(:preferentially_find_peers)
             .with({"class" => "original", "length" => 100})
             .and_return(["host1", "host2", "host3"])
@@ -121,11 +121,11 @@ describe Castoro::Gateway::Repository do
           command = Castoro::Protocol::Command::Create.new key, {"class" => :original, "length" => 100}
           repository = Castoro::Gateway::Repository.new @logger, @config
 
-          res = repository.fetch_available_peers command, "12345678"
+          res = repository.fetch_available_peers command, "e2345678"
           res.should be_kind_of Castoro::Protocol::Response::Create::Gateway
           res.error?.should be_false
           res.basket.should == key
-          res.island.should == "12345678".to_island
+          res.island.should == "e2345678".to_island
           res.hosts.should  == ["host1", "host2", "host3"]
         end
       end

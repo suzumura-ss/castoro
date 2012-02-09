@@ -143,26 +143,29 @@ Config file is based on the YAML format.
 h3. example
 
 <pre>
----
-default:
-  logger: " Proc.new { |file| Logger.new(file, 'monthly') } "
+<% require 'logger' %>
+--- 
+default: 
+  require: []
+  logger: " Proc.new { |logfile| Logger.new(logfile) } "
   user: castoro
+  group: 
   workers: 5
-  loglevel: 1
-  multicast_addr: 239.192.1.1
-  multicast_device_addr: 192.168.1.1
-  cache:
+  loglevel: <%= Logger::INFO %>
+  type: original
+  gateway_console_port: 30110
+  gateway_unicast_port: 30111
+  gateway_multicast_port: 30109
+  gateway_watchdog_port: 30113
+  gateway_watchdog_logging: false
+  peer_multicast_addr: 239.192.1.1
+  peer_multicast_device: eth0
+  peer_multicast_port: 30112
+  cache: 
     watchdog_limit: 15
     return_peer_number: 5
     cache_size: 500000
-  gateway:
-    console_port: 30110
-    unicast_port: 30111
-    multicast_port: 30109
-    watchdog_port: 30113
-    watchdog_logging: false
-  peer:
-    multicast_port: 30112
+    options: {}
 </pre>
 
 h3. configuration key details.
