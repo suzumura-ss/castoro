@@ -90,7 +90,7 @@ module Castoro; class Gateway
           result["cache"] = {}; options["cache"] ||= {}
           CACHE_SETTINGS.each { |k,v| result["cache"][k] = options["cache"][k] || v }
 
-          result["cache"]["converter"] = {}; options["cache"]["converter"] = {}
+          result["cache"]["converter"] = {}; options["cache"]["converter"] ||= {}
           CONVERTER_SETTINGS.each { |k,v| result["cache"]["converter"][k] = options["cache"]["converter"][k] || v }
         end
       }
