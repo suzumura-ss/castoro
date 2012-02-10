@@ -72,7 +72,7 @@ namespace Gateway {
 
     // content handlings.
     void insert(uint64_t content_id, uint32_t type, uint32_t revision, ID peer);
-    void find(uint64_t content_id, uint32_t type, uint32_t revision, ArrayOfPeerWithBase& result, bool& removed);
+    void find(uint64_t content_id, uint32_t type, uint32_t revision, ArrayOfId& result, bool& removed);
     void remove(uint64_t content_id, uint32_t type, uint32_t revision, ID peer);
 
     // peer handlings.

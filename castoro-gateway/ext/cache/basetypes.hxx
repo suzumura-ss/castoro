@@ -42,14 +42,6 @@ namespace Gateway {
   // for Result of Database#find(require_space).
   typedef std::vector<ID> ArrayOfId;
 
-
-  // for Result of Database#find(content_id, type, revision).
-  typedef struct {
-    ID  peer;       // Peer name by ID(ruby).
-  } PeerWithBase;
-  typedef std::vector<PeerWithBase> ArrayOfPeerWithBase;
-
-
   // for Database#set_status().
   typedef enum {
     DS_UNKNOWN   = 0,

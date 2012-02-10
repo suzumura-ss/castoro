@@ -56,7 +56,7 @@ public:
 
   // content handlings.
   inline void insert(uint64_t c, uint32_t t, uint32_t r, ID p) { m_db->insert(c, t, r, p); };
-  inline void find(uint64_t c, uint32_t t, uint32_t r, ArrayOfPeerWithBase& a, bool& k) {
+  inline void find(uint64_t c, uint32_t t, uint32_t r, ArrayOfId& a, bool& k) {
     m_db->find(c, t, r, a, k);
   };
   inline void remove(uint64_t c, uint32_t t, uint32_t r, ID p) { m_db->remove(c, t, r, p); };

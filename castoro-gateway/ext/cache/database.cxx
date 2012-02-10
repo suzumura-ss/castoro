@@ -78,7 +78,7 @@ void Database::insert(uint64_t content_id, uint32_t type, uint32_t revision, ID 
 }
 
 
-void Database::find(uint64_t content_id, uint32_t type, uint32_t revision, ArrayOfPeerWithBase& result, bool& removed)
+void Database::find(uint64_t content_id, uint32_t type, uint32_t revision, ArrayOfId& result, bool& removed)
 {
   m_requests++;
 
@@ -99,8 +99,7 @@ void Database::find(uint64_t content_id, uint32_t type, uint32_t revision, Array
     ID peer = toID(peers.at(idx));
     PeerStatusMap::iterator pi = m_status.find(peer);
     if((pi!=m_status.end()) && (*pi).second.is_readable()) {
-      PeerWithBase pb = { peer };
-      result.push_back(pb);
+      result.push_back(peer);
     }
   }
   if(result.size()>0) m_hits++;

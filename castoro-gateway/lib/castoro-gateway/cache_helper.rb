@@ -28,7 +28,7 @@ module Castoro
 
       # converter
       converter_options = {}.tap { |opt|
-        opt[:base_dir] = config["converter_base_dir"] if config["converter_base_dir"]
+        opt[:base_dir] = config["base_dir"] if config["base_dir"]
       }
       @converter          = BasketKeyConverter.new(config["converter"], converter_options)
 

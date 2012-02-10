@@ -51,7 +51,7 @@ CACHE_SETTINGS = {
           storeables.include?(peer)
         }
       }",
-  "converter_base_dir" => "/expdsk",
+  "base_dir" => "/expdsk",
   "converter" => {
     "Dec40Seq" => "0-65535",
     "Hex64Seq" => "",

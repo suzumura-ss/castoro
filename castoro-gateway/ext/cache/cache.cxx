@@ -246,7 +246,7 @@ VALUE Cache::find_internal(VALUE block_arg, VALUE data, VALUE self)
   VALUE _t    = rb_ary_entry(data, 2);
   VALUE _r    = rb_ary_entry(data, 3);
 
-  ArrayOfPeerWithBase a;
+  ArrayOfId a;
   bool removed = false;
 
   get_self(_self)->find(NUM2ULL(_c), NUM2INT(_t), NUM2INT(_r), a, removed);
@@ -254,7 +254,7 @@ VALUE Cache::find_internal(VALUE block_arg, VALUE data, VALUE self)
 
   VALUE result = rb_class_new_instance(0, &stub, rb_cArray);
   for(unsigned int i=0; i<a.size(); i++) {
-    ID peer = a.at(i).peer;
+    ID peer = a.at(i);
     rb_funcall(result, operator_push, 1, rb_funcall(ID2SYM(peer), rb_intern("to_s"), 0));
   }
   return result;

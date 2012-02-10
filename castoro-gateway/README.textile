@@ -264,6 +264,14 @@ h4. cache => cache_size
 
 Cache size (Bytes)
 
+h4. cache => base_dir
+
+Basket stored base directory.
+
+h4. cache => converter
+
+Resolv configurations for Basket to Path.
+
 h3. configurations key list
 
 |key|value-type|original|master|island|default|
@@ -286,4 +294,11 @@ h3. configurations key list
 |island_broadcast_port|Integer||required|required|30108|
 |island_multicast_addr|String|||required||
 |island_multicast_device|String||required|required|eth0|
+|cache / watchdog_limit|Integer|required||required|15|
+|cache / return_peer_number|Integer|required||required|5|
+|cache / cache_size|Integer|required||required|500000|
+|cache / base_dir|String|required||required|/expdsk|
+|cache / options|Hash|required||required|{}|
+|cache / converter|Hash|required||required|{"Dec40Seq"=>"0-65535","Hex64Seq"=>""}|
+
 

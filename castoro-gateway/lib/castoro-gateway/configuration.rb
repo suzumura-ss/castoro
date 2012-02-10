@@ -36,7 +36,7 @@ module Castoro; class Gateway
       "watchdog_limit" => 15,
       "return_peer_number" => 5,
       "cache_size" => 500000,
-      "converter_base_dir" => "/expdsk",
+      "base_dir" => "/expdsk",
       "options" => {},
     }.freeze
     CONVERTER_SETTINGS = {
