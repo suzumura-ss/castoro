@@ -60,20 +60,6 @@ module Castoro
       end
     end
 
-#    class TCPCommandReceiverTicketPool < SingletonTicketPool
-#      def fullname; 'TCP command receiver ticket pool' ; end
-#      def nickname; 'rcr' ; end
-#
-#      def create_ticket
-#        super( CommandReceiverTicket )
-#      end
-#    end
-
-#    class UDPCommandReceiverTicketPool < TCPCommandReceiverTicketPool
-#      def fullname; 'UDP command receiver ticket pool' ; end
-#      def nickname; 'ecr' ; end
-#    end
-
     class MulticastCommandSenderTicketPool < SingletonTicketPool
       def fullname; 'Multicast command sender ticket pool' ; end
       def nickname; 'mtp' ; end
@@ -412,9 +398,6 @@ module Castoro
             else
               ticket.finish
               Log.debug( "Get received, but not found: #{basket_text}" ) if $DEBUG
-              #########
-              ####  basket id is required
-              #########
               Log.debug( sprintf( "%s %.1fms [%s] %s is not found", ticket.command.slice(0,3), ticket.duration * 1000, 
                                   ( ticket.durations.map { |x| "%.1f" % (x * 1000) } ).join(', '), basket_text ) ) if $DEBUG
               CommandReceiverTicketPool.instance.delete( ticket )
