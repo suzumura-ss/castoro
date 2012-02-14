@@ -49,9 +49,7 @@ module Castoro
       end
 
       def default_hostname
-        # @hostname = Socket::gethostname unless defined? @hostname
-        # @hostname
-        Socket::gethostname
+        Socket::gethostname.split(".")[0]
       end
 
       def has_interface?( interface_address )

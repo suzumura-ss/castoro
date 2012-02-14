@@ -220,7 +220,6 @@ module Castoro
         unless ( @entries[ :HostnameForClient ] )
           @entries[ :HostnameForClient ] = @ifconfig.default_hostname
         end
-        @entries[ :HostnameForClient ].sub!(/\..*/, '')
 
         @entries[ :BasketBaseDir ] or raise ConfigurationError, "BasketBaseDir is not sepecfied in #{@file}"
         
