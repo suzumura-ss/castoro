@@ -30,25 +30,25 @@ module Castoro
     S_CONFLICT    = 6
 
     class Basket
-      attr_reader :content_id, :type_id, :revision_number
+      attr_reader :content, :type, :revision
 
       def self.new_from_text( s )
         c, t, r = s.split( '.' )
         new( c.to_i, t.to_i, r.to_i )
       end
 
-      def initialize( content_id, type_id, revision_number )
-        content_id.nil? or type_id.nil? or revision_number.nil? and
-          raise ArgumentError, "Basket.new( #{content_id}, #{type_id}, #{revision_number} )"
-        @content_id, @type_id, @revision_number = content_id, type_id, revision_number
-        @base_dir = "#{Configurations.instance.BasketBaseDir}/#{type_id.to_s}"
+      def initialize( content, type, revision )
+        content.nil? or type.nil? or revision.nil? and
+          raise ArgumentError, "Basket.new( #{content}, #{type}, #{revision} )"
+        @content, @type, @revision = content, type, revision
+        @base_dir = "#{Configurations.instance.BasketBaseDir}/#{type.to_s}"
 
         t = Time.new
         @time_dir = t.strftime("%Y%m%dT%H")
 
         #        654321 =>    0/000/654
         # 3210987654321 => 3210/987/654
-        n = @content_id.to_i
+        n = @content.to_i
         a, n = n.divmod 1000000000
         b, n = n.divmod 1000000
         c    = n / 1000
@@ -57,7 +57,7 @@ module Castoro
       end
 
       def to_s
-        ( defined? @x_to_s ) ? @x_to_s : ( @x_to_s = "#{@content_id}.#{@type_id}.#{@revision_number}" )
+        ( defined? @x_to_s ) ? @x_to_s : ( @x_to_s = "#{@content}.#{@type}.#{@revision}" )
       end
 
       def path_w

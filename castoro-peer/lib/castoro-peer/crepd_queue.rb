@@ -98,8 +98,8 @@ module Castoro
           # "123.4.5.delete"              new deletion
           # "123.4.5.replicate.server101" replication; failover replication has done
           # "123.4.5.delete.server101"    deletion;    failover deletion has done
-          content_id, type_id, revision_number, action, @alternative = @filename.split('.')
-          @basket = Basket.new( content_id, type_id, revision_number )
+          content, type, revision, action, @alternative = @filename.split('.')
+          @basket = Basket.new( content, type, revision )
           @action = case action
                     when 'replicate' ; :replicate
                     when 'delete'    ; :delete
