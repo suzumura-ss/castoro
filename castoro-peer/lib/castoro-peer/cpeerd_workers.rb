@@ -155,13 +155,6 @@ module Castoro
         c = Configurations.instance
         @w = []
         @w << UdpCommandReceiver.new( UDPCommandReceiverPL.instance, c.PeerUDPCommandPort )
-
-        # Todo: neither INSERT nor DROP is interested here
-        # #@w << UdpCommandReceiver.new( TCPCommandReceiverPL.instance, c.GatewayUDPCommandPort )
-
-        # Todo: ALIVE is not interested here
-        # @w << UdpCommandReceiver.new( TCPCommandReceiverPL.instance, c.WatchDogUDPCommandPort )
-
         @w << TcpCommandAcceptor.new( TcpAcceptorPL.instance, c.PeerTCPCommandPort )
         5.times { @w << TcpCommandReceiver.new( TcpAcceptorPL.instance, TCPCommandReceiverPL.instance ) }
         c.NumberOfUDPCommandProcessor.times   { @w << CommandProcessor.new( UDPCommandReceiverPL.instance ) }
@@ -322,9 +315,6 @@ module Castoro
           'DELETE'   => :DELETE,
           'CANCEL'   => :CANCEL,
           'FINALIZE' => :FINALIZE,
-          'INSERT'   => :INSERT,
-          'DROP'     => :DROP,
-          'ALIVE'    => :ALIVE,
         }
 
         def initialize( pipeline )
@@ -349,7 +339,7 @@ module Castoro
                       when :FINALIZE, :CANCEL ; ServerStatus::FIN_REP
                       #                       ; ServerStatus::REP
                       when :GET, :NOP         ; ServerStatus::READONLY
-                      else    # :INSERT, :DROP, :ALIVE, :CLONE
+                      else    # such as :INSERT, :DROP, :ALIVE, :CLONE
                         raise Ignore
                       end
 
