@@ -36,6 +36,11 @@ module Castoro
 
     $AUTO_PILOT = true
 
+    S_ABCENSE     = 1
+    S_WORKING     = 2
+    S_ARCHIVED    = 3
+    S_DELETED     = 4
+
 ########################################################################
 # Tickets
 ########################################################################
@@ -153,6 +158,7 @@ module Castoro
 
       def initialize
         c = Configurations.instance
+        Basket.setup c.TypeIdRanges, c.BasketBaseDir
         @w = []
         @w << UdpCommandReceiver.new( UDPCommandReceiverPL.instance, c.PeerUDPCommandPort )
         @w << TcpCommandAcceptor.new( TcpAcceptorPL.instance, c.PeerTCPCommandPort )
