@@ -311,7 +311,6 @@ module Castoro
           'NOP'      => :NOP,
           'GET'      => :GET,
           'CREATE'   => :CREATE,
-          'CLONE'    => :CLONE,
           'DELETE'   => :DELETE,
           'CANCEL'   => :CANCEL,
           'FINALIZE' => :FINALIZE,
@@ -428,9 +427,6 @@ module Castoro
                   ticket.message = "CREATE failed: AlreadyExistsError: #{b} #{reason}"
                   raise AlreadyExistsError, reason
                 end
-              when :CLONE
-                status == S_ARCHIVED or raise NotFoundError, b.path_a
-                Csm::Request::Clone.new( b.path_a, b.path_w )
               when :DELETE
                 status == S_ARCHIVED or raise NotFoundError, b.path_a
                 Csm::Request::Delete.new( b.path_a, b.path_d )
@@ -501,9 +497,6 @@ module Castoro
           case ticket.command_sym
           when :CREATE
             m = "CREATE: #{basket} #{basket.path_w}"
-            h.merge! Hash[ 'host', ticket.host, 'path', basket.path_w ]
-          when :CLONE
-            m = "CLONE: #{basket} #{basket.path_w}"
             h.merge! Hash[ 'host', ticket.host, 'path', basket.path_w ]
           when :DELETE
             m = "DELETE: #{basket} #{basket.path_d}"

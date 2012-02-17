@@ -58,12 +58,6 @@ module Castoro
           end
         end
 
-        class Clone < Request
-          def initialize( path_a, path_w )
-            super( 'copy', :Dir_w_user, :Dir_w_group, :Dir_w_perm, path_a, path_w )
-          end
-        end
-
         class Delete < Request
           def initialize( path_a, path_d )
             super( 'mv', :Dir_d_user, :Dir_d_group, :Dir_d_perm, path_a, path_d )
