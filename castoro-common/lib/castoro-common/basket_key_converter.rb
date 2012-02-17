@@ -21,8 +21,8 @@ module Castoro
   class BasketKeyConverter
 
     def initialize args, options = {}
-      @entries = parse args
       @base_dir = options[ :base_dir ]
+      @entries = parse args
       check_overwrap @entries.keys
       @cache = Hash.new { |cache, type| examine(cache, type) }
     end
@@ -70,7 +70,7 @@ module Castoro
       end
     end
 
-    # if the cache misses, examine the type and assign it
+    # if the cache misses, examine the type and assign its result to the cache
     def examine cache, type
       range, converter = @entries.find { |key, value| key.cover? type }
       cache[ type ] = converter || Module::Dec40Seq  # if the type does not match, use the fallback module
