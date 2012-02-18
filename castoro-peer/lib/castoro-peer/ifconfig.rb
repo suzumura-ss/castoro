@@ -24,7 +24,7 @@ require "ipaddr"
 module Castoro
   module Peer
 
-    class IfConfig
+    class Ifconfig
       include Singleton
 
       IFCONFIG_COMMAND = '/sbin/ifconfig -a'
@@ -92,7 +92,7 @@ end
 if $0 == __FILE__
   module Castoro
     module Peer
-      x = IfConfig.instance
+      x = Ifconfig.instance
       p x.default_interface_address
       p x.has_interface?( '127.0.0.1' )
       p x.has_interface?( '192.168.1.1' )

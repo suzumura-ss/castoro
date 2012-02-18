@@ -113,7 +113,7 @@ module Castoro
     class ConfigurationFile
       def initialize
         @file = nil
-        @ifconfig = IfConfig.instance
+        @ifconfig = Ifconfig.instance
         @default_entries = Hash.new
         [
          :HostnameForClient,
@@ -292,19 +292,17 @@ if $0 == __FILE__
 
       x = Configurations.instance
       p x.MulticastNetwork
-      p x[ :MulticastNetwork ]
       p x.MulticastIf
-      p x[ :MulticastIf ]
 
       x.load()
-      p x[ :MulticastNetwork ]
-      p x[ :MulticastIf ]
+      p x.MulticastNetwork
+      p x.MulticastIf
       x.load( f )
-      p x[ :MulticastNetwork ]
-      p x[ :MulticastIf ]
+      p x.MulticastNetwork
+      p x.MulticastIf
       x.reload
-      p x[ :MulticastNetwork ]
-      p x[ :MulticastIf ]
+      p x.MulticastNetwork
+      p x.MulticastIf
     end
   end
 end
