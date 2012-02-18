@@ -83,7 +83,7 @@ module Castoro
       def initialize
         super
         self.do_not_reverse_lookup = true
-        if_addr = Configurations.instance[ :MulticastIf ]
+        if_addr = Configurations.instance.MulticastIf
         interface = IPAddr.new( if_addr ).hton
         Log.debug( "ExtendedUDPSocket.new : Multicast IP_MULTICAST_IF  : #{if_addr}" )
 #        p caller
@@ -94,7 +94,7 @@ module Castoro
       def bind( host, port )
         if ( isClassD?( host ) )
           multicast_address = host
-          if_addr = Configurations.instance[ :MulticastIf ]
+          if_addr = Configurations.instance.MulticastIf
           ip_mreq = IPAddr.new( multicast_address ).hton + IPAddr.new( if_addr ).hton
           Log.debug( "ExtendedUDPSocket.bind: Multicast IP_ADD_MEMBERSHIP: #{multicast_address} #{if_addr}" )
           self.setsockopt( Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, ip_mreq )

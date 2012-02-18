@@ -145,7 +145,7 @@ module Castoro
     class UdpMulticastClientChannel
       def initialize( socket )
         @socket = socket
-        @reply_ip = Configurations.instance[ :MulticastIf ]
+        @reply_ip = Configurations.instance.MulticastIf
         @reply_port = 0
       end
 

@@ -57,13 +57,6 @@ module Castoro
         self.load
       end
 
-      def []( item )
-        @mutex.synchronize {
-          @entries.include? item or raise ConfigurationError, "Unknown configuration item #{item}"
-          @entries[ item ]
-        }
-      end
-
       def load( file = nil )
         @mutex.synchronize {
           f = file || @file
