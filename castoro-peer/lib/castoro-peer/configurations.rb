@@ -30,21 +30,17 @@ module Castoro
     class Configurations
       include Singleton
 
-      CONFIGURATION_FILE_CANDIDATES = [ 
-                                       'peer.conf',
-                                       'peer-dev-env.conf',
-                                       '/etc/castoro/peer.conf',
-                                      ]
+      CONFIGURATION_FILE_CANDIDATES = [ 'peer.conf', '/etc/castoro/peer.conf' ]
 
-      def Configurations.file=( file )
+      def self.file= file
         @@initial_file = file
       end
           
       def default_configuration_file
         files = CONFIGURATION_FILE_CANDIDATES
-        files.map { |f|
-          File.exist? f and return f
-        }
+        files.map do |f|
+          return f if File.exist? f
+        end
         raise StandardError, "No configuration file is found. Default files are #{files.join(' ')}"
       end
 
@@ -91,22 +87,19 @@ module Castoro
       private
 
       def define_readers
-        @entries.keys.map { |item|
-          Configurations.class_eval {
+        @entries.keys.map do |item|
+          Configurations.class_eval do
             if ( method_defined? item )
               remove_method( item )
             end
-            define_method( item ) {
-              @mutex.synchronize {
-                @entries.include? item or raise ConfigurationError, "Unknown configuration item #{item}"
+            define_method( item ) do
+              @mutex.synchronize do
                 @entries[ item ]
-              }
-            }
-          }
-        }
+              end
+            end
+          end
+        end
       end
-
-      @file = nil
     end
 
 
@@ -287,21 +280,17 @@ end
 if $0 == __FILE__
   module Castoro
     module Peer
-      f = './peer-dev-env.conf'
+      f = 'peer.conf'
       Configurations.file = f
 
       x = Configurations.instance
-      p x.MulticastNetwork
       p x.MulticastIf
 
       x.load()
-      p x.MulticastNetwork
       p x.MulticastIf
       x.load( f )
-      p x.MulticastNetwork
       p x.MulticastIf
       x.reload
-      p x.MulticastNetwork
       p x.MulticastIf
     end
   end
