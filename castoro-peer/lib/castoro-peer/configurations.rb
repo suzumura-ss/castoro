@@ -105,172 +105,212 @@ module Castoro
 
     class ConfigurationFile
       def initialize
-        @file = nil
-        @ifconfig = Ifconfig.instance
-        @default_entries = Hash.new
-        [
-         :HostnameForClient,
-         :MulticastAddress,
-         :MulticastNetwork,
-         :MulticastIf,
-
-         :GatewayUDPCommandPort,
-         :PeerTCPCommandPort,
-         :PeerUDPCommandPort,
-         :WatchDogUDPCommandPort,
-         :ReplicationUDPCommandPort,
-         :ReplicationTCPCommunicationPort,
-
-         :CmondMaintenancePort,
-         :CpeerdMaintenancePort,
-         :CrepdMaintenancePort,
-
-         :CmondHealthCheckPort,
-         :CpeerdHealthCheckPort,
-         :CrepdHealthCheckPort,
-
-         :BasketBaseDir,
-         :NumberOfUDPCommandProcessor,
-         :NumberOfTCPCommandProcessor,
-         :NumberOfBasketStatusQueryDB,
-         :NumberOfCsmController,
-         :NumberOfUdpResponseSender,
-         :NumberOfTcpResponseSender,
-         :NumberOfMulticastCommandSender,
-         :NumberOfReplicationDBClient,
-         :PeriodOfAlivePacketSender,
-         :PeriodOfStatisticsLogger,
-
-         :NumberOfReplicationSender,
-
-         :Dir_w_user,
-         :Dir_w_group,
-         :Dir_w_perm,
-
-         :Dir_a_user,
-         :Dir_a_group,
-         :Dir_a_perm,
-
-         :Dir_d_user,
-         :Dir_d_group,
-         :Dir_d_perm,
-
-         :Dir_c_user,
-         :Dir_c_group,
-         :Dir_c_perm,
-
-         :StorageHostsFile,
-         :StorageGroupsFile,
-
-         :EffectiveUser,
-
-         :ReplicationTransmissionDataUnitSize,
-
-         :UseManipulatorDaemon,
-         :ManipulatorSocket,
-
-        ].each { |item| @default_entries[ item ] = nil }
+        @global = nil
+        @services = []
       end
 
-      def load( file )
-        @file = file
-        @entries = @default_entries.dup
-        do_load
+      def load file
+        load_configuration_file file
+        @global.validate
+        @data = @global.data.dup
         load_storage_hosts_file
         load_storage_groups_file
-        validate
-        @entries
+        @data[ :TypeIdRangesHash ] = Hash.new.tap do |h|
+          @services.each do |s|
+            s.validate
+            h[ s[ :BasketKeyConverterModuleName ] ] = s[ :TypeIdRanges ]
+          end
+        end
+        @data
+      rescue => e
+        raise ConfigurationError, "#{e}"
       end
 
       private
 
-      def validate
-        i = @entries[ :MulticastIf ]
-        n = @entries[ :MulticastNetwork ]
-        if ( i and n )
-          Log.warning 'MulticastNetwork is ignored because MulticastIf is already given in the configuration file: #{@file}'
-          n = nil
-        elsif ( i.nil? and n )
-          i = @ifconfig.multicast_interface_by_network_address( n )
-        elsif ( i.nil? and n.nil? )
-          i = @ifconfig.default_interface_address
-        else
-          # good
-        end
-        unless ( @ifconfig.has_interface?( i ) )
-          raise ConfigurationError, "The interface address described in #{@file} does not exist in this machine: #{i}"
-        end
-        @entries[ :MulticastIf ] = i
-        @entries[ :MulticastNetwork ] = n
-
-        unless ( @entries[ :HostnameForClient ] )
-          @entries[ :HostnameForClient ] = @ifconfig.default_hostname
-        end
-
-        @entries[ :BasketBaseDir ] or raise ConfigurationError, "BasketBaseDir is not sepecfied in #{@file}"
-        
-        check_existence( :BasketBaseDir )
-        @entries[ :StorageHostsFile ] or raise ConfigurationError, "StorageHostsFile is not sepecfied in #{@file}"
-        @entries[ :StorageGroupsFile ] or raise ConfigurationError, "StorageGroupsFile is not sepecfied in #{@file}"
-
-        @entries[ :CmondMaintenancePort ] or raise ConfigurationError, "CmondMaintenancePort is not sepecfied in #{@file}"
-        @entries[ :CpeerdMaintenancePort ] or raise ConfigurationError, "CpeerdMaintenancePort is not sepecfied in #{@file}"
-        @entries[ :CrepdMaintenancePort ] or raise ConfigurationError, "CrepdMaintenancePort is not sepecfied in #{@file}"
-
-        @entries[ :CmondHealthCheckPort ] or raise ConfigurationError, "CmondHealthCheckPort is not sepecfied in #{@file}"
-        @entries[ :CpeerdHealthCheckPort ] or raise ConfigurationError, "CpeerdHealthCheckPort is not sepecfied in #{@file}"
-        @entries[ :CrepdHealthCheckPort ] or raise ConfigurationError, "CrepdHealthCheckPort is not sepecfied in #{@file}"
-        
-        @entries[ :ReplicationTransmissionDataUnitSize ] or raise ConfigurationError, "ReplicationTransmissionDataUnitSize is not specified in #{@file}"
-        unless ( 0 < @entries[ :ReplicationTransmissionDataUnitSize ] )
-          raise ConfigurationError, "ReplicationTransmissionDataUnitSize in #{@file} is not a positive number: #{@entries[ :ReplicationTransmissionDataUnitSize ]}"
-        end
-
-        @entries[ :UseManipulatorDaemon ] = ["yes", "true", "on"].include? @entries[ :UseManipulatorDaemon ]
-        check_existence( :ManipulatorSocket ) if @entries[ :UseManipulatorDaemon ]
-      end
-
-      def check_existence( symbol )
-        path = @entries[ symbol ]
-        File.exist? path  or raise ConfigurationError, "A path #{symbol} in #{@file} does not exist: #{path}"
-      end
-
-      def do_load
-        File.open( @file , File::RDONLY ) do |f|
-          while line = f.gets do
-            next if line =~ /\A\#/
-            next if line =~ /\A\;/
-            next if line =~ /\A\s*\Z/
-            line.chomp!
-            # p line
-            if ( line =~ /\A\s*(.+?)\s+(.*?)\s*\Z/ )
-              item, value = $1, $2
-              symbol = item.to_sym
-              # p [ item, value ]
-              if ( @entries.has_key? symbol )
-                if ( item.match(/\A(NumberOf|PeriodOf)/i) or item.match(/(Port|Size)\Z/i) )
-                  @entries[ symbol ] = value.to_i
-                else
-                  @entries[ symbol ] = value
+      def load_configuration_file file
+        section = nil
+        File.open( file , File::RDONLY ) do |f|
+          begin
+            while line = f.gets do
+              case line
+              when /\A[#;]/, /\A\s*\Z/  # Comment
+                next
+              when /\A\s*(\w+)\s+(.*?)\s*\Z/  # Parameter
+                # print "PARAMETER: #{$1} #{$2}\n"
+                section or raise ArgumentError, "Section is not yet specified"
+                section.register $1.to_sym, $2
+              when /\A\s*\[\s*(\w+)\s*\]\s*\Z/  # Section header
+                # print "SECTION: #{$1}\n"
+                case $1
+                when 'global'  ; @global = section = GlobalSection.new
+                when 'service' ; @services.push( section = ServiceSection.new )
+                else ; raise NameError, "Unknown section name"
                 end
               else
-                raise ConfigurationError, "#{@file}:#{$.}: Unknown parameter: #{line}"
+                raise ArgumentError, "Invalid line"
               end
-            else
-              raise ConfigurationError, "#{@file}:#{$.}: Invalid line: #{line}"
             end
+          rescue => e
+            raise ConfigurationError, "#{e}: #{file}:#{$.}: #{line}"
           end
         end
       end
 
       def load_storage_hosts_file
-        check_existence( :StorageHostsFile )
-        @entries[ :StorageHostsData ] = YAML::load_file( @entries[ :StorageHostsFile ] )
+        @data[ :StorageHostsData ] = YAML::load_file( @global[ :StorageHostsFile ] )
       end
       
       def load_storage_groups_file
-        check_existence( :StorageGroupsFile )
-        @entries[ :StorageGroupsData ] = JSON::parse IO.read( @entries[ :StorageGroupsFile ] )
+        @data[ :StorageGroupsData ] = JSON::parse( IO.read @global[ :StorageGroupsFile ] )
+      end
+
+
+      class Section
+        attr_reader :data
+
+        def initialize entries
+          @entries = entries
+          @data = {}
+        end
+
+        def register key, value
+          ( necessity, type, path = @entries[ key ] ) or raise NameError, "Unknown parameter"
+          @data[ key ] = case type 
+                         when :string
+                           if path
+                             File.exist?( value ) or raise NameError, "The path does not exist"
+                           end
+                           value
+                         when :number  # positive integer number only
+                           value.match( /\A\d+\Z/ ) or raise ArgumentError, "Invalid number"
+                           value.to_i
+                         when :boolean
+                           evaluate_boolean value
+                         end
+        end
+        
+        def validate
+          @entries.each do |key, spec|
+            if :mandatory == spec[0]
+              @data.has_key?( key ) or raise ArgumentError, "#{key} is not specified"
+            end
+          end
+        end
+
+        def []( key )
+          @data[ key ]
+        end
+        
+        private
+
+        def evaluate_boolean value
+          return true  if %w( yes true on  ).include? value
+          return false if %w( no false off ).include? value
+          raise ArgumentError, "Invalid boolean"
+        end
+      end
+
+
+      class GlobalSection < Section
+        def initialize
+          super(
+                :HostnameForClient                    => [ :optional,  :string ],
+                :MulticastAddress                     => [ :optional,  :string ],
+                :MulticastNetwork                     => [ :optional,  :string ],
+                :MulticastIf                          => [ :optional,  :string ],
+                :GatewayUDPCommandPort                => [ :mandatory, :number ],
+                :PeerTCPCommandPort                   => [ :mandatory, :number ],
+                :PeerUDPCommandPort                   => [ :mandatory, :number ],
+                :WatchDogUDPCommandPort               => [ :mandatory, :number ],
+                :ReplicationTCPCommunicationPort      => [ :mandatory, :number ],
+                :ReplicationUDPCommandPort            => [ :mandatory, :number ],
+                :CmondMaintenancePort                 => [ :mandatory, :number ],
+                :CpeerdMaintenancePort                => [ :mandatory, :number ],
+                :CrepdMaintenancePort                 => [ :mandatory, :number ],
+                :CmondHealthCheckPort                 => [ :mandatory, :number ],
+                :CpeerdHealthCheckPort                => [ :mandatory, :number ],
+                :CrepdHealthCheckPort                 => [ :mandatory, :number ],
+                :NumberOfUDPCommandProcessor          => [ :mandatory, :number ],
+                :NumberOfTCPCommandProcessor          => [ :mandatory, :number ],
+                :NumberOfBasketStatusQueryDB          => [ :mandatory, :number ],
+                :NumberOfCsmController                => [ :mandatory, :number ],
+                :NumberOfUdpResponseSender            => [ :mandatory, :number ],
+                :NumberOfTcpResponseSender            => [ :mandatory, :number ],
+                :NumberOfMulticastCommandSender       => [ :mandatory, :number ],
+                :NumberOfReplicationDBClient          => [ :mandatory, :number ],
+                :PeriodOfAlivePacketSender            => [ :mandatory, :number ],
+                :PeriodOfStatisticsLogger             => [ :mandatory, :number ],
+                :StorageGroupsFile                    => [ :mandatory, :string, :path ],
+                :StorageHostsFile                     => [ :mandatory, :string, :path ],
+                :EffectiveUser                        => [ :mandatory, :string ],
+                :ReplicationTransmissionDataUnitSize  => [ :mandatory, :number ],
+                :NumberOfReplicationSender            => [ :mandatory, :number ],
+                :UseManipulatorDaemon                 => [ :mandatory, :boolean ],
+                :ManipulatorSocket                    => [ :optional,  :string, :path ],
+                :BasketBaseDir                        => [ :mandatory, :string, :path ],
+                :Dir_w_user                           => [ :mandatory, :string ],
+                :Dir_w_group                          => [ :mandatory, :string ],
+                :Dir_w_perm                           => [ :mandatory, :number ],
+                :Dir_a_user                           => [ :mandatory, :string ],
+                :Dir_a_group                          => [ :mandatory, :string ],
+                :Dir_a_perm                           => [ :mandatory, :number ],
+                :Dir_d_user                           => [ :mandatory, :string ],
+                :Dir_d_group                          => [ :mandatory, :string ],
+                :Dir_d_perm                           => [ :mandatory, :number ],
+                :Dir_c_user                           => [ :mandatory, :string ],
+                :Dir_c_group                          => [ :mandatory, :string ],
+                :Dir_c_perm                           => [ :mandatory, :number ],
+                )
+        end
+
+        def validate
+          super
+          validate_hostname
+          validate_manipulator
+          validate_network
+        end
+
+        private
+
+        def validate_hostname
+          unless @data[ :HostnameForClient ]
+            @data[ :HostnameForClient ] = Ifconfig.instance.default_hostname
+          end
+        end
+
+        def validate_manipulator
+          if @data[ :UseManipulatorDaemon ]
+            @data[ :ManipulatorSocket ] or raise ConfigurationError, "ManipulatorSocket is not specified"
+          end
+        end
+
+        def validate_network
+          ip  = @data[ :MulticastIf ]
+          net = @data[ :MulticastNetwork ]
+          if ip
+            raise ConfigurationError, "Both MulticastIf and MulticastNetwork are specified" if net
+          else
+            if net
+              ip = Ifconfig.instance.multicast_interface_by_network_address( net )
+            else
+              ip = Ifconfig.instance.default_interface_address
+            end
+          end
+          Ifconfig.instance.has_interface?( ip ) or raise ConfigurationError, "This host does not have the IP address: #{ip}"
+          @data[ :MulticastIf ] = ip
+        end
+      end
+
+
+      class ServiceSection < Section
+        def initialize
+          super(
+                :ServiceName                          => [ :mandatory, :string ],
+                :TypeIdRanges                         => [ :mandatory, :string ],
+                :BasketKeyConverterModuleName         => [ :mandatory, :string ],
+                )
+        end
       end
     end
 
@@ -280,11 +320,13 @@ end
 if $0 == __FILE__
   module Castoro
     module Peer
+      f = '../../config/etc/peer.conf-sample-en.conf'
       f = 'peer.conf'
       Configurations.file = f
 
       x = Configurations.instance
       p x.MulticastIf
+      p x.TypeIdRangesHash
 
       x.load()
       p x.MulticastIf
@@ -298,5 +340,5 @@ end
 
 __END__
 
-time ruby -I ../..  -e "require 'configurations'; 1000000.times{ x=Castoro::Peer::Configurations.instance.MulticastNetwork }"
-time ruby -I ../..  -e "require 'configurations'; c=Castoro::Peer::Configurations.instance; 1000000.times{ x=c.MulticastNetwork }"
+time ruby -I ..  -e "require 'configurations'; 1000000.times{ x=Castoro::Peer::Configurations.instance.MulticastIf }"
+time ruby -I ..  -e "require 'configurations'; c=Castoro::Peer::Configurations.instance; 1000000.times{ x=c.MulticastIf }"

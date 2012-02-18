@@ -158,7 +158,7 @@ module Castoro
 
       def initialize
         c = Configurations.instance
-        Basket.setup c.TypeIdRanges, c.BasketBaseDir
+        Basket.setup c.TypeIdRangesHash, c.BasketBaseDir
         @w = []
         @w << UdpCommandReceiver.new( UDPCommandReceiverPL.instance, c.PeerUDPCommandPort )
         @w << TcpCommandAcceptor.new( TcpAcceptorPL.instance, c.PeerTCPCommandPort )

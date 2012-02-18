@@ -39,7 +39,7 @@ module Castoro
     class ReplicationWorkers
       def initialize
         c = Configurations.instance
-        Basket.setup c.TypeIdRanges, c.BasketBaseDir
+        Basket.setup c.TypeIdRangesHash, c.BasketBaseDir
         @w = []
         @w << ReplicationInternalCommandReceiver.new( c.ReplicationUDPCommandPort )
         @w << ReplicationQueueDirectoriesMonitor.new
