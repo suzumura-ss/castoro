@@ -41,80 +41,86 @@ describe Castoro::Peer::Basket do
     Time.stub!(:new).and_return(time)
   end
 
-  context "With an instance of #new( 987654321, 1, 2 )" do
+  ######################################################################
+  samples = [
+             {
+               :input => [ 987654321, 1, 2 ],
+               :output => [
+                           [ :to_s,
+                             "987654321.1.2",
+                             %r"\A987654321.1.2\Z", ],
 
-    let(:basket) { Castoro::Peer::Basket.new 987654321, 1, 2 }
+                           [ :path_w,
+                             "/data/1/baskets/w/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1/baskets/w/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}\Z" ],
 
-    describe "#content" do
-      it "returns 987654321" do
-        basket.content.should == 987654321
-      end
-    end
+                           [ :path_r,
+                             "/data/1/baskets/r/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1/baskets/r/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}\Z" ],
 
-    describe "#type" do
-      it "returns 1" do
-        basket.type.should == 1
-      end
-    end
+                           [ :path_a,
+                             "/data/1/baskets/a/0/987/654/987654321.1.2",
+                             %r"\A/data/1/baskets/a/0/987/654/987654321\.1\.2\Z" ],
 
-    describe "#revision" do
-      it "returns 2" do
-        basket.revision.should == 2
-      end
-    end
+                           [ :path_d,
+                             "/data/1/baskets/d/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1/baskets/d/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}\Z" ],
 
-    describe "#to_s" do
-      it 'returns "987654321.1.2"' do
-        count.times do
-          basket.to_s.should == "987654321.1.2"
-        end
-      end
-    end
+                           [ :path_c,
+                             "/data/1/offline/canceled/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1/offline/canceled/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}\Z" ],
+                          ],
+             },
 
-    describe "#path_w" do
-      it 'returns "/data/1/baskets/w/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn"' do
-        count.times do
-          basket.path_w.should =~ %r"/data/1/baskets/w/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}"
-        end
-      end
-    end
+             {
+               :input => [ "0x00fedcba98765432".hex, 1234, 5 ],
+               :output => [
+                           [ :to_s,
+                             "0x00fedcba98765432.1234.5",
+                             %r"\A0x00fedcba98765432\.1234\.5\Z", ],
 
-    describe "#path_r" do
-      it 'returns "/data/1/baskets/r/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn"' do
-        count.times do
-          basket.path_r.should =~ %r"/data/1/baskets/r/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}"
-        end
-      end
-    end
+                           [ :path_w,
+                             "/data/1234/baskets/w/20100812T11/00fedcba98765432.1234.5.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1234/baskets/w/20100812T11/00fedcba98765432\.1234\.5\.20100812T112141\.123\.\d{6}\Z" ],
 
-    describe "#path_a" do
-      it 'returns "/data/1/baskets/a/0/987/654/987654321.1.2"' do
-        count.times do
-          basket.path_a.should =~ %r"/data/1/baskets/a/0/987/654/987654321\.1\.2"
-        end
-      end
-    end
+                           [ :path_r,
+                             "/data/1234/baskets/r/20100812T11/00fedcba98765432.1234.5.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1234/baskets/r/20100812T11/00fedcba98765432\.1234\.5\.20100812T112141\.123\.\d{6}\Z" ],
 
-    describe "#path_d" do
-      it 'returns "/data/1/baskets/d/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn"' do
-        count.times do
-          basket.path_d.should =~ %r"/data/1/baskets/d/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}"
-        end
-      end
-    end
 
-    describe "#path_c" do
-      context "without calling #path_c_with_hint" do
-        it 'returns "/data/1/offline/canceled/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn"' do
-          count.times do
-            basket.path_c.should =~ %r"/data/1/offline/canceled/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}"
+                           [ :path_a,
+                             "/data/1234/baskets/a/0/0fe/dcb/a98/765/00fedcba98765432.1234.5",
+                             %r"\A/data/1234/baskets/a/0/0fe/dcb/a98/765/00fedcba98765432\.1234\.5\Z", ],
+
+                           [ :path_d,
+                             "/data/1234/baskets/d/20100812T11/00fedcba98765432.1234.5.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1234/baskets/d/20100812T11/00fedcba98765432\.1234\.5\.20100812T112141\.123\.\d{6}\Z" ],
+
+                           [ :path_c,
+                             "/data/1234/offline/canceled/20100812T11/00fedcba98765432.1234.5.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1234/offline/canceled/20100812T11/00fedcba98765432\.1234\.5\.20100812T112141\.123\.\d{6}\Z" ],
+                          ],
+             },
+           ]
+
+  samples.each do |sample|
+    content, type, revision = sample[ :input ]
+    context "With an instance of #new( #{content}, #{type}, #{revision} )" do
+      basket = Castoro::Peer::Basket.new content, type, revision
+      sample[ :output ].each do |x|
+        method, output, pattern = x
+        describe "##{method}" do
+          it "returns \"#{output}\"" do
+            count.times do
+              basket.send( method ).should =~ pattern
+            end
           end
         end
       end
     end
-
   end
 
+  ######################################################################
   context "With an instance of #new( 987654321, 1, 2 )" do
 
     basket = Castoro::Peer::Basket.new 987654321, 1, 2
@@ -141,30 +147,51 @@ describe Castoro::Peer::Basket do
         end
       end
     end
-
   end
 
-  context 'With an instance of #new_from_text( "987654321.1.2" )' do
+  ######################################################################
+  samples = [
+             {
+               :input => "987654321.1.2",
+               :output => [ 987654321, 1, 2 ],
+             },
 
-    basket = Castoro::Peer::Basket.new_from_text "987654321.1.2"
+             {
+               :input => "0x00fedcba98765432.1234.5",
+               :output => [ "0x00fedcba98765432".hex, 1234, 5 ],
+             },
+            ]
 
-    describe "#content" do
-      it "returns 987654321" do
-        basket.content.should == 987654321
+  samples.each do |sample|
+    input = sample[ :input ]
+    context "With an instance of #new_from_text( \"#{input}\" )" do
+      basket = Castoro::Peer::Basket.new_from_text input
+      content, type, revision = sample[ :output ]
+
+      describe "#content" do
+        it "returns #{content}" do
+          basket.content.should == content
+        end
+      end
+
+      describe "#type" do
+        it "returns #{type}" do
+          basket.type.should == type
+        end
+      end
+
+      describe "#revision" do
+        it "returns #{revision}" do
+          basket.revision.should == revision
+        end
+      end
+
+      describe "#to_s" do
+        it "returns #{input}" do
+          basket.to_s.should == input
+        end
       end
     end
-
-    describe "#type" do
-      it "returns 1" do
-        basket.type.should == 1
-      end
-    end
-
-    describe "#revision" do
-      it "returns 2" do
-        basket.revision.should == 2
-      end
-    end
-
   end
+
 end
