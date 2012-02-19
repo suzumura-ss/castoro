@@ -48,7 +48,7 @@ module Castoro
             if portion =~ /\A\s*(\d+)(?:-(\d+))?\s*\Z/
               min = $1.to_i
               max = ($2 || $1).to_i
-              min <= max or raise ArgumentError, "starting value exceeds ending value in the Type ID range: #{portion}"
+              min <= max or raise ArgumentError, "Starting value exceeds ending value in the Type ID range: #{portion}"
               h[ min..max ] = find_module( key )
             else
               raise ArgumentError, "Invalid expression in the Type ID range: #{portion}"

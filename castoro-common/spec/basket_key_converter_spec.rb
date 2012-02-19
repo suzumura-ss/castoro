@@ -23,40 +23,39 @@ describe Castoro::BasketKeyConverter do
 
   describe "#new" do
 
-    describe "with proper args" do
-      it "should return an instance" do
+    context "with proper args" do
+      it "returns an instance" do
         args = { "Dec40Seq" => "1-999", "Hex64Seq" => "1000-1999" }
         Castoro::BasketKeyConverter.new(args).class.should == Castoro::BasketKeyConverter
       end
     end
 
-    describe "with an unknown module name" do
-      it "should raise an ArgumentError" do
+    context "with an unknown module name" do
+      it "raises an ArgumentError with a message: Unknown..." do
         lambda do
           Castoro::BasketKeyConverter.new( "Dec40Seq" => "1-999", "XXXXXXXX" => "1000-1999" )
         end.should raise_error(ArgumentError, /Unknown/)
       end
     end
 
-    describe "with ranges that overwrap each other" do
-      it "should raise an ArgumentError" do
+    context "with ranges that overwrap each other" do
+      it "raises an ArgumentError with a message: Two ranges overwrap..." do
         lambda do
           Castoro::BasketKeyConverter.new( "Dec40Seq" => "1-999", "Hex64Seq" => "999-1499" )
-        end.should raise_error(ArgumentError, /overwrap/)
+        end.should raise_error(ArgumentError, /Two ranges overwrap/)
       end
     end
 
-    describe "with a range whose starting value exceeds ending value" do
-      it "should raise an ArgumentError" do
+    context "with a range whose starting value exceeds ending value" do
+      it "raises an ArgumentError with a message: Starting value exceeds..." do
         lambda do
           Castoro::BasketKeyConverter.new( "Dec40Seq" => "2-1", "Hex64Seq" => "999-1499" )
-        end.should raise_error(ArgumentError, /exceeds/)
+        end.should raise_error(ArgumentError, /Starting value exceeds/)
       end
     end
 
-
-    describe "with an invalid range expression" do
-      it "should raise an ArgumentError" do
+    context "with an invalid range expression" do
+      it "raises an ArgumentError with a message: Invalid..." do
         lambda do
           Castoro::BasketKeyConverter.new( "Dec40Seq" => "1, 3-", "Hex64Seq" => "1000-1999" )
         end.should raise_error(ArgumentError, /Invalid/)
@@ -76,8 +75,10 @@ describe Castoro::BasketKeyConverter do
 
     samples.each do |entry|
       input, output = entry
-      it "#{input} should be converted to #{output}" do
-        yield converter, input, output
+      context "with #{input}" do
+        it "returns #{output}" do
+          yield converter, input, output
+        end
       end
     end
   end
