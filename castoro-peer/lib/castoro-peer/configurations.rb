@@ -123,14 +123,14 @@ module Castoro
         end
         @data
       rescue => e
-        raise ConfigurationError, "#{e}"
+        raise ConfigurationError, "#{e.class} \"#{e.message}\" #{e.backtrace.slice(0,5).inspect}"
       end
 
       private
 
       def load_configuration_file file
         section = nil
-        File.open( file , File::RDONLY ) do |f|
+        File.open( file , "r:binary" ) do |f|  # Any character encoding such as UTF-8 is accepted
           begin
             while line = f.gets do
               case line
@@ -152,7 +152,7 @@ module Castoro
               end
             end
           rescue => e
-            raise ConfigurationError, "#{e}: #{file}:#{$.}: #{line}"
+            raise ConfigurationError, "#{e}: #{file}:#{$.}: #{line.chomp}"
           end
         end
       end
