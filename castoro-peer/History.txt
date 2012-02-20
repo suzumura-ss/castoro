@@ -1,3 +1,7 @@
+=== 0.2.0.pre 2012-02-20
+
+* implemented issue #59 - Dealing with a hexadecimal content id
+
 === 0.1.4 2012-01-20
 
 * fixed issue #55 - Do not respond to a GET request when the status is offline
