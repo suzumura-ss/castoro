@@ -30,18 +30,21 @@ module Castoro
         @@converter = BasketKeyConverter.new( ranges, { :base_dir => base_dir } )
       end
 
-      def self.new_from_text( s )
-        c, t, r = s.split( '.' )
-        new( c.to_i, t.to_i, r.to_i )
+      def self.new_from_text text
+        content, type, revision = text.split('.', 3).map do |x|
+          x.match /\A(?:(?:0x([0-9a-f]+))|([0-9]+))\Z/i  or raise ArgumentError, "Invalid basket id: #{text}"
+          $1 ? $1.hex : $2.to_i
+        end
+        new content, type, revision
       end
 
       def initialize content, type, revision
         @content, @type, @revision = content, type, revision
-        @converter = @@converter.converter_module type
+        @converter_module = @@converter.converter_module type
       end
 
       def to_s
-        defined?(@s) ? @s : @s = @converter.string(self)
+        defined?(@s) ? @s : @s = @converter_module.string(self)
       end
 
       def path_w
@@ -53,7 +56,7 @@ module Castoro
       end
 
       def path_a
-        defined?(@a) ? @a : @a = @converter.path(self)
+        defined?(@a) ? @a : @a = @converter_module.path(@@base_dir, self)
       end
 
       def path_d
@@ -84,7 +87,7 @@ module Castoro
 
       def create_temp_path part
         unless defined? @dir
-          @dir = @converter.dir self
+          @dir = @converter_module.dir self
         end
         mktemp create_full_path(part, @dir)
       end
