@@ -185,6 +185,9 @@ module Castoro
                          when :number  # positive integer number only
                            value.match( /\A\d+\Z/ ) or raise ArgumentError, "Invalid number"
                            value.to_i
+                         when :octal   # deal it as a string. ex. "0777"
+                           value.match( /\A0\d+\Z/ ) or raise ArgumentError, "Invalid octal number"
+                           value
                          when :boolean
                            evaluate_boolean value
                          end
@@ -251,16 +254,16 @@ module Castoro
                 :BasketBaseDir                        => [ :mandatory, :string, :path ],
                 :Dir_w_user                           => [ :mandatory, :string ],
                 :Dir_w_group                          => [ :mandatory, :string ],
-                :Dir_w_perm                           => [ :mandatory, :number ],
+                :Dir_w_perm                           => [ :mandatory, :octal  ],
                 :Dir_a_user                           => [ :mandatory, :string ],
                 :Dir_a_group                          => [ :mandatory, :string ],
-                :Dir_a_perm                           => [ :mandatory, :number ],
+                :Dir_a_perm                           => [ :mandatory, :octal  ],
                 :Dir_d_user                           => [ :mandatory, :string ],
                 :Dir_d_group                          => [ :mandatory, :string ],
-                :Dir_d_perm                           => [ :mandatory, :number ],
+                :Dir_d_perm                           => [ :mandatory, :octal  ],
                 :Dir_c_user                           => [ :mandatory, :string ],
                 :Dir_c_group                          => [ :mandatory, :string ],
-                :Dir_c_perm                           => [ :mandatory, :number ],
+                :Dir_c_perm                           => [ :mandatory, :octal  ],
                 )
         end
 
