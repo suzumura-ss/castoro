@@ -80,7 +80,7 @@ module Castoro
 
       def create_full_path part, dir
         unless defined? @time
-          @time = Time.now.strftime("%Y%m%dT%H")
+          @time = Time.new.strftime("%Y%m%dT%H")
         end
         "#{@@base_dir}/#{@type}/#{part}/#{@time}/#{dir}"
       end
