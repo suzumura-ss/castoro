@@ -121,7 +121,7 @@ module Castoro
 
         parse_basket
         @entry = ReplicationEntry.new( :basket => @basket, :action => :replicate, :args => @args )
-        Log.debug "CATCH: #{@entry} from #{@ip}:#{@port}"
+        Log.debug "CATCH: #{@entry.inspect} from #{@ip}:#{@port}"
 
         if ( File.exist? @path_a )
           register_entry
@@ -140,7 +140,7 @@ module Castoro
       def do_delete
         parse_basket
         @entry = ReplicationEntry.new( :basket => @basket, :action => :delete, :args => @args )
-        Log.debug "DELETE: #{@entry} from #{@ip}:#{@port}"
+        Log.debug "DELETE: #{@entry.inspect} from #{@ip}:#{@port}"
 
         register_entry
         ReplicationQueueDirectories.instance.delete( @basket, :replicate )

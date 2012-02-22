@@ -20,6 +20,7 @@
 require 'castoro-peer/log'
 require 'castoro-peer/basket'
 require 'castoro-peer/pipeline'
+require 'castoro-peer/errors'
 
 module Castoro
   module Peer
@@ -42,10 +43,6 @@ module Castoro
       def initialize( args )
         @basket = args[ :basket ]
         @action = args[ :action ]
-      end
-
-      def to_s
-        inspect
       end
     end
 
