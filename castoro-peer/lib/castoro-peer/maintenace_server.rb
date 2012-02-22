@@ -173,13 +173,13 @@ module Castoro
             ServerStatus.instance.status_name = x
           end
           x = ServerStatus.instance.status_name
-          io.syswrite( "run mode: #{x}\n" )
+          @io.syswrite( "run mode: #{x}\n" )
         else
           if (x)
-            io.syswrite( "run mode cannot be automatically altered when auto is disable.\n" )
+            @io.syswrite( "run mode cannot be automatically altered when auto is disable.\n" )
           else
             x = ServerStatus.instance.status_name
-            io.syswrite( "run mode: #{x}\n" )
+            @io.syswrite( "run mode: #{x}\n" )
           end
         end
       end
