@@ -121,7 +121,7 @@ module Castoro
 
         parse_basket
         @entry = ReplicationEntry.new( :basket => @basket, :action => :replicate, :args => @args )
-        Log.debug "CATCH: #{@entry.inspect} from #{@ip}:#{@port}"
+        Log.debug "CATCH: #{@entry.inspect} from #{@ip}:#{@port}" if $DEBUG
 
         if ( File.exist? @path_a )
           register_entry
@@ -140,7 +140,7 @@ module Castoro
       def do_delete
         parse_basket
         @entry = ReplicationEntry.new( :basket => @basket, :action => :delete, :args => @args )
-        Log.debug "DELETE: #{@entry.inspect} from #{@ip}:#{@port}"
+        Log.debug "DELETE: #{@entry.inspect} from #{@ip}:#{@port}" if $DEBUG
 
         register_entry
         ReplicationQueueDirectories.instance.delete( @basket, :replicate )
@@ -178,7 +178,7 @@ module Castoro
 
       def do_directory
         parse_attributes( @args )
-        Log.debug "DIRECTORY: #{@basket} #{@path} from #{@ip}:#{@port}"
+        Log.debug "DIRECTORY: #{@basket} #{@path} from #{@ip}:#{@port}" if $DEBUG
 
         begin
           Dir.mkdir( @path, 0755 )
@@ -192,7 +192,7 @@ module Castoro
 
       def do_file
         parse_attributes( @args )
-        Log.debug "FILE: #{@basket} #{@path} from #{@ip}:#{@port}"
+        Log.debug "FILE: #{@basket} #{@path} from #{@ip}:#{@port}" if $DEBUG
         @fd = File.new( @path, "w" )  # @fd will be closed in the method do_data
       end
 
@@ -218,7 +218,7 @@ module Castoro
       def do_end
         @directory_entries.reverse.each do |args|
           parse_attributes( args )
-          Log.debug "END: #{@basket} #{@path} mode: #{@mode} atime: #{@atime} mtime: #{@mtime} from #{@ip}:#{@port}"
+          Log.debug "END: #{@basket} #{@path} mode: #{@mode} atime: #{@atime} mtime: #{@mtime} from #{@ip}:#{@port}" if $DEBUG
           apply_attributes
         end
       end
@@ -264,7 +264,7 @@ module Castoro
 
       def register_entry
         if ( satisfied? )
-          Log.debug "register_entry satisfied. #{@basket} #{@entry.action} #{@entry.ttl_and_hosts}"
+          Log.debug "register_entry satisfied. #{@basket} #{@entry.action} #{@entry.ttl_and_hosts}" if $DEBUG
         else
           @entry.decrease_ttl
           if ( 0 < @entry.ttl )
@@ -279,7 +279,7 @@ module Castoro
       def satisfied?
         hosts = @entry.hosts
         StorageServers.instance.colleague_hosts.each do |h|
-          Log.debug "satisfied? #{@basket} #{@entry.action} hosts=#{hosts.join(',')} h=#{h} #{hosts.include? h}"
+          Log.debug "satisfied? #{@basket} #{@entry.action} hosts=#{hosts.join(',')} h=#{h} #{hosts.include? h}" if $DEBUG
           hosts.include? h or return false
         end
         return true

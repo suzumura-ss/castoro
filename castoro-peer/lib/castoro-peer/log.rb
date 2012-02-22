@@ -154,7 +154,7 @@ if $0 == __FILE__
       # Log.output = nil
 
       Log.notice( 'test notice' )
-      Log.debug( 'test debug' )
+      Log.debug( 'test debug' ) if $DEBUG
 
       class A
         def f

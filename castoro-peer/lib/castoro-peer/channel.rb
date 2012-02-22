@@ -78,9 +78,9 @@ module Castoro
         end
         if ( $DEBUG )
           unless ( closed? )
-            Log.debug( sprintf( "TCP I : %s:%s %s", @ip, @port, @data ) )
+            Log.debug( sprintf( "TCP I : %s:%s %s", @ip, @port, @data ) ) if $DEBUG
           else
-            Log.debug( sprintf( "TCP Closed   : %s:%s %s", @ip, @port, 'nil' ) )
+            Log.debug( sprintf( "TCP Closed   : %s:%s %s", @ip, @port, 'nil' ) ) if $DEBUG
           end
         end
       end
@@ -106,7 +106,7 @@ module Castoro
         socket.syswrite( s )
         ticket.mark unless ticket.nil?
         if ( $DEBUG )
-          Log.debug( sprintf( "TCP O : %s:%s %s", @ip, @port, s ) )
+          Log.debug( sprintf( "TCP O : %s:%s %s", @ip, @port, s ) ) if $DEBUG
         end
       end
 
@@ -190,7 +190,7 @@ module Castoro
         if ( $DEBUG )
           # @port, @ip = socket.peeraddr[1], socket.peeraddr[3]
           @port, @ip = Socket.unpack_sockaddr_in( socket.getpeername )
-          Log.debug( sprintf( "TCP O : %s:%s %s", @ip, @port, s ) )
+          Log.debug( sprintf( "TCP O : %s:%s %s", @ip, @port, s ) ) if $DEBUG
         end
       end
 
@@ -205,9 +205,9 @@ module Castoro
           # @port, @ip = socket.peeraddr[1], socket.peeraddr[3]
           @port, @ip = Socket.unpack_sockaddr_in( socket.getpeername )
           unless ( @data.nil? )
-            Log.debug( sprintf( "TCP I : %s:%s %s", @ip, @port, @data ) )
+            Log.debug( sprintf( "TCP I : %s:%s %s", @ip, @port, @data ) ) if $DEBUG
           else
-            Log.debug( sprintf( "TCP Closed   : %s:%s %s", @ip, @port, 'nil' ) )
+            Log.debug( sprintf( "TCP Closed   : %s:%s %s", @ip, @port, 'nil' ) ) if $DEBUG
           end
         end
       end
