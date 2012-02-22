@@ -440,7 +440,7 @@ module Castoro
                 case status
                 when S_WORKING, :S_ABCENSE
                   File.exist? path_x or raise NotFoundError, path_x
-                  Csm::Request::Cancel.new( path_x, b.path_c( path_x ) )
+                  Csm::Request::Cancel.new( path_x, b.path_c_with_hint( path_x ) )
                 else
                   reason = case status
                            when S_ABCENSE;  'The basket does not exist.'
