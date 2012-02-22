@@ -165,7 +165,7 @@ module Castoro
           File.writable? dir or raise StandardError, "no write permission: #{dir}"
         end
 
-        @last_mtimes = [ -1, -1 ]
+        @last_mtimes = nil
       end
 
       # salvage abondoned entries
@@ -186,7 +186,7 @@ module Castoro
 
       def changed?
         mtimes = [ File.mtime( DIR_WAITING ), File.mtime( DIR_SLEEPING ) ]
-        return ( @last_mtimes != mtimes )
+        return ( @last_mtimes.nil? or @last_mtimes != mtimes )
       ensure
         @last_mtimes = mtimes
       end
