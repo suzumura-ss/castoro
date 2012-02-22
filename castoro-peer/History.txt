@@ -1,3 +1,11 @@
+=== 0.2.0.pre2 2012-02-22
+
+* fixed issue #60 - crepd does not replicate baskets with ruby-1.9.2-p290
+* fixed issue #61 - NoMethodError at castoro-peer/crepd_queue.rb - undefined method coerce
+* fixed issue #62 - Avoid String evaluation upon DEBUG
+* fixed issue #63 - forgotten to rewrite variables upon refactoring in the past
+* fixed issue #64 - a CANCEL request results in failure with ArgumentError
+
 === 0.2.0.pre 2012-02-20
 
 * implemented issue #59 - Dealing with a hexadecimal content id
