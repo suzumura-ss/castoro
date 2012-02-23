@@ -165,10 +165,18 @@ default:
     watchdog_limit: 15
     return_peer_number: 5
     cache_size: 500000
+    base_dir: /expdsk
     options: {}
+    converter:
+      Dec40Seq: 0-65535
+      Hex64Seq: ""
 </pre>
 
 h3. configuration key details.
+
+h4. require
+
+Describe the require library when you start to Gateway.
 
 h4. logger
 
@@ -178,6 +186,10 @@ Proc object that returns Logger.
 h4. user
 
 Effective user for gateway program.
+
+h4. group
+
+Effective group for gateway program.
 
 h4. workers
 
@@ -204,8 +216,8 @@ for original and master.
 
 h4. gateway_multicast_port
 
-UDP Port number for multicast. (Peer to Gateway, Island to Master)
-for original and master and island.
+UDP Port number for multicast. (Peer to Gateway, and Island to Master)
+for original, master, and island.
 
 h4. gateway_watchdog_port
 
@@ -224,7 +236,7 @@ for original and island.
 
 h4. peer_multicast_device
 
-Network interface name for peer_multicast_addr
+Network interface name for peer_multicast_addr.
 for original and island.
 
 h4. peer_multicast_port
@@ -249,7 +261,7 @@ for island.
 
 h4. island_multicast_device
 
-Network interface name for island_multicast_addr
+Network interface name for island_multicast_addr.
 for master and island.
 
 h4. cache => watchdog_limit
@@ -262,15 +274,19 @@ Count of peer hostname per return.
 
 h4. cache => cache_size
 
-Cache size (Bytes)
+Cache size. (Bytes)
 
 h4. cache => base_dir
 
 Basket stored base directory.
 
+h4. cache => options
+
+Initialization arguments when creating a cache.
+
 h4. cache => converter
 
-Resolv configurations for Basket to Path.
+Resolve configurations for Basket to Path.
 
 h3. configurations key list
 
@@ -299,6 +315,6 @@ h3. configurations key list
 |cache / cache_size|Integer|required||required|500000|
 |cache / base_dir|String|required||required|/expdsk|
 |cache / options|Hash|required||required|{}|
-|cache / converter|Hash|required||required|{"Dec40Seq"=>"0-65535","Hex64Seq"=>""}|
-
+|cache / converter / Dec40Seq|Hash|required||required|"Dec40Seq"=>"0-65535"|
+|cache / converter / Hex64Seq|Hash|required||required|"Hex64Seq"=>""|
 
