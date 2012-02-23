@@ -77,7 +77,7 @@ namespace Gateway {
       return ((ch==m_magic.content_id) && (type==m_magic.type));
     };
   };
-  typedef std::map<ContentIdWithType, CachePage*> CachePageMap;
+  typedef std::map<ContentIdWithType, CachePage*, std::less<ContentIdWithType>, RbAllocator<std::pair<const ContentIdWithType, CachePage*> > > CachePageMap;
 
 
   // cache page pool.
@@ -86,19 +86,22 @@ namespace Gateway {
     CachePagePool(size_t pages);
     virtual ~CachePagePool();
 
+    void init();
+
     CachePage* alloc();
     void drop(CachePage*& page);
 
     attr_reader(size_t, m_pages);
-    attr_reader(CachePage*, m_array);
-    attr_reader_ref(std::list<CachePage*>, m_alloc_pages);
-    attr_reader_ref(std::vector<CachePage*>, m_free_pages);
+
+    typedef std::list<CachePage*, RbAllocator<CachePage*> >   CachePagePointerList;
+    typedef std::vector<CachePage*, RbAllocator<CachePage*> > CachePagePointerVector;
+    attr_reader_ref(CachePagePointerList, m_alloc_pages);
+    attr_reader_ref(CachePagePointerVector, m_free_pages);
 
   private:
     size_t      m_pages;
-    CachePage*  m_array;
-    std::list<CachePage*> m_alloc_pages;
-    std::vector<CachePage*> m_free_pages;
+    CachePagePointerList   m_alloc_pages;
+    CachePagePointerVector m_free_pages;
   };
 
 

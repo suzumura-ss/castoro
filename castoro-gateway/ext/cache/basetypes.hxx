@@ -36,11 +36,13 @@
 #define attr_reader(type, member) inline type member##_r() { return member; }
 #define attr_reader_ref(type, member) inline type* member##_r() { return &member; }
 
+#include "allocator.hxx"
+
 namespace Castoro {
 namespace Gateway {
 
   // for Result of Database#find(require_space).
-  typedef std::vector<ID> ArrayOfId;
+  typedef std::vector<ID, RbAllocator<ID> > ArrayOfId;
 
   // for Database#set_status().
   typedef enum {

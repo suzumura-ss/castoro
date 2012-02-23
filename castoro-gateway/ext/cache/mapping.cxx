@@ -36,7 +36,7 @@ PeerHash::PeerHash()
 
 PEERH PeerHash::fromID(ID id)
 {
-  std::map<ID, PEERH>::iterator h = m_id2hash.find(id);
+  std::map<ID, PEERH, std::less<ID>, RbAllocator<std::pair<const ID, PEERH> > >::iterator h = m_id2hash.find(id);
   if(h==m_id2hash.end()) {
     m_id2hash.insert(std::make_pair(id, m_next));
     m_hash2id.push_back(id);

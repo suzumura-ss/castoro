@@ -54,7 +54,7 @@ namespace Gateway {
     time_t    expire;         // Expire time of this record.
     DetailStatus  status;     // Peer status;
   };
-  typedef std::map<ID, PeerStatus> PeerStatusMap;
+  typedef std::map<ID, PeerStatus, std::less<ID>, RbAllocator<std::pair<const ID, PeerStatus> > > PeerStatusMap;
 
 
   class CacheDumperAbstract {

@@ -33,13 +33,16 @@ Database::Database(size_t pages)
   m_expire = 15;
   m_requests = 0;
   m_hits = 0;
-  m_pool = new CachePagePool(pages);
+  m_pool = (CachePagePool*)ruby_xmalloc(sizeof(CachePagePool));
+  new( (void*)m_pool ) CachePagePool(pages);
+  m_pool->init();
 }
 
 Database::~Database()
 {
   try {
-    delete m_pool;
+    m_pool->~CachePagePool();
+    ruby_xfree((void*)m_pool);
   }
   catch(...) {}
 }
@@ -243,8 +246,8 @@ uint64_t Database::stat(DatabaseStat key)
 
 bool Database::dump(CacheDumperAbstract& dumper)
 {
-  std::list<CachePage*>* acvive_pages = m_pool->m_alloc_pages_r();
-  std::list<CachePage*>::iterator it = acvive_pages->begin();
+  std::list<CachePage*, RbAllocator<CachePage*> >* acvive_pages = m_pool->m_alloc_pages_r();
+  std::list<CachePage*, RbAllocator<CachePage*> >::iterator it = acvive_pages->begin();
 
   for(; it!=acvive_pages->end(); it++) {
     CachePage* cp = *it;

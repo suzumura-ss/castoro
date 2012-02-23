@@ -120,7 +120,9 @@ VALUE Cache::rb_init(int argc, VALUE* argv, VALUE self)
   }
 
   Cache* c = get_self(self);
-  c->m_db = new Database(pages);
+  Database* pdb = (Database*)ruby_xmalloc(sizeof(Database));
+  new( (void*)pdb ) Database(pages);
+  c->m_db = pdb;
 
   operator_locker = rb_intern("locker");
   operator_synchronize = rb_intern("synchronize");
@@ -277,7 +279,9 @@ VALUE Cache::alloc_peers_internal(VALUE block_arg, VALUE data, VALUE self)
 {
   VALUE _self = rb_ary_entry(data, 0);
   Cache* c = get_self(_self);
-  return Data_Wrap_Struct(rb_cPeers, Peers::gc_mark, Peers::free, new Peers(*c));
+  Peers* pp = (Peers*)ruby_xmalloc(sizeof(Peers));
+  new( (void*)pp ) Peers(*c);
+  return Data_Wrap_Struct(rb_cPeers, Peers::gc_mark, Peers::free, pp);
 }
 
 VALUE Cache::dump_internal(VALUE block_arg, VALUE data, VALUE self)
@@ -386,7 +390,9 @@ VALUE Peers::rb_find(int argc, VALUE* argv, VALUE self)
 VALUE Peers::rb_alloc_peer(VALUE self, VALUE _p)
 {
   Peers* p = get_self(self);
-  return Data_Wrap_Struct(rb_cPeer, Peer::gc_mark, Peer::free, new Peer(*(p->m_cache), rb_to_id(_p)));
+  Peer* pp = (Peer*)ruby_xmalloc(sizeof(Peer));
+  new( (void*)pp ) Peer(*(p->m_cache), rb_to_id(_p));
+  return Data_Wrap_Struct(rb_cPeer, Peer::gc_mark, Peer::free, pp);
 }
 
 

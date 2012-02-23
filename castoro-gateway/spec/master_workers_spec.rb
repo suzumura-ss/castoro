@@ -129,8 +129,8 @@ describe Castoro::Gateway::MasterWorkers do
           [ header, Castoro::Protocol::Command::Island.new('efc00103'.to_island, 3, 20000) ],
           [ header, Castoro::Protocol::Command::Island.new('efc00104'.to_island, 4, 40000) ],
           [ header, Castoro::Protocol::Command::Island.new('efc00105'.to_island, 5, 60000) ],
-          [ header, @create ],
         ]
+        10.times { requests << [ header, @create ] }
 
         @facade.stub!(:recv).with(no_args).and_return { requests.shift }
       end

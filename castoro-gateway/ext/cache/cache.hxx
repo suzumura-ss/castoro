@@ -29,8 +29,15 @@ template<class T> class RubyWrapper
 {
 public:
   static void gc_mark(void* self) {};
-  static VALUE rb_alloc(VALUE self) { return Data_Wrap_Struct(self, T::gc_mark, T::free, new T); };
-  static void free(void* obj) { delete (T*)obj; };
+  static VALUE rb_alloc(VALUE self) {
+    T* p = (T*)ruby_xmalloc(sizeof(T));
+    new((void*)p) T;
+    return Data_Wrap_Struct(self, T::gc_mark, T::free, p);
+  };
+  static void free(void* obj) {
+    ((T*)obj)->~T();
+    ruby_xfree(obj);
+  };
   static T* get_self(VALUE self) {
     T* t;
     Data_Get_Struct(self, T, t);
@@ -52,7 +59,14 @@ class Cache :public RubyWrapper<Cache>
 {
 public:
   inline Cache() { m_db = NULL; };
-  inline virtual ~Cache() { try{ if(m_db) delete m_db; } catch(...){} };
+  inline virtual ~Cache() {
+    try{
+      if(m_db) {
+        m_db->~Database();
+        ruby_xfree((void*)m_db);
+      }
+    } catch(...){}
+  };
 
   // content handlings.
   inline void insert(uint64_t c, uint32_t t, uint32_t r, ID p) { m_db->insert(c, t, r, p); };

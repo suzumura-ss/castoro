@@ -30,8 +30,8 @@ namespace Gateway {
   // { peer } <=> { peer code } mapping.
   typedef uint16_t  PEERH;
   class PeerHash {
-    typedef std::vector<ID>     ID_VECTOR;
-    typedef std::map<ID, PEERH> PEERH_MAP; 
+    typedef std::vector<ID, RbAllocator<ID> >     ID_VECTOR;
+    typedef std::map<ID, PEERH, std::less<ID>, RbAllocator<std::pair<const ID, PEERH> > > PEERH_MAP; 
 
   public:
     PeerHash();

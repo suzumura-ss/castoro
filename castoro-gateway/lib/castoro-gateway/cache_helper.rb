@@ -39,7 +39,13 @@ module Castoro
 
       klass    = ::Castoro::Cache
       klass    = ::Castoro::Cache.const_get(config['class'].to_s) if config['class']
-      @cache   = klass.new config["cache_size"], options
+
+      # cache initialize.
+      begin
+        @cache = klass.new config["cache_size"], options
+      rescue NoMemoryError
+        raise GatewayError, $!.message
+      end
 
       @weight  = weighting_coefficient @return_peer_number
     end

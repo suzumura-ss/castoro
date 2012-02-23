@@ -154,21 +154,27 @@ bool CachePage::remove(uint64_t content_id, uint32_t type, uint32_t revision, PE
 CachePagePool::CachePagePool(size_t pages)
 {
   m_pages = pages;
-  m_array = new CachePage[pages];
-
-  // init free list
-  m_free_pages.reserve(pages);
-  for(size_t idx=0; idx<pages; idx++) {
-    m_free_pages.push_back(&m_array[idx]);
-  }
 }
 
 CachePagePool::~CachePagePool()
 {
-  try {
-    delete[] m_array;
+  for(CachePagePointerList::iterator it = m_alloc_pages.begin(); it != m_alloc_pages.end(); it++) {
+    if (*it) ruby_xfree((void*)(*it));
   }
-  catch(...) {}
+  for(CachePagePointerVector::iterator it = m_free_pages.begin(); it != m_free_pages.end(); it++) {
+    if (*it) ruby_xfree((void*)(*it));
+  }
+}
+
+void CachePagePool::init()
+{
+  // init free list
+  m_free_pages.reserve(m_pages);
+  for(size_t idx=0; idx<m_pages; idx++) {
+    CachePage* p = (CachePage*)ruby_xmalloc(sizeof(CachePage));
+    new( (void*)p ) CachePage;
+    m_free_pages.push_back(p);
+  }
 }
 
 
