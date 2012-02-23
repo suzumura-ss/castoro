@@ -51,6 +51,8 @@ end
 
 describe Castoro::Gateway do
   before do
+    @logger = Logger.new(ENV['DEBUG'] ? STDOUT : nil)
+
     @localhost     = "127.0.0.1"
     @client_port   = 30003
     @key1          = "1.1.1"
@@ -86,14 +88,14 @@ describe Castoro::Gateway do
     # initialize dependency classes.
     Castoro::Gateway.dependency_classes_init
 
-    @g = Castoro::Gateway.new(@conf, Logger.new(nil))
+    @g = Castoro::Gateway.new(@conf, @logger)
     @g.start
     
     # mock for client.
     @client = ClientMock.new(@client_port, @localhost, @conf["gateway_unicast_port"])
 
     # mock for console.
-    @console = Castoro::Sender::TCP.new(Logger.new(nil), @localhost, @conf["gateway_console_port"])
+    @console = Castoro::Sender::TCP.new(@logger, @localhost, @conf["gateway_console_port"])
     @console.start 2.0
 
     # mock for peer sender.
@@ -152,22 +154,20 @@ describe Castoro::Gateway do
   
     it "should be request sent to peers." do
       # mock for peer of multicast receiver.
-      multicast_receiver = Castoro::Receiver::UDP.new(Logger.new(nil), @conf["peer_multicast_port"]) { |h, d, p, i|
-        multicast_sender = Castoro::Sender::UDP.new nil
-        multicast_sender.start
-    
-        get_res = Castoro::Protocol::Response::Get.new(false, d.basket, { @peer100 => "response from multicast receiver" })
-        multicast_sender.send @udp_header, get_res, h.ip, h.port
+      multicast_receiver = Castoro::Receiver::UDP.new(@logger, @conf["peer_multicast_port"]) { |h, d, p, i|
+        Castoro::Sender::UDP.new(nil) { |s|
+          get_res = Castoro::Protocol::Response::Get.new(false, d.basket, { @peer100 => "response from multicast receiver" })
+          s.send @udp_header, get_res, h.ip, h.port
+        }
       }
       multicast_receiver.start
-    
       get = Castoro::Protocol::Command::Get.new(@key1)
       res = @client.send @udp_header, get
+      multicast_receiver.stop
+
       res.should be_kind_of(Castoro::Protocol::Response::Get)
       res.basket.to_s.should == @key1
       res.paths.should       == { @peer100 => "response from multicast receiver" }
-    
-      multicast_receiver.stop
     end
   end
   
@@ -314,7 +314,7 @@ describe Castoro::Gateway do
               
               it "should be request sent to peers." do
                 # mock for peer of multicast receiver.
-                multicast_receiver = Castoro::Receiver::UDP.new(Logger.new(nil), @conf["peer_multicast_port"]) { |h, d, p, i|
+                multicast_receiver = Castoro::Receiver::UDP.new(@logger, @conf["peer_multicast_port"]) { |h, d, p, i|
                   multicast_sender = Castoro::Sender::UDP.new nil
                   multicast_sender.start
               

@@ -50,7 +50,7 @@ module Castoro
       basket = basket.to_basket
 
       @logger.debug {
-        "insert into cache data, host => #{host}, key => #{basket.content},#{basket.type},#{basket.revision}, base_path => #{base_path}"
+        "insert into cache data, host => #{host}, key => #{basket.content},#{basket.type},#{basket.revision}"
       }
       @cache.insert_element(host, basket.content, basket.type, basket.revision)
     end
