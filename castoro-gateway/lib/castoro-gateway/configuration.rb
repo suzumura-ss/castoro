@@ -66,7 +66,7 @@ module Castoro; class Gateway
       },
       "island" => {
         "type" => "island",
-        "gateway_console_port" => 30111,
+        "gateway_console_port" => 30110,
         "gateway_multicast_port" => 30109,
         "gateway_watchdog_port" => 30113,
         "gateway_watchdog_logging" => false,
