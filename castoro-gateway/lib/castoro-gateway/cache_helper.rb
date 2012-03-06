@@ -175,6 +175,15 @@ module Castoro
       }.inject(0, &:+)
     end
 
+    ##
+    # 
+    #
+    def all_active? peers
+      peers.all? { |p|
+        (@cache.get_peer_status(p) || {})[:status].to_i >= Cache::Peer::ACTIVE
+      }
+    end
+
     private
 
     ##

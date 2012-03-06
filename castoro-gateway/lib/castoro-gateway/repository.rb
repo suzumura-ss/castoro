@@ -26,6 +26,7 @@ module Castoro
       def initialize logger, config
         @logger = logger
         @cache  = ::Castoro::BasketCache.new @logger, config
+        @replication_count = config["replication_count"] || 3
       end
 
       ##
@@ -133,6 +134,19 @@ module Castoro
       #
       def capacity
         @cache.available_total_space
+      end
+
+      ##
+      # when replication is Insufficient, block is evaluated.
+      #
+      # === Args
+      #
+      # +peers+ :: array of peer(s)
+      #
+      def if_replication_is_insufficient peers
+        if peers.size < @replication_count
+          yield if @cache.all_active? peers
+        end
       end
 
     private

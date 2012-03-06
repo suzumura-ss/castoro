@@ -33,6 +33,7 @@ module Castoro; class Gateway
       "type" => "original",
     }.freeze
     CACHE_SETTINGS = {
+      "replication_count" => 3,
       "watchdog_limit" => 15,
       "return_peer_number" => 5,
       "cache_size" => 500000,

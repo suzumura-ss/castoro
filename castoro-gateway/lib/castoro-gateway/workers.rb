@@ -60,6 +60,9 @@ module Castoro
                     res = @repository.query d
                     if res
                       s.send h, res, h.ip, h.port
+
+                      # A packet relay is carried out when peers is less than the specified number.
+                      @repository.if_replication_is_insufficient(res.paths.keys) { s.multicast h, d }
                     else
                       s.multicast h, d
                     end
