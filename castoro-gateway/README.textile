@@ -264,6 +264,14 @@ h4. island_multicast_device
 Network interface name for island_multicast_addr.
 for master and island.
 
+h4. cache => class
+
+name of gateway-cache plugin.
+
+h4. cache => replication_count
+
+count of peer replication.
+
 h4. cache => watchdog_limit
 
 Timeout second for watchdog.
@@ -310,6 +318,8 @@ h3. configurations key list
 |island_broadcast_port|Integer||required|required|30108|
 |island_multicast_addr|String|||required||
 |island_multicast_device|String||required|required|eth0|
+|cache / class|String|required||required||
+|cache / replication_count|Integer|required||required|3|
 |cache / watchdog_limit|Integer|required||required|15|
 |cache / return_peer_number|Integer|required||required|5|
 |cache / cache_size|Integer|required||required|500000|
