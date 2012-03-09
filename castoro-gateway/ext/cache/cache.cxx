@@ -75,7 +75,7 @@ VALUE Cache::define_class(VALUE _p)
   rb_define_method(c, "watchdog_limit", RUBY_METHOD_FUNC(rb_get_expire), 0);
   rb_define_method(c, "stat",   RUBY_METHOD_FUNC(rb_stat), 1);
   rb_define_method(c, "peers",  RUBY_METHOD_FUNC(rb_alloc_peers), 0);
-  rb_define_method(c, "dump",  RUBY_METHOD_FUNC(rb_dump), 1);
+  rb_define_method(c, "dump",  RUBY_METHOD_FUNC(rb_dump), -1);
   rb_define_method(c, "find_peers", RUBY_METHOD_FUNC(rb_find_peers), -1);
   rb_define_method(c, "insert_element", RUBY_METHOD_FUNC(rb_insert_element), 4);
   rb_define_method(c, "erase_element", RUBY_METHOD_FUNC(rb_erase_element), 4);
@@ -195,9 +195,41 @@ private:
   ID  operator_member_puts;
 };
 
-VALUE Cache::rb_dump(VALUE self, VALUE _f)
+class FilteredDumper: public CacheDumperAbstract
 {
-  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(dump_internal), rb_ary_new3(2, self, _f));
+public:
+  inline FilteredDumper(VALUE _s, VALUE _f, VALUE _p) {
+
+    rb_eval_string(member_puts);
+    self = _s;
+    f = _f;
+    p = rb_to_id(_p);
+    operator_member_puts = rb_intern("member_puts");
+  };
+  virtual inline ~FilteredDumper() {};
+
+  virtual bool operator()(uint64_t cid, uint32_t typ, uint32_t rev, ID peer) {
+    if (peer == p) {
+      rb_funcall(rb_funcall(self, rb_intern("class"), 0), operator_member_puts, 5,
+                f, ID2SYM(peer), ULL2NUM(cid), LONG2FIX(typ), LONG2FIX(rev));
+    }
+    return true;
+  };
+
+private:
+  VALUE self, f;
+  ID p;
+  ID  operator_member_puts;
+};
+
+VALUE Cache::rb_dump(int argc, VALUE* argv, VALUE self)
+{
+  VALUE _f, _p;
+  int num = rb_scan_args(argc, argv, "11", &_f, &_p);
+  VALUE args = rb_ary_new3(2, self, _f);
+  if (num == 2) rb_ary_push(args, _p);
+
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(dump_internal), args);
 }
 
 VALUE Cache::rb_find_peers(int argc, VALUE* argv, VALUE self)    
@@ -288,10 +320,19 @@ VALUE Cache::dump_internal(VALUE block_arg, VALUE data, VALUE self)
 {
   VALUE _self = rb_ary_entry(data, 0);
   VALUE _f    = rb_ary_entry(data, 1);
+  VALUE _p    = rb_ary_entry(data, 2);
 
   Cache* c = get_self(_self);
-  Dumper dumper(_self, _f);
-  return (c->m_db->dump(dumper))? Qtrue: Qfalse;
+  bool result;
+  if (RTEST(_p)) {
+    FilteredDumper dumper(_self, _f, _p);
+    result = (c->m_db->dump(dumper));
+  } else {
+    Dumper dumper(_self, _f);
+    result = (c->m_db->dump(dumper));
+  }
+  rb_funcall(_f, rb_intern("puts"), 0);
+  return result ? Qtrue : Qfalse;
 }
 
 VALUE Cache::find_peers_internal(VALUE block_arg, VALUE data, VALUE self)

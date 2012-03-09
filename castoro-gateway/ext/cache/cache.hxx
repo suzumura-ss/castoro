@@ -99,7 +99,7 @@ private:
   static VALUE rb_get_expire(VALUE self);
   static VALUE rb_stat(VALUE self, VALUE _k);
   static VALUE rb_alloc_peers(VALUE self);
-  static VALUE rb_dump(VALUE self, VALUE _f);
+  static VALUE rb_dump(int argc, VALUE* argv, VALUE self);
   static VALUE rb_find_peers(int argc, VALUE* argv, VALUE self);
   static VALUE rb_insert_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r);
   static VALUE rb_erase_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r);

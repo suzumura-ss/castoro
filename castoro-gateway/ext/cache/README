@@ -34,6 +34,8 @@ module Castoro
                                                   # #peers[peer].erase(content_id, content_type, revision) のエイリアス
     get_peer_status(peer)                         # #peers[peer].status のエイリアス
     set_peer_status(peer, hash)                   # #peers[peer].status= のエイリアス
+    dump(io)                                      # キャッシュ情報のダンプ出力
+    dump(io, peer)                                # 指定された peer で抽出したキャッシュ情報のダンプ出力
 
     class Peers
       [](storage_name)                            # storage_nameのPeerを返す。
