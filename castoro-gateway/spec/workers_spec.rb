@@ -229,7 +229,7 @@ describe Castoro::Gateway::Workers do
           @w.instance_variable_get(:@threads).should be_nil
         end
       end
-      
+
     end
 
     after do
@@ -280,9 +280,7 @@ describe Castoro::Gateway::Workers do
           get = Castoro::Protocol::Command::Get.new("1.2.3", @island)
           commands = [ [@header, get] ] * 3
           @facade.should_receive(:recv).at_least(1).and_return { commands.shift }
-          @repository.should_receive(:query).
-            with(Castoro::Protocol::Command::Get.new("1.2.3", @island)).
-            exactly(3)
+          @repository.should_receive(:query).with(get).exactly(3)
 
           @w.start
           sleep 1
@@ -309,7 +307,95 @@ describe Castoro::Gateway::Workers do
           @repository.should_receive(:query).
             with(Castoro::Protocol::Command::Get.new("1.2.3", @island)).
             exactly(3)
-  
+
+          @w.start
+          sleep 1
+        end
+      end
+    end
+
+    after do
+      @w.stop if @w.alive? rescue nil
+      @w = nil
+    end
+  end
+
+  describe "follow up if replication is insufficient" do
+    before do
+      count   = 3
+      mc_addr = "239.192.1.1"
+      dv_addr = "127.0.0.1"
+      port    = 12345
+      @island = "ebcdef01".to_island
+
+      @w = Castoro::Gateway::Workers.new(@logger, count, @facade, @repository, mc_addr, dv_addr, port, @island)
+    end
+
+    context "given less than the specified number peers(2/3)." do
+      before do
+        @sender.stub!(:send)
+        @sender.stub!(:multicast)
+        @repository.stub!(:query).and_return {}
+        @repository.stub!(:if_replication_is_insufficient).and_yield()
+      end
+
+      context "when two peers." do
+        it "should called if_replication_is_insufficient to 3 GET commands" do
+          get = Castoro::Protocol::Command::Get.new("1.2.3", @island)
+          commands = [ [@header, get] ] * 3
+          @facade.should_receive(:recv).at_least(1).and_return { commands.shift }
+          res = Castoro::Protocol::Response::Get.new(false, "1.2.3",{"peer1"=>"/path", "peer2"=>"/path"},@island)
+          @repository.should_receive(:query).with(get).exactly(3).and_return(res)
+          @sender.should_receive(:send).
+            exactly(3).
+            with(@header, res, @header.ip, @header.port)
+          @repository.should_receive(:if_replication_is_insufficient).with(res.paths.keys).exactly(3)
+
+          @w.start
+          sleep 1
+        end
+
+        it "sender should called multicast to 3 GET commands" do
+          get = Castoro::Protocol::Command::Get.new("1.2.3", @island)
+          commands = [ [@header, get] ] * 3
+          @facade.should_receive(:recv).at_least(1).and_return { commands.shift }
+          res = Castoro::Protocol::Response::Get.new(false, "1.2.3",{"peer1"=>"/path", "peer2"=>"/path"},@island)
+          @repository.should_receive(:query).with(get).exactly(3).and_return(res)
+          @sender.should_receive(:multicast).with(@header, get).exactly(3)
+
+          @w.start
+          sleep 1
+        end
+      end
+
+      after do
+        @w.stop if @w.alive? rescue nil
+        @w = nil
+      end
+    end
+
+    context "given specified number peers(3/3)." do
+      before do
+        @sender.stub!(:send)
+        @sender.stub!(:multicast)
+        @repository.stub!(:query).and_return {}
+        @repository.stub!(:if_replication_is_insufficient).and_yield()
+        @repository.stub!(:if_replication_is_insufficient).with(["peer1", "peer2", "peer3"])
+      end
+
+      context "when three peers." do
+        it "should not multicast to 3 GET commands." do
+          evaluated = false
+          get = Castoro::Protocol::Command::Get.new("1.2.3", @island)
+          commands = [ [@header, get] ] * 3
+          @facade.should_receive(:recv).at_least(1).and_return { commands.shift }
+          res = Castoro::Protocol::Response::Get.new(false, "1.2.3",{"peer1"=>"/path", "peer2"=>"/path", "peer3"=>"/path"},@island)
+          @repository.should_receive(:query).with(get).exactly(3).and_return(res)
+          @sender.should_receive(:send).
+            exactly(3).
+            with(@header, res, @header.ip, @header.port)
+          @sender.should_not_receive(:multicast)
+
           @w.start
           sleep 1
         end

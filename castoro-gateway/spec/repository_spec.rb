@@ -209,8 +209,13 @@ describe Castoro::Gateway::Repository do
 
     describe "multicast expectation" do
       before do
+        @config["replication_count"] = 3
         @cache.stub!(:active_peer_count).and_return(15)
         @cache.stub!(:available_total_space).and_return(123456789)
+        @cache.stub!(:all_active?).with(["peer1","peer2"]).and_return(false)
+        @cache.stub!(:all_active?).with(["peer1","peer2","peer3"]).and_return(false)
+        @cache.stub!(:all_active?).with(["peer2","peer3","peer4"]).and_return(true)
+        @cache.stub!(:all_active?).with(["peer2","peer3"]).and_return(true)
       end
 
       context "when get storable peers." do
@@ -219,11 +224,46 @@ describe Castoro::Gateway::Repository do
           repository.storables.should == 15
         end
       end
-  
+
       context "when get capacity total space of peers." do
         it "should get capacity." do
           repository = Castoro::Gateway::Repository.new @logger, @config
           repository.capacity.should == 123456789
+        end
+      end
+
+      context "when replication is insufficient." do
+        it "should not evaluate yield (peers.size more than replication_count)." do
+          evaluated = false
+          repository = Castoro::Gateway::Repository.new @logger, @config
+          peers = ["peer1","peer2", "peer3"]
+          repository.if_replication_is_insufficient(peers) { evaluated = true }
+          evaluated.should == false
+        end
+
+        it "should not evaluate yield (peers.size more than replication_count & cache active)." do
+          evaluated = false
+          repository = Castoro::Gateway::Repository.new @logger, @config
+          peers = ["peer2","peer3", "peer4"]
+          repository.if_replication_is_insufficient(peers) { evaluated = true }
+          evaluated.should == false
+        end
+
+        it "should not evaluate yield (peers.size less than replication_count)." do
+          evaluated = false
+          repository = Castoro::Gateway::Repository.new @logger, @config
+          peers = ["peer1","peer2"]
+          repository.if_replication_is_insufficient(peers) { evaluated = true }
+          evaluated.should == false
+        end
+
+        it "should evaluate yield." do
+          evaluated = false
+          repository = Castoro::Gateway::Repository.new @logger, @config
+          peers = ["peer2","peer3"]
+          repository.if_replication_is_insufficient(peers) { evaluated = true }
+          peers.size.should < @config["replication_count"]
+          evaluated.should == true
         end
       end
     end
