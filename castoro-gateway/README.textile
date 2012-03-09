@@ -88,6 +88,15 @@ $ castoro-gateway dump
   peer2: /expdsk/2/baskets/a/9.1.1
 </pre>
 
+h3. castoro-gateway purge
+
+Command for removed specified peer from cached-data.
+See below Usage.
+
+<pre>
+$ castoro-gateway purge
+</pre>
+
 h2. init.d script sample.
 
 /etc/init.d/castoro-gatewayd

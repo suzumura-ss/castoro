@@ -54,6 +54,10 @@ COMMAND_OPTIONS = {
   :dump => {
     :verbose => false,
     :port => Castoro::Gateway::Configuration.new()["gateway_console_port"].to_i,
+  },
+  :purge => {
+    :verbose => false,
+    :port => Castoro::Gateway::Configuration.new()["gateway_console_port"].to_i,
   }
 }
 
@@ -162,6 +166,15 @@ parser = OptionParser.new do |parser|
     parser.on('-p PORT', '--port <portnumber>', 'console port') do |v|
       opt[:port] = v.to_i
     end
+
+  when :purge
+    parser.banner = "#{parser.banner} PEER [PEER]..."
+    parser.on('-v', '--verbose', 'verbose') do |v|
+      opt[:verbose] = true
+    end
+    parser.on('-p PORT', '--port <portnumber>', 'console port') do |v|
+      opt[:port] = v.to_i
+    end
   end
 end
 
@@ -172,4 +185,13 @@ rescue
   exit 1
 end
 
+case command
+when :purge
+  if ARGV.empty?
+    puts parser.help
+    exit 1
+  end
+end
+
 Castoro::Gateway::ScriptRunner.send(command, opt)
+

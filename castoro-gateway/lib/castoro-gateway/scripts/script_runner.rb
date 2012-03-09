@@ -175,6 +175,20 @@ module Castoro
         STDERR.puts e.backtrace.join("\n\t") if options[:verbose]
         exit(1)
       end
+
+      def self.purge options
+        port = options[:port].to_i
+
+        STDERR.puts "--- not implemented!"
+#        ret = Castoro::Sender::TCP.start(Logger.new(nil), "127.0.0.1", port, 3.0) { |s|
+#          s.send(Castoro::Protocol::Command::Purge.new(ARGV), 3.0)
+#        }
+
+      rescue => e
+        STDERR.puts "--- Castoro::Gateway error! - #{e.message}"
+        STDERR.puts e.backtrace.join("\n\t") if options[:verbose]
+        exit(1)
+      end
   
       private
   
