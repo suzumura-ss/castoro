@@ -126,6 +126,12 @@ describe Castoro::Protocol::Command do
     end
   end
 
+  context 'when parsed, argument for opecode set "PURGE"' do
+    it "should be able to create an instance of dump command." do
+      Castoro::Protocol::Command.parse("PURGE", { "hosts" => ["foo", "bar"] }).should be_kind_of(Castoro::Protocol::Command::Purge)
+    end
+  end
+
   context 'when parsed, argument for opecode set "MKDIR"' do
     it "should be able to create an instance of mkdir command." do
       Castoro::Protocol::Command.parse("MKDIR", { "mode" => 1, "user" => "user100", "group" => "group100", "source" => "source100" }).should be_kind_of(Castoro::Protocol::Command::Mkdir)
