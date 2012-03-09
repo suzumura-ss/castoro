@@ -92,7 +92,7 @@ describe Castoro::BasketCache do
       io = StringIO.new
       @cache.dump io
       io.rewind
-      io.read.should == ""
+      io.read.should == "\n"
     end
 
     after do
@@ -130,7 +130,7 @@ describe Castoro::BasketCache do
       io.rewind
       io.read.split("\n").size.should == 3
       io.rewind
-      io.read.should == "  peer102: 1357902.0.3\n  peer101: 4567890.1.2\n  peer100: 291.1.3\n"
+      io.read.should == "  peer102: 1357902.0.3\n  peer101: 4567890.1.2\n  peer100: 291.1.3\n\n"
     end
 
     context "and remove it with 1 storage is active" do
@@ -169,7 +169,7 @@ describe Castoro::BasketCache do
         io = StringIO.new
         @cache.dump io
         io.rewind
-        io.read.should == ""
+        io.read.should == "\n"
       end
     end
 

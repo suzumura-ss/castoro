@@ -126,7 +126,9 @@ describe Castoro::Gateway do
   
   it 'should be cache is empty.' do
     dump = Castoro::Protocol::Command::Dump.new
-    @console.send_and_recv_stream(dump, 2.0).should_not satisfy { }
+    results = ""
+    @console.send_and_recv_stream(dump, 2.0) { |res| results << res }
+    results.should == "\n"
   end
   
   it "should not respond to an empty packet." do
@@ -255,7 +257,7 @@ describe Castoro::Gateway do
           @console.send_and_recv_stream(dump, 2.0) { |res|
             dump_res = res
           }
-          dump_res.should == "  peer100: 1.1.1\n"
+          dump_res.should == "  peer100: 1.1.1\n\n"
         end
   
         context "when the basket was added" do
@@ -272,7 +274,7 @@ describe Castoro::Gateway do
             @console.send_and_recv_stream(dump, 2.0) { |res|
               dump_res = res
             }
-            dump_res.should == "  peer100: 1.1.1\n  peer200: 1.1.1\n"
+            dump_res.should == "  peer100: 1.1.1\n  peer200: 1.1.1\n\n"
           end
   
           context "when the query cache" do 
@@ -368,7 +370,7 @@ describe Castoro::Gateway do
                   @console.send_and_recv_stream(dump, 2.0) { |res|
                     dump_res = res
                   }
-                  dump_res.should == "  peer100: 1.1.1\n"
+                  dump_res.should == "  peer100: 1.1.1\n\n"
                 end
                
                 context "when the cache is emptied" do
@@ -380,9 +382,9 @@ describe Castoro::Gateway do
   
                   it "should be dump result is empty." do
                     dump = Castoro::Protocol::Command::Dump.new
-                    @console.send_and_recv_stream(dump, 2.0).should_not satisfy { |res|
-                      res
-                    }
+                    results = ""
+                    @console.send_and_recv_stream(dump, 2.0) { |res| results << res }
+                    results.should == "\n"
                   end
                 end
               end
