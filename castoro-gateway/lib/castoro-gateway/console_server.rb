@@ -22,6 +22,7 @@ require "castoro-gateway"
 require "logger"
 require "monitor"
 require "drb/drb"
+require "stringio"
 
 module Castoro
   class Gateway
@@ -35,7 +36,7 @@ module Castoro
       }
 
       @@forker = Proc.new { |pin, pout, &block|
-        fork {
+        pid = fork {
           begin
             pin.close
             block.call
@@ -44,6 +45,7 @@ module Castoro
           end
         }
         pout.close
+        pid
       }
 
       @@noforker = Proc.new { |pin, pout, &block|
@@ -52,6 +54,7 @@ module Castoro
         rescue
           pout.puts
         end
+        nil
       }
 
       def initialize logger, repository, port, options = {}
@@ -93,17 +96,16 @@ module Castoro
       end
 
       def purge *peers
-        pin, pout = IO.pipe
-        dump_internal pout, peers
-
+        io = StringIO.new
+        dump_internal io, peers
         results = {}.tap { |r| peers.each { |p| r[p] = 0 } }
-        while (line = gets_with_timeout(pin))
+        io.string.split(/\n/).each { |line|
           p, b = line.split(":", 2).map(&:strip)
           if b and p
             results[p] += 1
             @repository.drop b, p
           end
-        end
+        }
         results
       end
 
@@ -111,12 +113,15 @@ module Castoro
 
       def dump_internal io, peers = nil
         pin, pout = IO.pipe
-        forker.call(pin, pout) { @repository.dump pout, peers }
+        pid = forker.call(pin, pout) { @repository.dump pout, peers }
 
         while (line = gets_with_timeout(pin))
           io.puts line
         end
         io.puts
+
+      ensure
+        Process.detach pid if pid
       end
 
       def gets_with_timeout io

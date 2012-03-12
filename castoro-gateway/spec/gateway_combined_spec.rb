@@ -53,6 +53,26 @@ end
 
 
 describe Castoro::Gateway do
+  before(:all) do
+    @conf = Castoro::Gateway::Configuration.new({
+      "workers" => 5,
+      "peer_multicast_addr" => "239.192.1.2",
+      "peer_multicast_device" => "eth0",
+      "cache" => {
+        "cache_size" => 1000000
+      },
+      "gateway_console_port" => 30150,
+      "gateway_unicast_port" => 30151,
+      "gateway_multicast_port" => 30149,
+      "gateway_watchdog_port" => 30153,
+      "peer_multicast_port" => 30152,
+    })
+
+    # console
+    DRb.start_service
+    @console = DRbObject.new_with_uri "druby://127.0.0.1:#{@conf["gateway_console_port"]}"
+  end
+
   before do
     @logger = Logger.new(ENV['DEBUG'] ? STDOUT : nil)
 
@@ -68,20 +88,6 @@ describe Castoro::Gateway do
     @content2_path = "/expdsk/1/baskets/a/0/000/000/2.1.1"
     @udp_header    = Castoro::Protocol::UDPHeader.new(@localhost, @client_port)
 
-    @conf = Castoro::Gateway::Configuration.new({
-      "workers" => 5,
-      "peer_multicast_addr" => "239.192.1.2",
-      "peer_multicast_device" => "eth0",
-      "cache" => {
-        "cache_size" => 1000000
-      },
-      "gateway_console_port" => 30150,
-      "gateway_unicast_port" => 30151,
-      "gateway_multicast_port" => 30149,
-      "gateway_watchdog_port" => 30153,
-      "peer_multicast_port" => 30152,
-    })
-
     # initialize dependency classes.
     Castoro::Gateway.dependency_classes_init
 
@@ -94,10 +100,6 @@ describe Castoro::Gateway do
     # mock for peer sender.
     @peer = Castoro::Sender::UDP.new nil
     @peer.start
-
-    # console
-    DRb.start_service
-    @console = DRbObject.new_with_uri "druby://127.0.0.1:#{@conf["gateway_console_port"]}"
   end
 
   it "should be response an instance of Castoro::Protocol::Response::Nop." do
@@ -383,10 +385,12 @@ describe Castoro::Gateway do
     @peer.stop if @peer.alive? rescue nil
     @peer = nil
  
-    @console = nil
-    DRb.stop_service
-  
     @g.stop if @g.alive? rescue nil 
     @g = nil
+  end
+
+  after(:all) do
+    @console = nil
+    DRb.stop_service
   end
 end
