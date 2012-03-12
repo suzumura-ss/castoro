@@ -161,6 +161,17 @@ describe Castoro::Gateway::Repository do
       end
     end
 
+    context "when drop cache record from command" do
+      it "cache#erase_by_peer_and_key should be called once." do
+        key = Castoro::BasketKey.new 1, 2, 3
+        command = Castoro::Protocol::Command::Drop.new key, "host", "path"
+
+        repository = Castoro::Gateway::Repository.new @logger, @config
+        repository.should_receive(:drop).with(command.basket, command.host).exactly(1)
+        repository.drop_cache_record command
+      end
+    end
+
     context "when drop cache record" do
       it "cache#erase_by_peer_and_key should be called once." do
         @cache.stub!(:erase_by_peer_and_key)
@@ -187,7 +198,6 @@ describe Castoro::Gateway::Repository do
     context "when get cache status" do
       it "cache#status should be called once." do
         @cache.stub!(:status)
-        command = Castoro::Protocol::Command::Status.new
         @cache.should_receive(:status).exactly(1)
 
         repository = Castoro::Gateway::Repository.new @logger, @config
@@ -199,11 +209,10 @@ describe Castoro::Gateway::Repository do
       it "cache#dump should be called once." do
         @cache.stub!(:dump)
         io = STDOUT
-        command = Castoro::Protocol::Command::Dump.new
-        @cache.should_receive(:dump).with(io).exactly(1)
+        @cache.should_receive(:dump).with(io, "peer1").exactly(1)
 
         repository = Castoro::Gateway::Repository.new @logger, @config
-        repository.dump io
+        repository.dump io, "peer1"
       end
     end
 

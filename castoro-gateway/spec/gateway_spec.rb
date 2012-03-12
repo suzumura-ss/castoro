@@ -242,8 +242,7 @@ describe Castoro::Gateway do
           @console.should_receive(:new)
                   .with(
                     @logger, @repository,
-                    30150,
-                    {:host => "0.0.0.0"} 
+                    30150
                   ).exactly(1)
           @console.should_receive(:start)
           @g.start

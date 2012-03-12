@@ -25,6 +25,7 @@ require "yaml"
 require "fileutils"
 require "timeout"
 require "etc"
+require "drb/drb"
 
 module Castoro
   class Gateway
@@ -142,11 +143,7 @@ module Castoro
       end
   
       def self.status options
-        port = options[:port].to_i
-  
-        ret = Castoro::Sender::TCP.start(Logger.new(nil), "127.0.0.1", port, 3.0) { |s|
-          s.send(Castoro::Protocol::Command::Status.new, 3.0)
-        }
+        ret = connect_to_console(options[:port].to_i) { |obj| obj.status }
   
         width  = ret.keys.max { |x, y| x.length <=> y.length }.length
         key_format = "%-#{width}s"
@@ -160,15 +157,7 @@ module Castoro
       end
   
       def self.dump options
-        port = options[:port].to_i
-  
-        Castoro::Sender::TCP.start(Logger.new(nil), "127.0.0.1", port, 3.0) { |s|
-          s.send_and_recv_stream(Castoro::Protocol::Command::Dump.new, 3.0) { |received|
-            STDOUT.print received
-          }
-          STDOUT.puts
-        }
-  
+        connect_to_console(options[:port].to_i) { |obj| obj.dump STDOUT }
   
       rescue => e
         STDERR.puts "--- Castoro::Gateway error! - #{e.message}"
@@ -177,17 +166,22 @@ module Castoro
       end
 
       def self.purge options
-        port = options[:port].to_i
+        STDERR.puts "*** Purge Castoro::Gateway..."
 
-        STDERR.puts "--- not implemented!"
-#        ret = Castoro::Sender::TCP.start(Logger.new(nil), "127.0.0.1", port, 3.0) { |s|
-#          s.send(Castoro::Protocol::Command::Purge.new(ARGV), 3.0)
-#        }
+        results = connect_to_console(options[:port].to_i) { |obj| obj.purge *ARGV }
+
+        STDERR.puts "--- purge completed"
+        results.each { |k,v|
+          STDERR.puts "      #{k} - #{v} baskets."
+        }
 
       rescue => e
         STDERR.puts "--- Castoro::Gateway error! - #{e.message}"
         STDERR.puts e.backtrace.join("\n\t") if options[:verbose]
         exit(1)
+
+      ensure
+        STDERR.puts "*** done."
       end
   
       private
@@ -226,6 +220,17 @@ module Castoro
   
         Process.kill(signal, pid)
         Process.waitpid2(pid) rescue nil
+      end
+
+      def self.connect_to_console(port)
+        DRb.start_service
+        result = nil
+        DRbObject.new_with_uri("druby://127.0.0.1:#{port}").tap { |obj|
+          result = yield obj
+        }
+        result
+      ensure
+        DRb.stop_service
       end
     end
   end

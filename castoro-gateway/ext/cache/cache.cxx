@@ -200,16 +200,44 @@ class FilteredDumper: public CacheDumperAbstract
 public:
   inline FilteredDumper(VALUE _s, VALUE _f, VALUE _p) {
 
+    // round to array.
+    switch(TYPE(_p)) {
+      case T_ARRAY: break;
+      default:
+        if (rb_respond_to(_p, rb_intern("to_ary"))) {
+          _p = rb_funcall(_p, rb_intern("to_ary"), 0);
+        } else if (rb_respond_to(_p, rb_intern("to_a"))) {
+          _p = rb_funcall(_p, rb_intern("to_a"), 0);
+        } else {
+          _p = rb_ary_new3(1, _p);
+        }
+        break;
+    }
+    size = NUM2UINT(rb_funcall(_p, rb_intern("size"), 0));
+    peers = (ID*)ruby_xmalloc(sizeof(ID) * size);
+    for (uint32_t i = 0; i < size; i++) {
+      VALUE p = rb_ary_entry(_p, i);
+      *(peers+i) = rb_to_id(p);
+    }
+
     rb_eval_string(member_puts);
     self = _s;
     f = _f;
-    p = rb_to_id(_p);
     operator_member_puts = rb_intern("member_puts");
   };
-  virtual inline ~FilteredDumper() {};
+  virtual inline ~FilteredDumper() {
+    if (peers) ruby_xfree(peers);
+  };
+
+  bool included(ID peer) {
+    for (uint32_t i = 0; i < size; i++) {
+      if (*(peers+i) == peer) return true;
+    }
+    return false;
+  }
 
   virtual bool operator()(uint64_t cid, uint32_t typ, uint32_t rev, ID peer) {
-    if (peer == p) {
+    if (included(peer)) {
       rb_funcall(rb_funcall(self, rb_intern("class"), 0), operator_member_puts, 5,
                 f, ID2SYM(peer), ULL2NUM(cid), LONG2FIX(typ), LONG2FIX(rev));
     }
@@ -218,7 +246,8 @@ public:
 
 private:
   VALUE self, f;
-  ID p;
+  ID* peers;
+  uint32_t size;
   ID  operator_member_puts;
 };
 

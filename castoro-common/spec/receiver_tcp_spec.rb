@@ -143,17 +143,6 @@ describe Castoro::Receiver::TCP do
       }
     end
 
-    it "should return valid STATUS response" do
-      Castoro::Sender::TCP.start(nil, "127.0.0.1", TCP_PORT, 1.0) { |s|
-        3000.times {
-          cmd = Castoro::Protocol::Command::Status.new
-          res = s.send(cmd, 5.0)
-          res.class.should be_eql(Castoro::Protocol::Response::Status)
-          res.error?.should be_false
-        }
-      }
-    end
-
     it "should return invalid GET response" do
       Castoro::Sender::TCP.start(nil, "127.0.0.1", TCP_PORT, 1.0) { |s|
         3000.times {

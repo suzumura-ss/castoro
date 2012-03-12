@@ -94,7 +94,12 @@ Command for removed specified peer from cached-data.
 See below Usage.
 
 <pre>
-$ castoro-gateway purge
+$ castoro-gateway purge peer1 peer2
+*** Purge Castoro::Gateway...
+--- purge completed
+      peer1 - 1000 baskets.
+      peer2 - 1000 baskets.
+*** done.
 </pre>
 
 h2. init.d script sample.

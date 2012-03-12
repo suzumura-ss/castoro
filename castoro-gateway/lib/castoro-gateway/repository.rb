@@ -79,16 +79,27 @@ module Castoro
       end
 
       ##
+      # drop cache record from command.
+      #
+      # === Args
+      #
+      # +data+:: drop command instance.
+      #
+      def drop_cache_record command
+        drop command.basket, command.host
+      end
+
+      ##
       # drop cache record.
       #
       # === Args
       #
-      # +data+::
-      #   drop command instance.
+      # +basket+ :: basket key.
+      # +peer+   :: hostname for peer.
       #
-      def drop_cache_record command
-        @logger.info { "[key:#{command.basket}] drop cache <#{command.host}>" }
-        @cache.erase_by_peer_and_key command.host, command.basket
+      def drop basket, peer
+        @logger.info { "[key:#{basket}] drop cache <#{peer}>" }
+        @cache.erase_by_peer_and_key peer, basket
       end
 
       ##
@@ -115,11 +126,11 @@ module Castoro
       #
       # === Args
       #
-      # +io+::
-      #   IO object that receives dump result.
+      # +io+    :: IO object that receives dump result.
+      # +peers+ :: array of peer name.
       #
-      def dump io
-        @cache.dump io
+      def dump io, peers = nil
+        @cache.dump io, peers
       end 
 
       ##

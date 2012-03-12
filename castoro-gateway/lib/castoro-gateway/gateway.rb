@@ -126,7 +126,7 @@ module Castoro
 
         # start console server.
         @config.is_original_or_island_when {
-          @console = @@console_server_class.new @logger, @repository, @config["gateway_console_port"].to_i, :host => "0.0.0.0"
+          @console = @@console_server_class.new @logger, @repository, @config["gateway_console_port"].to_i
           @console.start
         }
 

@@ -180,24 +180,6 @@ describe Castoro::Protocol do
       end
     end
 
-    context 'when argument set ["1.1","C","STATUS",{}]' do
-      it 'should be able to create an instance of "STATUS" command.' do
-        command = Castoro::Protocol.parse '["1.1","C","STATUS",{}]'
-        command.should be_kind_of(Castoro::Protocol::Command::Status)
-        command.to_s.should be_synonymas_with('["1.1","C","STATUS",{}]' + "\r\n")
-        command.to_s.should match(/.+\r\n/)
-      end
-    end
-
-    context 'when argument set ["1.1","C","DUMP",{}]' do
-      it 'should be able to create an instance of "DUMP" command.' do
-        command = Castoro::Protocol.parse '["1.1","C","DUMP",{}]'
-        command.should be_kind_of(Castoro::Protocol::Command::Dump)
-        command.to_s.should be_synonymas_with('["1.1","C","DUMP",{}]' + "\r\n")
-        command.to_s.should match(/.+\r\n/)
-      end
-    end
-    
     context 'when argument set ["1.1","C","MKDIR",{"mode":0,"user":"user100","group":"group100","source":"source100"}]' do
       it 'should be able to create an instance of "MKDIR" command.' do
         command = Castoro::Protocol.parse '["1.1","C","MKDIR",{"mode":0,"user":"user100","group":"group100","source":"source100"}]'
@@ -500,42 +482,6 @@ describe Castoro::Protocol do
         response= Castoro::Protocol.parse '["1.1","R","ISLAND",{"error":"Unexpected error!"}]'
         response.should be_kind_of(Castoro::Protocol::Response::Island)
         response.to_s.should be_synonymas_with('["1.1","R","ISLAND",{"error":"Unexpected error!"}]' + "\r\n")
-        response.to_s.should match(/.+\r\n/)
-      end
-    end
-
-    context 'when argument set ["1.1","R","STATUS",{}]' do
-      it 'should be able to create an instance of "STATUS" response' do
-        response = Castoro::Protocol.parse '["1.1","R","STATUS",{}]'
-        response.should be_kind_of(Castoro::Protocol::Response::Status)
-        response.to_s.should be_synonymas_with('["1.1","R","STATUS",{"status":{}}]' + "\r\n")
-        response.to_s.should match(/.+\r\n/)
-      end
-    end
-
-    context 'when argument set ["1.1","R","STATUS",{"status":{"CACHE_REQUEST":10,"CACHE_HITS":5}}]' do
-      it 'should be able to create an instance of "STATUS" response' do
-        response = Castoro::Protocol.parse '["1.1","R","STATUS",{"status":{"CACHE_REQUEST":10,"CACHE_HITS":5}}]'
-        response.should be_kind_of(Castoro::Protocol::Response::Status)
-        response.to_s.should be_synonymas_with('["1.1","R","STATUS",{"status":{"CACHE_REQUEST":10,"CACHE_HITS":5}}]' + "\r\n")
-        response.to_s.should match(/.+\r\n/)
-      end
-    end
-
-    context 'when argument set ["1.1","R","STATUS",{"error":"Unexpected error!"}]' do
-      it 'should be able to create an instance of "STATUS" error response.' do
-        response = Castoro::Protocol.parse '["1.1","R","STATUS",{"error":"Unexpected error!"}]'
-        response.should be_kind_of(Castoro::Protocol::Response::Status)
-        response.to_s.should be_synonymas_with('["1.1","R","STATUS",{"status":{},"error":"Unexpected error!"}]' + "\r\n")
-        response.to_s.should match(/.+\r\n/)
-      end
-    end
-
-    context 'when argument set ["1.1","R","STATUS",{"status":{"CACHE_REQUEST":10,"CACHE_HITS":5},"error":"Unexpected error!"}]' do
-      it 'should be able to create an instance of "STATUS" error response.' do
-        response = Castoro::Protocol.parse '["1.1","R","STATUS",{"status":{"CACHE_REQUEST":10,"CACHE_HITS":5},"error":"Unexpected error!"}]'
-        response.should be_kind_of(Castoro::Protocol::Response::Status)
-        response.to_s.should be_synonymas_with('["1.1","R","STATUS",{"status":{},"error":"Unexpected error!"}]' + "\r\n")
         response.to_s.should match(/.+\r\n/)
       end
     end

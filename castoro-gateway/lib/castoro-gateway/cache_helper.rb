@@ -148,12 +148,17 @@ module Castoro
     #
     # === Args
     #
-    # +io+::
-    #   IO object that receives dump result.
+    # +io+    :: IO object that receives dump result.
+    # +peers+ :: array of peer name.
     #
-    def dump io
-      @logger.info { "dump request accepted." }
-      @cache.dump io
+    def dump io, peers = nil
+      if peers
+        @logger.info { "dump request accepted. - [#{peers.join(',')}]" }
+        @cache.dump io, peers
+      else
+        @logger.info { "dump request accepted." }
+        @cache.dump io
+      end
     end
     
     ##

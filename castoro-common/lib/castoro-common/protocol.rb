@@ -87,12 +87,6 @@ module Castoro
         Protocol::Command::Alive.new(operand["host"], operand["status"], operand["available"])
       when "ISLAND"
         Protocol::Command::Island.new(operand["island"], operand["storables"], operand["capacity"])
-      when "STATUS"
-        Protocol::Command::Status.new()
-      when "DUMP"
-        Protocol::Command::Dump.new()
-      when "PURGE"
-        Protocol::Command::Purge.new(operand["hosts"])
       when "MKDIR"
         Protocol::Command::Mkdir.new(operand["mode"], operand["user"], operand["group"], operand["source"])
       when "MV"
@@ -369,40 +363,6 @@ module Castoro
     end
   end
 
-  class Protocol::Command::Status < Protocol::Command
-    def to_s
-      [ "1.1", "C", "STATUS", {}].to_json + "\r\n"
-    end
-    def error_response error = {}
-      Protocol::Response::Status.new(error)
-    end
-  end
-
-  class Protocol::Command::Dump < Protocol::Command
-    def to_s
-      [ "1.1", "C", "DUMP", {}].to_json + "\r\n"
-    end
-    def error_response error = {}
-      Protocol::Response::Dump.new(error)
-    end
-  end
-
-  class Protocol::Command::Purge < Protocol::Command
-    attr_reader :hosts
-    def initialize hosts
-      raise "Nil cannot be set for hosts." unless hosts
-      @hosts = hosts.to_ary.map { |h| h.to_s }
-    end
-    def to_s
-      operand = {}
-      operand["hosts"] = @hosts
-      [ "1.1", "C", "PURGE", operand].to_json + "\r\n"
-    end
-    def error_response error = {}
-      Protocol::Response::Purge.new(error)
-    end
-  end
-
   class Protocol::Command::Mkdir < Protocol::Command
     attr_reader :mode, :user, :group, :source
     def initialize mode, user, group, source
@@ -493,12 +453,6 @@ module Castoro
         Protocol::Response::Alive.new(operand["error"])
       when "ISLAND"
         Protocol::Response::Island.new(operand["error"])
-      when "STATUS"
-        Protocol::Response::Status.new(operand["error"], operand["status"])
-      when "DUMP"
-        Protocol::Response::Dump.new(operand["error"])
-      when "PURGE"
-        Protocol::Response::Purge.new(operand["error"])
       when "MKDIR"
         Protocol::Response::Mkdir.new(operand["error"])
       when "MV"
@@ -684,44 +638,6 @@ module Castoro
       operand = {}
       operand["error"] = @error if @error
       [ "1.1", "R", "ISLAND", operand].to_json + "\r\n"
-    end
-  end
-
-  class Protocol::Response::Status < Protocol::Response
-    include Enumerable
-    attr_reader :status
-
-    def initialize error, status = {}
-      super error
-      status ||= {}
-      unless @error
-        raise "status should be a Hash." unless status.kind_of? Hash
-        @status = status.dup
-      end
-    end
-    def to_s
-      operand = {"status" => (@status || {})}
-      operand["error"] = @error if @error
-      [ "1.1", "R", "STATUS", operand].to_json + "\r\n"
-    end
-    def method_missing method_name, *arguments, &block
-      @status.send method_name, *arguments, &block
-    end
-  end
-
-  class Protocol::Response::Dump < Protocol::Response
-    def to_s
-      operand = {}
-      operand["error"] = @error if @error
-      [ "1.1", "R", "DUMP", operand].to_json + "\r\n"
-    end
-  end
-
-  class Protocol::Response::Purge < Protocol::Response
-    def to_s
-      operand = {}
-      operand["error"] = @error if @error
-      [ "1.1", "R", "PURGE", operand].to_json + "\r\n"
     end
   end
 

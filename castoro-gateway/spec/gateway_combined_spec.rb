@@ -19,6 +19,9 @@
 
 require File.dirname(__FILE__) + '/spec_helper.rb'
 
+require 'stringio'
+require 'drb/drb'
+
 # mock for client
 class ClientMock
   def initialize my_port, destination, dest_port
@@ -79,12 +82,6 @@ describe Castoro::Gateway do
       "peer_multicast_port" => 30152,
     })
 
-    # mock for console server forker.
-    forker = Proc.new { |server_socket, client_socket, &block|
-      block.call(client_socket)
-    }
-    Castoro::Gateway::ConsoleServer.class_variable_set(:@@forker, forker)
-
     # initialize dependency classes.
     Castoro::Gateway.dependency_classes_init
 
@@ -94,13 +91,13 @@ describe Castoro::Gateway do
     # mock for client.
     @client = ClientMock.new(@client_port, @localhost, @conf["gateway_unicast_port"])
 
-    # mock for console.
-    @console = Castoro::Sender::TCP.new(@logger, @localhost, @conf["gateway_console_port"])
-    @console.start 2.0
-
     # mock for peer sender.
     @peer = Castoro::Sender::UDP.new nil
     @peer.start
+
+    # console
+    DRb.start_service
+    @console = DRbObject.new_with_uri "druby://127.0.0.1:#{@conf["gateway_console_port"]}"
   end
 
   it "should be response an instance of Castoro::Protocol::Response::Nop." do
@@ -108,27 +105,24 @@ describe Castoro::Gateway do
     res.should be_kind_of(Castoro::Protocol::Response::Nop)
   end
   
-  it "should be response an instance of Castoro::Protocol::Response::Status." do
-    status = Castoro::Protocol::Command::Status.new
-    res = @console.send status, 2.0
-    res.should be_kind_of(Castoro::Protocol::Response::Status)
-    res.status["CACHE_EXPIRE"].should            == Castoro::Gateway::Configuration.new()["cache"]["watchdog_limit"]
-    res.status["CACHE_REQUESTS"].should          == 0
-    res.status["CACHE_HITS"].should              == 0
-    res.status["CACHE_COUNT_CLEAR"].should       == 0
-    res.status["CACHE_ALLOCATE_PAGES"].should    == @conf["cache"]["cache_size"] / Castoro::Cache::PAGE_SIZE
-    res.status["CACHE_FREE_PAGES"].should        == @conf["cache"]["cache_size"] / Castoro::Cache::PAGE_SIZE
-    res.status["CACHE_ACTIVE_PAGES"].should      == 0
-    res.status["CACHE_HAVE_STATUS_PEERS"].should == 0
-    res.status["CACHE_ACTIVE_PEERS"].should      == 0
-    res.status["CACHE_READABLE_PEERS"].should    == 0
+  it "should bo able to get status" do
+    res = @console.status
+    res[:CACHE_EXPIRE].should            == Castoro::Gateway::Configuration.new()["cache"]["watchdog_limit"]
+    res[:CACHE_REQUESTS].should          == 0
+    res[:CACHE_HITS].should              == 0
+    res[:CACHE_COUNT_CLEAR].should       == 0
+    res[:CACHE_ALLOCATE_PAGES].should    == @conf["cache"]["cache_size"] / Castoro::Cache::PAGE_SIZE
+    res[:CACHE_FREE_PAGES].should        == @conf["cache"]["cache_size"] / Castoro::Cache::PAGE_SIZE
+    res[:CACHE_ACTIVE_PAGES].should      == 0
+    res[:CACHE_HAVE_STATUS_PEERS].should == 0
+    res[:CACHE_ACTIVE_PEERS].should      == 0
+    res[:CACHE_READABLE_PEERS].should    == 0
   end
   
   it 'should be cache is empty.' do
-    dump = Castoro::Protocol::Command::Dump.new
-    results = ""
-    @console.send_and_recv_stream(dump, 2.0) { |res| results << res }
-    results.should == "\n"
+    io = StringIO.new
+    @console.dump io
+    io.string.should == "\n"
   end
   
   it "should not respond to an empty packet." do
@@ -198,12 +192,10 @@ describe Castoro::Gateway do
       
     it "should be change the status." do
       sleep 1.0
-      status = Castoro::Protocol::Command::Status.new
-      res = @console.send status, 2.0
-      res.should be_kind_of(Castoro::Protocol::Response::Status)
-      res.status["CACHE_HAVE_STATUS_PEERS"].should == 4
-      res.status["CACHE_ACTIVE_PEERS"].should      == 2
-      res.status["CACHE_READABLE_PEERS"].should    == 3
+      res = @console.status
+      res[:CACHE_HAVE_STATUS_PEERS].should == 4
+      res[:CACHE_ACTIVE_PEERS].should      == 2
+      res[:CACHE_READABLE_PEERS].should    == 3
     end
   
     context "when 2 peers be ACTIVE" do
@@ -243,21 +235,16 @@ describe Castoro::Gateway do
         end
       
         it "should be change status." do
-          status = Castoro::Protocol::Command::Status.new
-          res = @console.send status, 2.0 
-          res.should be_kind_of(Castoro::Protocol::Response::Status)
-          res.status["CACHE_ALLOCATE_PAGES"].should == @conf["cache"]["cache_size"] / Castoro::Cache::PAGE_SIZE
-          res.status["CACHE_FREE_PAGES"].should     == @conf["cache"]["cache_size"] / Castoro::Cache::PAGE_SIZE - 1
-          res.status["CACHE_ACTIVE_PAGES"].should   == 1
+          res = @console.status
+          res[:CACHE_ALLOCATE_PAGES].should == @conf["cache"]["cache_size"] / Castoro::Cache::PAGE_SIZE
+          res[:CACHE_FREE_PAGES].should     == @conf["cache"]["cache_size"] / Castoro::Cache::PAGE_SIZE - 1
+          res[:CACHE_ACTIVE_PAGES].should   == 1
         end
   
         it 'should be the basket is inserted into the cache.' do
-          dump = Castoro::Protocol::Command::Dump.new
-          dump_res = nil
-          @console.send_and_recv_stream(dump, 2.0) { |res|
-            dump_res = res
-          }
-          dump_res.should == "  peer100: 1.1.1\n\n"
+          io = StringIO.new
+          @console.dump io
+          io.string.should == "  peer100: 1.1.1\n\n"
         end
   
         context "when the basket was added" do
@@ -269,12 +256,9 @@ describe Castoro::Gateway do
           end
   
           it 'should be the basket is added into the cache.' do
-            dump = Castoro::Protocol::Command::Dump.new
-            dump_res = nil
-            @console.send_and_recv_stream(dump, 2.0) { |res|
-              dump_res = res
-            }
-            dump_res.should == "  peer100: 1.1.1\n  peer200: 1.1.1\n\n"
+            io = StringIO.new
+            @console.dump io
+            io.string.should == "  peer100: 1.1.1\n  peer200: 1.1.1\n\n"
           end
   
           context "when the query cache" do 
@@ -292,12 +276,10 @@ describe Castoro::Gateway do
               get = Castoro::Protocol::Command::Get.new(@key1)
               @client.send @udp_header, get
   
-              status = Castoro::Protocol::Command::Status.new
-              res = @console.send status, 2.0 
-              res.should be_kind_of(Castoro::Protocol::Response::Status)
-              res.status["CACHE_REQUESTS"].should    == 1
-              res.status["CACHE_HITS"].should        == 1
-              res.status["CACHE_COUNT_CLEAR"].should == 1000
+              res = @console.status
+              res[:CACHE_REQUESTS].should    == 1
+              res[:CACHE_HITS].should        == 1
+              res[:CACHE_COUNT_CLEAR].should == 1000
             end
   
             context "when the query cache misses" do 
@@ -340,12 +322,10 @@ describe Castoro::Gateway do
                 @client.send @udp_header, get
   
                 sleep 2.0
-                status = Castoro::Protocol::Command::Status.new
-                res = @console.send status, 2.0 
-                res.should be_kind_of(Castoro::Protocol::Response::Status)
-                res.status["CACHE_REQUESTS"].should    == 2
-                res.status["CACHE_HITS"].should        == 1
-                res.status["CACHE_COUNT_CLEAR"].should == 500
+                res = @console.status
+                res[:CACHE_REQUESTS].should    == 2
+                res[:CACHE_HITS].should        == 1
+                res[:CACHE_COUNT_CLEAR].should == 500
               end
   
               context "when drop the basket" do
@@ -365,12 +345,9 @@ describe Castoro::Gateway do
                 end
   
                 it "should be only 1 basket in the cache." do
-                  dump = Castoro::Protocol::Command::Dump.new
-                  dump_res = nil
-                  @console.send_and_recv_stream(dump, 2.0) { |res|
-                    dump_res = res
-                  }
-                  dump_res.should == "  peer100: 1.1.1\n\n"
+                  io = StringIO.new
+                  @console.dump io
+                  io.string.should == "  peer100: 1.1.1\n\n"
                 end
                
                 context "when the cache is emptied" do
@@ -381,10 +358,9 @@ describe Castoro::Gateway do
                   end
   
                   it "should be dump result is empty." do
-                    dump = Castoro::Protocol::Command::Dump.new
-                    results = ""
-                    @console.send_and_recv_stream(dump, 2.0) { |res| results << res }
-                    results.should == "\n"
+                    io = StringIO.new
+                    @console.dump io
+                    io.string.should == "\n"
                   end
                 end
               end
@@ -406,9 +382,9 @@ describe Castoro::Gateway do
   after do
     @peer.stop if @peer.alive? rescue nil
     @peer = nil
-  
-    @console.stop if @console.alive? rescue nil
+ 
     @console = nil
+    DRb.stop_service
   
     @g.stop if @g.alive? rescue nil 
     @g = nil
