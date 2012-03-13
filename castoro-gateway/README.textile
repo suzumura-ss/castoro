@@ -158,12 +158,12 @@ h3. example
 
 <pre>
 <% require 'logger' %>
---- 
-default: 
+---
+default:
   require: []
   logger: " Proc.new { |logfile| Logger.new(logfile) } "
   user: castoro
-  group: 
+  group:
   workers: 5
   loglevel: <%= Logger::INFO %>
   type: original
@@ -175,7 +175,9 @@ default:
   peer_multicast_addr: 239.192.1.1
   peer_multicast_device: eth0
   peer_multicast_port: 30112
-  cache: 
+  cache:
+    class:
+    replication_count: 3
     watchdog_limit: 15
     return_peer_number: 5
     cache_size: 500000
