@@ -73,6 +73,12 @@ Val::isInclude(ID peer) const
   return (_peers[0] == peer || _peers[1] == peer || _peers[2] == peer);
 }
 
+bool
+Val::isEmpty() const
+{
+  return (_peers[0] == 0 && _peers[1] == 0 && _peers[2] == 0);
+}
+
 void
 Val::setPeer(ID peer)
 {

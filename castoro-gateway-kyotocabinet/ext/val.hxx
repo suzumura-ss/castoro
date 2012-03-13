@@ -36,6 +36,7 @@ class Val
     uint8_t getRev() const;
     void setRev(uint8_t rev);
     bool isInclude(ID peer) const;
+    bool isEmpty() const;
     void setPeer(ID peer);
     void resetPeer(ID peer);
     const ID* getPeers() const;

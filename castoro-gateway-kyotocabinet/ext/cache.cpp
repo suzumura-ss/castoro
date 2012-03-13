@@ -155,7 +155,11 @@ Cache::eraseElement(VALUE _p, VALUE _c, VALUE _t, VALUE _r)
   rb_mutex_lock(_locker);
   if (get(k, &v, false) && r == v.getRev()) {
     v.resetPeer(p);
-    ret = _db->set((const char*)&k, sizeof(k), (const char*)&v, sizeof(v));
+    if (v.isEmpty()) {
+      ret = _db->remove((const char*)&k, sizeof(k));
+    } else {
+      ret = _db->set((const char*)&k, sizeof(k), (const char*)&v, sizeof(v));
+    }
   }
   rb_mutex_unlock(_locker);
 
