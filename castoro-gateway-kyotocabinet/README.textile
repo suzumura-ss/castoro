@@ -16,8 +16,6 @@ default:
     cache_size: 500000
     options:
       watchdog_limit: 15
-      path_derive_proc: ' Proc.new { |id, type, rev, peer| "/expdsk/#{type}/baskets/a" } '
-      compress_derivatable_data: true
 </pre>
 
 h3. configuration details
@@ -34,14 +32,4 @@ Cache size (bytes)
 h4. cache/options/watchdog_limit
 
 Timeout second for watchdog.
-
-h4. cache/options/path_derive_proc
-
-base-path derive procedure.
-The character string which evaluates by "eval" and returns Proc object.
-A character string is returned for id, type, rev, and peer to an argument.
-
-h4. cache/options/compress_derivatable_data
-
-If value is same as path_derive_proc evaluation value, set to nil. (default: true)
 

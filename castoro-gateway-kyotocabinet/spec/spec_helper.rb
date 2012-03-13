@@ -25,7 +25,6 @@ rescue LoadError
   require 'rspec'
 end
 
-$:.unshift(File.dirname(__FILE__) + '/../lib')
-gem 'castoro-gateway', '>=0.2.0.pre'
-require 'castoro-gateway'
+# $:.unshift(File.dirname(__FILE__) + '/../lib') # required install.
+require 'castoro-gateway-kyotocabinet'
 
