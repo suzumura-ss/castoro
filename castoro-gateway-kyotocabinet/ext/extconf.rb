@@ -19,7 +19,10 @@
 
 require "mkmf"
 
-File::unlink("Makefile") if (File::exist?("Makefile"))
+CONFIG["CC"]  = ENV["CC"]          if ENV["CC"]
+CONFIG["CXX"] = ENV["CXX"]         if ENV["CXX"]
+CONFIG["CPP"] = "#{ENV["CXX"]} -E" if ENV["CXX"]
+
 dir_config('kyotocabinet')
 
 home = ENV["HOME"]
@@ -35,6 +38,7 @@ kcldflags = "-L/usr/local/lib" if(kcldflags.length < 1)
 kclibs = "-lkyotocabinet -lz -lstdc++ -lrt -lpthread -lm -lc" if(kclibs.length < 1)
 
 Config::CONFIG["CPP"] = "g++ -E"
+
 $CFLAGS = "-I. #{kccflags} -Wall #{$CFLAGS} -O2"
 $LDFLAGS = "#{$LDFLAGS} -L. #{kcldflags}"
 $libs = "#{$libs} #{kclibs}"

@@ -2,6 +2,8 @@ h1. castoro-gateway-kyotocabinet
 
 h2. Install
 
+refer how to install kyotocabinet and gem on centos 5.x
+
 <pre>
 gem install castoro-gateway-kyotocabinet-X.X.X.gem
 </pre>
@@ -32,4 +34,47 @@ Cache size (bytes)
 h4. cache/options/watchdog_limit
 
 Timeout second for watchdog.
+
+h2. how to install kyotocabinet and gem on centos 5.x
+
+refer http://fallabs.com/kyotocabinet/spex.html#installation
+
+h3. check gcc version
+
+required gcc 4.2 or later
+install gcc44 gcc44-c++
+
+<pre>
+$ gcc --version
+gcc (GCC) 4.1.2 20080704 (Red Hat 4.1.2-50)
+Copyright (C) 2006 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+$ sudo yum install gcc44 gcc44-c++
+</pre>
+
+h3. install kyotocabinet
+
+refer http://fallabs.com/kyotocabinet/pkg/ for newer version.
+set environment variable CC and CXX
+
+<pre>
+$ wget http://fallabs.com/kyotocabinet/pkg/kyotocabinet-1.2.71.tar.gz
+$ tar zvxf kyotocabinet-1.2.71.tar.gz
+$ cd kyotocabinet-1.2.71
+$ CC=gcc44 CXX=g++44 ./configure && make && sudo make install
+</pre>
+
+h3. ldconfig
+
+<pre>
+$ sudo sh -c "echo /usr/local/lib > /etc/ld.so.conf.d/local.conf"
+$ sudo /sbin/ldconfig
+</pre>
+
+h3. install gem
+
+<pre>
+$ sudo CC=gcc44 CXX=g++44 gem install castoro-gateway-kyotocabinet-X.X.X.gem
+</pre>
 
