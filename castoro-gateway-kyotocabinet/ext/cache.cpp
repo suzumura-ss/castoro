@@ -87,7 +87,7 @@ Cache::find(VALUE _c, VALUE _t, VALUE _r)
   Key k(NUM2ULL(_c), NUM2UINT(_t));
   Val v;
 
-  if (!get(k, &v)) return result;
+  if (!get(k, &v, true)) return result;
 
   if (NUM2UINT(_r) != v.getRev()) return result;
 
@@ -130,12 +130,17 @@ Cache::insertElement(VALUE _p, VALUE _c, VALUE _t, VALUE _r)
   uint8_t r = (uint8_t)(NUM2UINT(_r) & 255);
   Key k(NUM2ULL(_c), NUM2UINT(_t));
   Val v;
+  ID p = rb_to_id(_p);
+  bool ret;
 
-  get(k, &v);
-
+  rb_mutex_lock(_locker);
+  get(k, &v, false);
   v.setRev(r);
-  v.setPeer(rb_to_id(_p));
-  set(k, v);
+  v.setPeer(p);
+  ret = _db->set((const char*)&k, sizeof(k), (const char*)&v, sizeof(v));
+  rb_mutex_unlock(_locker);
+
+  if (!ret) raiseOnError();
 }
 
 void
@@ -144,12 +149,17 @@ Cache::eraseElement(VALUE _p, VALUE _c, VALUE _t, VALUE _r)
   char r = (char)(NUM2UINT(_r) & 255);
   Key k(NUM2ULL(_c), NUM2UINT(_t));
   Val v;
+  ID p = rb_to_id(_p);
+  bool ret = true;
 
-  if (!get(k, &v)) return;
-  if (r != v.getRev()) return;
+  rb_mutex_lock(_locker);
+  if (get(k, &v, false) && r == v.getRev()) {
+    v.resetPeer(p);
+    ret = _db->set((const char*)&k, sizeof(k), (const char*)&v, sizeof(v));
+  }
+  rb_mutex_unlock(_locker);
 
-  v.resetPeer(rb_to_id(_p));
-  set(k, v);
+  if (!ret) raiseOnError();
 }
 
 VALUE
@@ -271,29 +281,18 @@ Cache::raiseOnError() const
   default:
     return;
   }
+  if (rb_mutex_locked_p(_locker)) rb_mutex_unlock(_locker);
   rb_raise(klass, "%u: %s", code, message);
 }
 
-void
-Cache::set(const Key& k, const Val& v)
-{
-  bool ret;
-
-  rb_mutex_lock(_locker);
-  ret = _db->set((const char*)&k, sizeof(k), (const char*)&v, sizeof(v));
-  rb_mutex_unlock(_locker);
-
-  if (!ret) raiseOnError();
-}
-
 bool
-Cache::get(const Key& k, Val* v) const
+Cache::get(const Key& k, Val* v, bool lock) const
 {
   bool ret;
 
-  rb_mutex_lock(_locker);
+  if (lock) rb_mutex_lock(_locker);
   ret = _db->get((const char*)&k, sizeof(k), (char*)v, sizeof(*v)) != -1;
-  rb_mutex_unlock(_locker);
+  if (lock) rb_mutex_unlock(_locker);
 
   if (!ret) raiseOnError();
   return ret;

@@ -64,6 +64,8 @@ rb_kc_init(int argc, VALUE* argv, VALUE self)
   if (rb_scan_args(argc, argv, "11", &size, &opt) == 1) {
     opt = rb_hash_new();
   }
+  Check_Type(opt, T_HASH);
+
   p->init(size, opt);
 
   return Qnil;
@@ -101,6 +103,7 @@ static VALUE
 rb_kc_insert_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r)
 {
   Cache* p = cache_get(self);
+  Check_Type(_p, T_STRING);
   p->insertElement(_p, _c, _t, _r);
   return self;
 }
@@ -112,6 +115,7 @@ static VALUE
 rb_kc_erase_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r)
 {
   Cache* p = cache_get(self);
+  Check_Type(_p, T_STRING);
   p->eraseElement(_p, _c, _t, _r);
   return self;
 }
@@ -123,6 +127,7 @@ static VALUE
 rb_kc_get_peer_status(VALUE self, VALUE _p)
 {
   Cache* p = cache_get(self);
+  Check_Type(_p, T_STRING);
   return p->getPeerStatus(_p);
 }
 
@@ -133,6 +138,8 @@ static VALUE
 rb_kc_set_peer_status(VALUE self, VALUE _p, VALUE _h)
 {
   Cache* p = cache_get(self);
+  Check_Type(_p, T_STRING);
+  Check_Type(_h, T_HASH);
   p->setPeerStatus(_p, _h);
   return _h;
 }
@@ -164,6 +171,7 @@ static VALUE
 rb_kc_stat(VALUE self, VALUE _k)
 {
   Cache* p = cache_get(self);
+  Check_Type(_k, T_FIXNUM);
   return p->stat(_k);
 }
 

@@ -59,8 +59,7 @@ class Cache
     uint64_t _requests;
     uint64_t _hits;
 
-    void set(const Key& k, const Val& v);
-    bool get(const Key& k, Val* v) const;
+    bool get(const Key& k, Val* v, bool lock) const;
 };
 
 #endif // _INCLUDE_CACHE_H_
