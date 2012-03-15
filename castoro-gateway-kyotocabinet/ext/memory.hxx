@@ -18,37 +18,32 @@
  *
  */
 
-#ifndef _INCLUDE_RECORD_H_
-#define _INCLUDE_RECORD_H_
+#ifndef _INCLUDE_MEMORY_H_
+#define _INCLUDE_MEMORY_H_
 
 #include "stdinc.hxx"
 
-class Val
+template<class T>
+class Memory
 {
   public:
-    static size_t getSize(uint8_t peerSize);
-
-    Val(uint8_t peerSize);
-
-    void clear();
-    uint8_t getRev() const;
-    void setRev(uint8_t rev);
-    bool isInclude(ID peer) const;
-    bool isFull() const;
-    bool isEmpty() const;
-    void setPeer(ID peer);
-    void removePeer(ID peer);
-    ID* getPeers() const;
-    uint8_t getPeerSize() const;
-
-    void serialize(void* stream) const;
-    void deserialize(const void* stream);
-
+    Memory(size_t size) { _p = (T*)ruby_xmalloc(size * sizeof(T)); }
+    ~Memory() { ruby_xfree(_p); }
+    T* p() const { return _p; }
   private:
-    uint8_t _rev;
-    uint8_t _peerSize;
-    ID* _peers;
+    T* _p;
 };
 
-#endif // _INCLUDE_RECORD_H_
+template<>
+class Memory<void>
+{
+  public:
+    Memory(size_t size);
+    virtual ~Memory();
+    void* p() const;
+  private:
+    void* _p;
+};
+
+#endif // _INCLUDE_MEMORY_H_
 

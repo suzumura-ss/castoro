@@ -19,6 +19,7 @@
  */
 
 #include "traverse.hxx"
+#include "memory.hxx"
 
 Dumper::Dumper(VALUE io)
 {
@@ -30,8 +31,8 @@ Dumper::operator()(const Key& key, const Val& val) const
 {
   VALUE format = rb_str_new2("  %s: %d.%d.%d");
 
-  const ID* p = val.getPeers();
-  for (uint32_t i = 0; i < Val::PEER_COUNT; i++) {
+  ID* p = val.getPeers();
+  for (uint8_t i = 0; i < val.getPeerSize(); i++) {
     if (*(p+i) != 0) {
       VALUE peer = ID2SYM(*(p+i));
       VALUE c    = ULL2NUM(key.getContent());
@@ -87,19 +88,17 @@ FilteredDumper::operator()(const Key& key, const Val& val) const
 {
   VALUE format = rb_str_new2("  %s: %d.%d.%d");
 
-  const ID* p = val.getPeers();
-  for (uint32_t i = 0; i < Val::PEER_COUNT; i++) {
-    if (*(p+i) != 0) {
-      if (isInclude(*(p+i))) {
-        VALUE peer = ID2SYM(*(p+i));
-        VALUE c    = ULL2NUM(key.getContent());
-        VALUE t    = UINT2NUM(key.getType());
-        VALUE r    = UINT2NUM(val.getRev());
-        VALUE args = rb_ary_new3(4, peer, c, t, r);
-        VALUE line = rb_funcall(format, id_format, 1, args);
+  ID* p = val.getPeers();
+  for (uint8_t i = 0; i < val.getPeerSize(); i++) {
+    if (*(p+i) != 0 && isInclude(*(p+i))) {
+      VALUE peer = ID2SYM(*(p+i));
+      VALUE c    = ULL2NUM(key.getContent());
+      VALUE t    = UINT2NUM(key.getType());
+      VALUE r    = UINT2NUM(val.getRev());
+      VALUE args = rb_ary_new3(4, peer, c, t, r);
+      VALUE line = rb_funcall(format, id_format, 1, args);
 
-        rb_funcall(_io, id_puts, 1, line);
-      }
+      rb_funcall(_io, id_puts, 1, line);
     }
   }
 }
@@ -113,11 +112,13 @@ FilteredDumper::isInclude(ID id) const
   return false;
 }
 
-Traverser::Traverser(kc::PolyDB* db, VALUE locker)
+Traverser::Traverser(kc::PolyDB* db, VALUE locker, uint8_t peerSize, size_t valsiz)
 {
   _db = db;
   _cur = _db->cursor();
   _locker = locker;
+  _peerSize = peerSize;
+  _valsiz = valsiz;
 }
 
 Traverser::~Traverser()
@@ -130,13 +131,16 @@ void
 Traverser::traverse(const TraverseLogic& logic)
 {
   Key* k;
-  Val* v;
+  Val v(_peerSize);
+  Memory<char> m(_valsiz);
+  char* p = m.p();
   size_t ksiz, vsiz;
 
   rb_mutex_lock(_locker);
   if (_cur->jump()) {
-    while(k = (Key*)_cur->get(&ksiz, (const char**)&v, &vsiz, true)) {
-      logic(*k, *v);
+    while(k = (Key*)_cur->get(&ksiz, (const char**)&p, &vsiz, true)) {
+      v.deserialize(p);
+      logic(*k, v);
     }
   }
   rb_mutex_unlock(_locker);

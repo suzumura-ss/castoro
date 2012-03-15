@@ -45,6 +45,7 @@ ID id_less_eql;
 
 // symvol
 VALUE sym_watchdog_limit;
+VALUE sym_peer_size;
 VALUE sym_logger;
 VALUE sym_available;
 VALUE sym_status;

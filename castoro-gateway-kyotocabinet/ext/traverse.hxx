@@ -59,7 +59,7 @@ class FilteredDumper : public TraverseLogic
 class Traverser
 {
   public:
-    Traverser(kc::PolyDB* db, VALUE locker);
+    Traverser(kc::PolyDB* db, VALUE locker, uint8_t peerSize, size_t valsiz);
     virtual ~Traverser();
 
     void traverse(const TraverseLogic& logic);
@@ -68,6 +68,8 @@ class Traverser
     kc::PolyDB* _db;
     kc::DB::Cursor* _cur;
     VALUE _locker;
+    uint8_t _peerSize;
+    size_t _valsiz;
 };
 
 #endif // _INCLUDE_TRAVERSE_H_

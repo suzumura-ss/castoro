@@ -27,13 +27,17 @@ h4. cache/class
 The class name of an alternative cache class
 ex.) It's "KyotoCabinet" in the case of "Castoro::Cache::KyotoCabinet"
 
-h4. cache/cache_size
+h4. cache / cache_size
 
 Cache size (bytes)
 
-h4. cache/options/watchdog_limit
+h4. cache / options / watchdog_limit
 
 Timeout second for watchdog.
+
+h4. cache / options / peer_size
+
+Peer capacity per basket. (default: 3)
 
 h2. how to install kyotocabinet and gem on centos 5.x
 

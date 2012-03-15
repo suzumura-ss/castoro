@@ -20,38 +20,23 @@
 
 #include "val.hxx"
 
-Val::Val()
+size_t Val::getSize(uint8_t peerSize)
 {
+  return sizeof(uint8_t) + sizeof(ID)*peerSize;
+}
+
+Val::Val(uint8_t peerSize)
+{
+  _peerSize = peerSize;
+  _peers = (ID*)ruby_xmalloc(sizeof(ID)*_peerSize);
   clear();
-}
-
-Val::Val(const Val& other)
-{
-  _rev = other._rev;
-  _peers[0] = other._peers[0];
-  _peers[1] = other._peers[1];
-  _peers[2] = other._peers[2];
-}
-
-Val::Val(Val* other)
-{
-  if (other) {
-    _rev = other->_rev;
-    _peers[0] = other->_peers[0];
-    _peers[1] = other->_peers[1];
-    _peers[2] = other->_peers[2];
-  } else {
-    clear();
-  }
 }
 
 void
 Val::clear()
 {
   _rev = 0;
-  _peers[0] = 0;
-  _peers[1] = 0;
-  _peers[2] = 0;
+  for (uint8_t i = 0; i < _peerSize; i++) *(_peers+i) = 0;
 }
 
 uint8_t
@@ -70,13 +55,28 @@ Val::setRev(uint8_t rev)
 bool
 Val::isInclude(ID peer) const
 {
-  return (_peers[0] == peer || _peers[1] == peer || _peers[2] == peer);
+  for (uint8_t i = 0; i < _peerSize; i++) {
+    if (*(_peers+i) == peer) return true;
+  }
+  return false;
+}
+
+bool
+Val::isFull() const
+{
+  for (uint8_t i = 0; i < _peerSize; i++) {
+    if (*(_peers+i) == 0) return false;
+  }
+  return true;
 }
 
 bool
 Val::isEmpty() const
 {
-  return (_peers[0] == 0 && _peers[1] == 0 && _peers[2] == 0);
+  for (uint8_t i = 0; i < _peerSize; i++) {
+    if (*(_peers+i) != 0) return false;
+  }
+  return true;
 }
 
 void
@@ -84,22 +84,53 @@ Val::setPeer(ID peer)
 {
   if (isInclude(peer)) return;
 
-  if      (_peers[0] == 0) _peers[0] = peer;
-  else if (_peers[1] == 0) _peers[1] = peer;
-  else                     _peers[2] = peer;
+  for (uint8_t i = 0; i < _peerSize; i++) {
+    if (*(_peers+i) == 0) {
+      *(_peers+i) = peer;
+      return;
+    }
+  }
+  *(_peers + (_peerSize-1)) = peer;
 }
 
 void
-Val::resetPeer(ID peer)
+Val::removePeer(ID peer)
 {
-  if      (_peers[0] == peer) _peers[0] = 0;
-  else if (_peers[1] == peer) _peers[1] = 0;
-  else if (_peers[2] == peer) _peers[2] = 0;
+  for (uint8_t i = 0; i < _peerSize; i++) {
+    if (*(_peers+i) == peer) {
+      *(_peers+i) = 0;
+      return;
+    }
+  }
 }
 
-const ID*
+ID*
 Val::getPeers() const
 {
   return _peers;
+}
+
+uint8_t
+Val::getPeerSize() const
+{
+  return _peerSize;
+}
+
+void
+Val::serialize(void* stream) const
+{
+  memcpy(stream, &_rev, sizeof(_rev));
+  stream = ((uint8_t*)stream) + 1;
+  memcpy(stream, _peers, sizeof(ID) * _peerSize);
+}
+
+void
+Val::deserialize(const void* stream)
+{
+  const void* p = stream;
+
+  clear();
+  _rev = *((uint8_t*)p); p = ((uint8_t*)p) + 1;
+  memcpy(_peers, p, sizeof(ID) * _peerSize);
 }
 

@@ -23,7 +23,6 @@
 
 #include <sys/time.h>
 #include <cstdio>
-#include <string>
 #include <map>
 #include <vector>
 #include <kcpolydb.h>
@@ -56,6 +55,7 @@ extern ID id_less_eql;
 
 // symvol
 extern VALUE sym_watchdog_limit;
+extern VALUE sym_peer_size;
 extern VALUE sym_logger;
 extern VALUE sym_available;
 extern VALUE sym_status;

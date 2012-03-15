@@ -19,12 +19,14 @@
  */
 
 #include "cache.hxx"
+#include "memory.hxx"
 
 Cache::Cache()
 {
   _db = (kc::PolyDB*)ruby_xmalloc(sizeof(kc::PolyDB));
   new( (void*)_db ) kc::PolyDB;
   _expire = 15;
+  _peerSize = 3;
   _logger = NULL;
   _locker = NULL;
   _requests = 0;
@@ -58,6 +60,14 @@ Cache::init(VALUE size, VALUE options)
     }
     _expire = NUM2UINT(expire);
   }
+  VALUE peerSize = rb_hash_aref(options, sym_peer_size);
+  if (RTEST(peerSize)) {
+    if (RTEST(rb_funcall(peerSize, id_less_eql, 1, INT2NUM(0)))) {
+      rb_throw("peer_size must be > 0", rb_eArgError);
+    }
+    _peerSize = NUM2UINT(peerSize);
+  }
+  _valsiz = Val::getSize(_peerSize);
 
   VALUE format = rb_str_new2("*#capsiz=%d");
   VALUE arg = rb_funcall(format, id_format, 1, size);
@@ -85,19 +95,20 @@ Cache::find(VALUE _c, VALUE _t, VALUE _r)
   _requests++;
 
   Key k(NUM2ULL(_c), NUM2UINT(_t));
-  Val v;
+  Val v(_peerSize);
 
   if (!get(k, &v, true)) return result;
 
   if (NUM2UINT(_r) != v.getRev()) return result;
 
-  const ID* p = v.getPeers();
-  for (uint32_t i = 0; i < Val::PEER_COUNT; i++) {
+  ID* p = v.getPeers();
+  for (uint8_t i = 0; i < _peerSize; i++) {
     if (*(p+i) != 0 && _peers.getStatus(*(p+i)).isReadable(_expire)) {
       hit = true;
       rb_ary_push(result, rb_funcall(ID2SYM(*(p+i)), id_to_s, 0));
     }
   }
+
   if (hit) _hits++;
   return result;
 }
@@ -129,15 +140,17 @@ Cache::insertElement(VALUE _p, VALUE _c, VALUE _t, VALUE _r)
 {
   uint8_t r = (uint8_t)(NUM2UINT(_r) & 255);
   Key k(NUM2ULL(_c), NUM2UINT(_t));
-  Val v;
+  Val v(_peerSize);
   ID p = rb_to_id(_p);
+  Memory<char> m(_valsiz);
   bool ret;
 
   rb_mutex_lock(_locker);
   get(k, &v, false);
   v.setRev(r);
   v.setPeer(p);
-  ret = _db->set((const char*)&k, sizeof(k), (const char*)&v, sizeof(v));
+  v.serialize(m.p());
+  ret = _db->set((const char*)&k, sizeof(k), m.p(), _valsiz);
   rb_mutex_unlock(_locker);
 
   if (!ret) raiseOnError();
@@ -148,17 +161,19 @@ Cache::eraseElement(VALUE _p, VALUE _c, VALUE _t, VALUE _r)
 {
   char r = (char)(NUM2UINT(_r) & 255);
   Key k(NUM2ULL(_c), NUM2UINT(_t));
-  Val v;
+  Val v(_peerSize);
   ID p = rb_to_id(_p);
+  Memory<char> m(_valsiz);
   bool ret = true;
 
   rb_mutex_lock(_locker);
   if (get(k, &v, false) && r == v.getRev()) {
-    v.resetPeer(p);
+    v.removePeer(p);
     if (v.isEmpty()) {
       ret = _db->remove((const char*)&k, sizeof(k));
     } else {
-      ret = _db->set((const char*)&k, sizeof(k), (const char*)&v, sizeof(v));
+      v.serialize(m.p());
+      ret = _db->set((const char*)&k, sizeof(k), m.p(), _valsiz);
     }
   }
   rb_mutex_unlock(_locker);
@@ -194,7 +209,7 @@ Cache::setPeerStatus(VALUE _p, VALUE _s)
 void
 Cache::dump(VALUE _f)
 {
-  Traverser tr(_db, _locker);
+  Traverser tr(_db, _locker, _peerSize, _valsiz);
 
   tr.traverse(Dumper(_f));
   raiseOnError();
@@ -204,7 +219,7 @@ Cache::dump(VALUE _f)
 void
 Cache::dump(VALUE _f, VALUE _p)
 {
-  Traverser tr(_db, _locker);
+  Traverser tr(_db, _locker, _peerSize, _valsiz);
 
   tr.traverse(FilteredDumper(_f, _p));
   raiseOnError();
@@ -293,12 +308,18 @@ bool
 Cache::get(const Key& k, Val* v, bool lock) const
 {
   bool ret;
+  Memory<char> m(_valsiz);
 
   if (lock) rb_mutex_lock(_locker);
-  ret = _db->get((const char*)&k, sizeof(k), (char*)v, sizeof(*v)) != -1;
+  ret = _db->get((const char*)&k, sizeof(k), m.p(), _valsiz) != -1;
   if (lock) rb_mutex_unlock(_locker);
 
-  if (!ret) raiseOnError();
+  if (ret) {
+    v->deserialize(m.p());
+  } else {
+    raiseOnError();
+  } 
+
   return ret;
 }
 

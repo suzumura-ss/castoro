@@ -236,6 +236,7 @@ Init_kyotocabinet()
 
   // symvol
   sym_watchdog_limit = ID2SYM(rb_intern("watchdog_limit"));
+  sym_peer_size      = ID2SYM(rb_intern("peer_size"));
   sym_logger         = ID2SYM(rb_intern("logger"));
   sym_available      = ID2SYM(rb_intern("available"));
   sym_status         = ID2SYM(rb_intern("status"));

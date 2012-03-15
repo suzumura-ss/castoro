@@ -53,6 +53,8 @@ class Cache
     kc::PolyDB* _db;
     Peers _peers;
     time_t _expire;
+    uint8_t _peerSize;
+    size_t _valsiz;
     VALUE _logger;
     VALUE _locker;
 

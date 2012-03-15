@@ -38,6 +38,14 @@ describe Castoro::Cache::KyotoCabinet do
         }.should raise_error(ArgumentError)
       end
     end
+
+    context "given negative number to options[:peer_size]" do
+      it "should raise ArgumentError" do
+        Proc.new {
+          Castoro::Cache::KyotoCabinet.new 1024*1024*1024, :peer_size => -1
+        }
+      end
+    end
   end
 
   describe "instance." do
@@ -393,6 +401,74 @@ describe Castoro::Cache::KyotoCabinet do
           it "#stat(DSTAT_READABLE_PEERS) should == 2" do
             @c.stat(Castoro::Cache::DSTAT_READABLE_PEERS).should == 2
           end
+        end
+      end
+    end
+
+    after do
+      @c = nil
+    end
+  end
+
+  describe "instance with peer_size=>2" do
+    before do
+      @c = Castoro::Cache::KyotoCabinet.new 1024*1024*1024, :peer_size => 2
+    end
+
+    context "given status [p1-p5]>30" do
+      before do
+        @c.set_peer_status "p1", :status => 30
+        @c.set_peer_status "p2", :status => 30
+        @c.set_peer_status "p3", :status => 30
+        @c.set_peer_status "p4", :status => 30
+        @c.set_peer_status "p5", :status => 30
+      end
+
+      context "given insert [p1-p5]*1.2.3" do
+        before do
+          @c.insert_element "p1", 1, 2, 3
+          @c.insert_element "p2", 1, 2, 3
+          @c.insert_element "p3", 1, 2, 3
+          @c.insert_element "p4", 1, 2, 3
+          @c.insert_element "p5", 1, 2, 3
+        end
+
+        it "#find(1,2,3) should returned 2 peers." do
+          @c.find(1,2,3).size.should == 2
+        end
+      end
+    end
+
+    after do
+      @c = nil
+    end
+  end
+
+  describe "instance with peer_size=>4" do
+    before do
+      @c = Castoro::Cache::KyotoCabinet.new 1024*1024*1024, :peer_size => 4
+    end
+
+    context "given status [p1-p5]>30" do
+      before do
+        @c.set_peer_status "p1", :status => 30
+        @c.set_peer_status "p2", :status => 30
+        @c.set_peer_status "p3", :status => 30
+        @c.set_peer_status "p4", :status => 30
+        @c.set_peer_status "p5", :status => 30
+      end
+
+      context "given insert [p1-p5]*1.2.3" do
+        before do
+          @c.insert_element "p1", 1, 2, 3
+          @c.insert_element "p2", 1, 2, 3
+          @c.insert_element "p3", 1, 2, 3
+          @c.insert_element "p4", 1, 2, 3
+          @c.insert_element "p5", 1, 2, 3
+        end
+
+        it "#find(1,2,3) should returned 4 peers." do
+          @c.find(1,2,3).size.should == 4
         end
       end
     end
