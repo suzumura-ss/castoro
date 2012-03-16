@@ -38,7 +38,7 @@ Peers::mark()
 }
 
 void
-Peers::set(ID peer, uint64_t available)
+Peers::set(PeerId peer, uint64_t available)
 {
   rb_mutex_lock(_locker);
   _map[peer].set(available);
@@ -46,7 +46,7 @@ Peers::set(ID peer, uint64_t available)
 }
 
 void
-Peers::set(ID peer, uint32_t status)
+Peers::set(PeerId peer, uint32_t status)
 {
   rb_mutex_lock(_locker);
   _map[peer].set(status);
@@ -54,7 +54,7 @@ Peers::set(ID peer, uint32_t status)
 }
 
 void
-Peers::set(ID peer, uint64_t available, uint32_t status)
+Peers::set(PeerId peer, uint64_t available, uint32_t status)
 {
   rb_mutex_lock(_locker);
   _map[peer].set(available, status);
@@ -62,7 +62,7 @@ Peers::set(ID peer, uint64_t available, uint32_t status)
 }
 
 Status
-Peers::getStatus(ID peer)
+Peers::getStatus(PeerId peer)
 {
   Status ret;
 
@@ -91,7 +91,7 @@ Peers::getWritableCount(time_t expire) const
   uint64_t ret = 0;
 
   rb_mutex_lock(_locker);
-  for (std::map<ID, Status>::const_iterator it = _map.begin(); it != _map.end(); it++) {
+  for (PeerStatus::const_iterator it = _map.begin(); it != _map.end(); it++) {
     if ((*it).second.isWritable(expire)) ret++;
   }
   rb_mutex_unlock(_locker);
@@ -105,7 +105,7 @@ Peers::getReadableCount(time_t expire) const
   uint64_t ret = 0;
 
   rb_mutex_lock(_locker);
-  for (std::map<ID, Status>::const_iterator it = _map.begin(); it != _map.end(); it++) {
+  for (PeerStatus::const_iterator it = _map.begin(); it != _map.end(); it++) {
     if ((*it).second.isReadable(expire)) ret++;
   }
   rb_mutex_unlock(_locker);
@@ -113,31 +113,29 @@ Peers::getReadableCount(time_t expire) const
   return ret;
 }
 
-std::vector<ID>
-Peers::find() const
+void
+Peers::find(PeerId* peers, uint64_t* count) const
 {
-  std::vector<ID> ret;
-
+  *count = 0;
   rb_mutex_lock(_locker);
-  for (std::map<ID, Status>::const_iterator it = _map.begin(); it != _map.end(); it++) {
-    ret.push_back((*it).first);
+  for (PeerStatus::const_iterator it = _map.begin(); it != _map.end(); it++) {
+    *(peers+(*count)) = (*it).first;
+    *count = *count + 1;
   }
   rb_mutex_unlock(_locker);
-
-  return ret;
 }
 
-std::vector<ID>
-Peers::find(time_t expire, uint64_t space) const
+void
+Peers::find(PeerId* peers, uint64_t* count, time_t expire, uint64_t space) const
 {
-  std::vector<ID> ret;
-
+  *count = 0;
   rb_mutex_lock(_locker);
-  for (std::map<ID, Status>::const_iterator it = _map.begin(); it != _map.end(); it++) {
-    if ((*it).second.isEnoughSpaces(expire, space)) ret.push_back((*it).first);
+  for (PeerStatus::const_iterator it = _map.begin(); it != _map.end(); it++) {
+    if ((*it).second.isEnoughSpaces(expire, space)) {
+      *(peers+(*count)) = (*it).first;
+      *count = *count + 1;
+    }
   }
   rb_mutex_unlock(_locker);
-
-  return ret;
 }
 

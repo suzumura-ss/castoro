@@ -23,30 +23,34 @@
 
 #include "stdinc.hxx"
 #include "status.hxx"
+#include "allocator.hxx"
 
 class Peers
 {
+  private:
+    typedef std::map<PeerId, Status, std::less<PeerId>, Allocator<std::pair<const PeerId, Status> > > PeerStatus;
+
   public:
     Peers();
 
     void init();
     void mark();
 
-    void set(ID peer, uint64_t available);
-    void set(ID peer, uint32_t status);
-    void set(ID peer, uint64_t available, uint32_t status);
+    void set(PeerId peer, uint64_t available);
+    void set(PeerId peer, uint32_t status);
+    void set(PeerId peer, uint64_t available, uint32_t status);
 
-    Status getStatus(ID peer);
+    Status getStatus(PeerId peer);
 
     uint64_t getCount() const;
     uint64_t getWritableCount(time_t expire) const;
     uint64_t getReadableCount(time_t expire) const;
 
-    std::vector<ID> find() const;
-    std::vector<ID> find(time_t expire, uint64_t space) const;
+    void find(PeerId* peers, uint64_t* count) const;
+    void find(PeerId* peers, uint64_t* count, time_t expire, uint64_t space) const;
 
   private:
-    std::map<ID, Status> _map;
+    PeerStatus _map;
     VALUE _locker;
 };
 

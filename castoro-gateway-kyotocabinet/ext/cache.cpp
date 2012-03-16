@@ -101,7 +101,7 @@ Cache::find(VALUE _c, VALUE _t, VALUE _r)
 
   if (NUM2UINT(_r) != v.getRev()) return result;
 
-  ID* p = v.getPeers();
+  PeerId* p = v.getPeers();
   for (uint8_t i = 0; i < _peerSize; i++) {
     if (*(p+i) != 0 && _peers.getStatus(*(p+i)).isReadable(_expire)) {
       hit = true;
@@ -116,10 +116,13 @@ Cache::find(VALUE _c, VALUE _t, VALUE _r)
 VALUE
 Cache::findPeers()
 {
-  std::vector<ID> buf = _peers.find();
   VALUE ret = rb_ary_new();
-  for (std::vector<ID>::iterator it = buf.begin(); it != buf.end(); it++) {
-    rb_ary_push(ret, rb_funcall(ID2SYM(*it), id_to_s, 0));
+  Memory<ID> peers(_peers.getCount());
+  uint64_t count;
+
+  _peers.find(peers.pointer(), &count);
+  for (uint64_t i = 0; i < count; i++) {
+    rb_ary_push(ret, rb_funcall(ID2SYM(*(peers.pointer()+i)), id_to_s, 0));
   }
   return ret;
 }
@@ -127,10 +130,13 @@ Cache::findPeers()
 VALUE
 Cache::findPeers(VALUE requireSpaces)
 {
-  std::vector<ID> buf = _peers.find(_expire, NUM2ULL(requireSpaces));
   VALUE ret = rb_ary_new();
-  for (std::vector<ID>::iterator it = buf.begin(); it != buf.end(); it++) {
-    rb_ary_push(ret, rb_funcall(ID2SYM(*it), id_to_s, 0));
+  Memory<ID> peers(_peers.getCount());
+  uint64_t count;
+
+  _peers.find(peers.pointer(), &count, _expire, NUM2ULL(requireSpaces));
+  for (uint64_t i = 0; i < count; i++) {
+    rb_ary_push(ret, rb_funcall(ID2SYM(*(peers.pointer()+i)), id_to_s, 0));
   }
   return ret;
 }
@@ -141,16 +147,16 @@ Cache::insertElement(VALUE _p, VALUE _c, VALUE _t, VALUE _r)
   uint8_t r = (uint8_t)(NUM2UINT(_r) & 255);
   Key k(NUM2ULL(_c), NUM2UINT(_t));
   Val v(_peerSize);
-  ID p = rb_to_id(_p);
+  PeerId p = rb_to_id(_p);
   Memory<char> m(_valsiz);
   bool ret;
 
   rb_mutex_lock(_locker);
   get(k, &v, false);
   v.setRev(r);
-  v.setPeer(p);
-  v.serialize(m.p());
-  ret = _db->set((const char*)&k, sizeof(k), m.p(), _valsiz);
+  v.insertPeer(p);
+  v.serialize(m.pointer());
+  ret = _db->set((const char*)&k, sizeof(k), m.pointer(), _valsiz);
   rb_mutex_unlock(_locker);
 
   if (!ret) raiseOnError();
@@ -162,7 +168,7 @@ Cache::eraseElement(VALUE _p, VALUE _c, VALUE _t, VALUE _r)
   char r = (char)(NUM2UINT(_r) & 255);
   Key k(NUM2ULL(_c), NUM2UINT(_t));
   Val v(_peerSize);
-  ID p = rb_to_id(_p);
+  PeerId p = rb_to_id(_p);
   Memory<char> m(_valsiz);
   bool ret = true;
 
@@ -172,8 +178,8 @@ Cache::eraseElement(VALUE _p, VALUE _c, VALUE _t, VALUE _r)
     if (v.isEmpty()) {
       ret = _db->remove((const char*)&k, sizeof(k));
     } else {
-      v.serialize(m.p());
-      ret = _db->set((const char*)&k, sizeof(k), m.p(), _valsiz);
+      v.serialize(m.pointer());
+      ret = _db->set((const char*)&k, sizeof(k), m.pointer(), _valsiz);
     }
   }
   rb_mutex_unlock(_locker);
@@ -311,11 +317,11 @@ Cache::get(const Key& k, Val* v, bool lock) const
   Memory<char> m(_valsiz);
 
   if (lock) rb_mutex_lock(_locker);
-  ret = _db->get((const char*)&k, sizeof(k), m.p(), _valsiz) != -1;
+  ret = _db->get((const char*)&k, sizeof(k), m.pointer(), _valsiz) != -1;
   if (lock) rb_mutex_unlock(_locker);
 
   if (ret) {
-    v->deserialize(m.p());
+    v->deserialize(m.pointer());
   } else {
     raiseOnError();
   } 

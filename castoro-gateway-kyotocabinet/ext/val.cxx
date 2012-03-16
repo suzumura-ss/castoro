@@ -22,13 +22,13 @@
 
 size_t Val::getSize(uint8_t peerSize)
 {
-  return sizeof(uint8_t) + sizeof(ID)*peerSize;
+  return sizeof(uint8_t) + sizeof(PeerId)*peerSize;
 }
 
 Val::Val(uint8_t peerSize)
 {
   _peerSize = peerSize;
-  _peers = (ID*)ruby_xmalloc(sizeof(ID)*_peerSize);
+  _peers = (PeerId*)ruby_xmalloc(sizeof(PeerId)*_peerSize);
   clear();
 }
 
@@ -53,7 +53,7 @@ Val::setRev(uint8_t rev)
 }
 
 bool
-Val::isInclude(ID peer) const
+Val::isInclude(PeerId peer) const
 {
   for (uint8_t i = 0; i < _peerSize; i++) {
     if (*(_peers+i) == peer) return true;
@@ -80,7 +80,7 @@ Val::isEmpty() const
 }
 
 void
-Val::setPeer(ID peer)
+Val::insertPeer(PeerId peer)
 {
   if (isInclude(peer)) return;
 
@@ -94,7 +94,7 @@ Val::setPeer(ID peer)
 }
 
 void
-Val::removePeer(ID peer)
+Val::removePeer(PeerId peer)
 {
   for (uint8_t i = 0; i < _peerSize; i++) {
     if (*(_peers+i) == peer) {
@@ -104,7 +104,7 @@ Val::removePeer(ID peer)
   }
 }
 
-ID*
+PeerId*
 Val::getPeers() const
 {
   return _peers;
@@ -121,7 +121,7 @@ Val::serialize(void* stream) const
 {
   memcpy(stream, &_rev, sizeof(_rev));
   stream = ((uint8_t*)stream) + 1;
-  memcpy(stream, _peers, sizeof(ID) * _peerSize);
+  memcpy(stream, _peers, sizeof(PeerId) * _peerSize);
 }
 
 void
@@ -131,6 +131,6 @@ Val::deserialize(const void* stream)
 
   clear();
   _rev = *((uint8_t*)p); p = ((uint8_t*)p) + 1;
-  memcpy(_peers, p, sizeof(ID) * _peerSize);
+  memcpy(_peers, p, sizeof(PeerId) * _peerSize);
 }
 

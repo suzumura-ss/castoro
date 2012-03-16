@@ -23,26 +23,26 @@
 
 #include "stdinc.hxx"
 
-template<class T>
+template<class T = void>
 class Memory
 {
   public:
-    Memory(size_t size) { _p = (T*)ruby_xmalloc(size * sizeof(T)); }
-    ~Memory() { ruby_xfree(_p); }
-    T* p() const { return _p; }
+    Memory(size_t size) { _pointer = (T*)ruby_xmalloc(size * sizeof(T)); }
+    virtual ~Memory() { ruby_xfree(_pointer); }
+    T* pointer() const { return _pointer; }
   private:
-    T* _p;
+    T* _pointer;
 };
 
 template<>
 class Memory<void>
 {
   public:
-    Memory(size_t size);
-    virtual ~Memory();
-    void* p() const;
+    Memory(size_t size) { _pointer = ruby_xmalloc(size); }
+    virtual ~Memory() { ruby_xfree(_pointer); }
+    void* pointer() const { return _pointer; }
   private:
-    void* _p;
+    void* _pointer;
 };
 
 #endif // _INCLUDE_MEMORY_H_

@@ -50,10 +50,10 @@ class FilteredDumper : public TraverseLogic
 
   private:
     VALUE _io;
-    ID* _ids;
+    PeerId* _ids;
     uint32_t _size;
 
-    bool isInclude(ID id) const;
+    bool isInclude(PeerId id) const;
 };
 
 class Traverser

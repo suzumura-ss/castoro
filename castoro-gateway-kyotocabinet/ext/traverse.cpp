@@ -31,7 +31,7 @@ Dumper::operator()(const Key& key, const Val& val) const
 {
   VALUE format = rb_str_new2("  %s: %d.%d.%d");
 
-  ID* p = val.getPeers();
+  PeerId* p = val.getPeers();
   for (uint8_t i = 0; i < val.getPeerSize(); i++) {
     if (*(p+i) != 0) {
       VALUE peer = ID2SYM(*(p+i));
@@ -71,7 +71,7 @@ FilteredDumper::FilteredDumper(VALUE io, VALUE peers)
   _size = NUM2UINT(rb_funcall(a, id_size, 0));
 
   if (_size) {
-    _ids = (ID*)ruby_xmalloc(sizeof(ID) * _size);
+    _ids = (PeerId*)ruby_xmalloc(sizeof(PeerId) * _size);
     for (uint32_t i = 0; i < _size; i++) {
       *(_ids+i) = rb_to_id(rb_ary_entry(a, i));
     }
@@ -88,7 +88,7 @@ FilteredDumper::operator()(const Key& key, const Val& val) const
 {
   VALUE format = rb_str_new2("  %s: %d.%d.%d");
 
-  ID* p = val.getPeers();
+  PeerId* p = val.getPeers();
   for (uint8_t i = 0; i < val.getPeerSize(); i++) {
     if (*(p+i) != 0 && isInclude(*(p+i))) {
       VALUE peer = ID2SYM(*(p+i));
@@ -104,7 +104,7 @@ FilteredDumper::operator()(const Key& key, const Val& val) const
 }
 
 bool
-FilteredDumper::isInclude(ID id) const
+FilteredDumper::isInclude(PeerId id) const
 {
   for (uint32_t i = 0; i < _size; i++) {
     if (*(_ids+i) == id) return true;
@@ -133,7 +133,7 @@ Traverser::traverse(const TraverseLogic& logic)
   Key* k;
   Val v(_peerSize);
   Memory<char> m(_valsiz);
-  char* p = m.p();
+  char* p = m.pointer();
   size_t ksiz, vsiz;
 
   rb_mutex_lock(_locker);

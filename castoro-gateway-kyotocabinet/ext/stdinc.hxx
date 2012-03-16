@@ -22,9 +22,7 @@
 #define _STDINC_H_
 
 #include <sys/time.h>
-#include <cstdio>
 #include <map>
-#include <vector>
 #include <kcpolydb.h>
 #include <ruby.h>
 
@@ -74,6 +72,9 @@ extern VALUE stat_readable_peers;
 
 // other classes.
 extern VALUE cls_mutex;
+
+// typedef
+typedef ID PeerId;
 
 #endif // _STDINC_H_
 

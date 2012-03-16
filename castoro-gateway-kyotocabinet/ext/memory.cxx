@@ -18,37 +18,5 @@
  *
  */
 
-#ifndef _INCLUDE_RECORD_H_
-#define _INCLUDE_RECORD_H_
-
-#include "stdinc.hxx"
-
-class Val
-{
-  public:
-    static size_t getSize(uint8_t peerSize);
-
-    Val(uint8_t peerSize);
-
-    void clear();
-    uint8_t getRev() const;
-    void setRev(uint8_t rev);
-    bool isInclude(PeerId peer) const;
-    bool isFull() const;
-    bool isEmpty() const;
-    void insertPeer(PeerId peer);
-    void removePeer(PeerId peer);
-    PeerId* getPeers() const;
-    uint8_t getPeerSize() const;
-
-    void serialize(void* stream) const;
-    void deserialize(const void* stream);
-
-  private:
-    uint8_t _rev;
-    uint8_t _peerSize;
-    PeerId* _peers;
-};
-
-#endif // _INCLUDE_RECORD_H_
+#include "memory.hxx"
 
