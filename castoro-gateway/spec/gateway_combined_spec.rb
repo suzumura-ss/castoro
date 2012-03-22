@@ -56,21 +56,23 @@ describe Castoro::Gateway do
   before(:all) do
     @conf = Castoro::Gateway::Configuration.new({
       "workers" => 5,
-      "peer_multicast_addr" => "239.192.1.2",
-      "peer_multicast_device" => "eth0",
+      "gateway_comm_ipaddr_multicast" => "239.192.1.2",
+      "gateway_comm_device_multicast" => "eth0",
+      "peer_comm_ipaddr_multicast" => "239.192.1.2",
+      "peer_comm_device_multicast" => "eth0",
       "cache" => {
         "cache_size" => 1000000
       },
-      "gateway_console_port" => 30150,
-      "gateway_unicast_port" => 30151,
-      "gateway_multicast_port" => 30149,
-      "gateway_watchdog_port" => 30153,
-      "peer_multicast_port" => 30152,
+      "gateway_console_tcpport" => 30150,
+      "gateway_comm_udpport" => 30151,
+      "gateway_learning_udpport_multicast" => 30149,
+      "gateway_watchdog_udpport_multicast" => 30153,
+      "peer_comm_udpport_multicast" => 30152,
     })
 
     # console
     DRb.start_service
-    @console = DRbObject.new_with_uri "druby://127.0.0.1:#{@conf["gateway_console_port"]}"
+    @console = DRbObject.new_with_uri "druby://127.0.0.1:#{@conf["gateway_console_tcpport"]}"
   end
 
   before do
@@ -95,7 +97,7 @@ describe Castoro::Gateway do
     @g.start
     
     # mock for client.
-    @client = ClientMock.new(@client_port, @localhost, @conf["gateway_unicast_port"])
+    @client = ClientMock.new(@client_port, @localhost, @conf["gateway_comm_udpport"])
 
     # mock for peer sender.
     @peer = Castoro::Sender::UDP.new nil
@@ -141,7 +143,7 @@ describe Castoro::Gateway do
   context "when not received watchdog packets" do
     before do
       insert = Castoro::Protocol::Command::Insert.new(@key1, @peer100, @content1_path)
-      @peer.send @udp_header, insert, @localhost, @conf["gateway_multicast_port"]
+      @peer.send @udp_header, insert, @localhost, @conf["gateway_learning_udpport_multicast"]
     end
   
     it "should not respond to the query cache, because not received watchdog packet." do
@@ -152,7 +154,7 @@ describe Castoro::Gateway do
   
     it "should be request sent to peers." do
       # mock for peer of multicast receiver.
-      multicast_receiver = Castoro::Receiver::UDP.new(@logger, @conf["peer_multicast_port"]) { |h, d, p, i|
+      multicast_receiver = Castoro::Receiver::UDP.new(@logger, @conf["peer_comm_udpport_multicast"]) { |h, d, p, i|
         Castoro::Sender::UDP.new(nil) { |s|
           get_res = Castoro::Protocol::Response::Get.new(false, d.basket, { @peer100 => "response from multicast receiver" })
           s.send @udp_header, get_res, h.ip, h.port
@@ -175,16 +177,16 @@ describe Castoro::Gateway do
       @watchdog = Thread.fork {
         begin
           alive = Castoro::Protocol::Command::Alive.new(@peer100, Castoro::Cache::Peer::ACTIVE, 100*1000)
-          @peer.send @udp_header, alive, @localhost, @conf["gateway_watchdog_port"]
+          @peer.send @udp_header, alive, @localhost, @conf["gateway_watchdog_udpport_multicast"]
   
           alive = Castoro::Protocol::Command::Alive.new(@peer200, Castoro::Cache::Peer::ACTIVE, 1000*1000)
-          @peer.send @udp_header, alive, @localhost, @conf["gateway_watchdog_port"]
+          @peer.send @udp_header, alive, @localhost, @conf["gateway_watchdog_udpport_multicast"]
   
           alive = Castoro::Protocol::Command::Alive.new(@peer300, Castoro::Cache::Peer::READONLY, 0)
-          @peer.send @udp_header, alive, @localhost, @conf["gateway_watchdog_port"]
+          @peer.send @udp_header, alive, @localhost, @conf["gateway_watchdog_udpport_multicast"]
   
           alive = Castoro::Protocol::Command::Alive.new(@peer400, Castoro::Cache::Peer::MAINTENANCE, 1000)
-          @peer.send @udp_header, alive, @localhost, @conf["gateway_watchdog_port"]
+          @peer.send @udp_header, alive, @localhost, @conf["gateway_watchdog_udpport_multicast"]
   
           first_packet_sended = true
         end until Thread.current[:dying]
@@ -231,7 +233,7 @@ describe Castoro::Gateway do
       context "when the basket is inserted" do
         before do
           insert = Castoro::Protocol::Command::Insert.new(@key1, @peer100, @content1_path)
-          @peer.send @udp_header, insert, @localhost, @conf["gateway_multicast_port"]
+          @peer.send @udp_header, insert, @localhost, @conf["gateway_learning_udpport_multicast"]
       
           sleep 1.0
         end
@@ -252,7 +254,7 @@ describe Castoro::Gateway do
         context "when the basket was added" do
           before do
             insert = Castoro::Protocol::Command::Insert.new(@key1, @peer200, @content1_path)
-            @peer.send @udp_header, insert, @localhost, @conf["gateway_multicast_port"]
+            @peer.send @udp_header, insert, @localhost, @conf["gateway_learning_udpport_multicast"]
   
             sleep 1.0
           end
@@ -300,7 +302,7 @@ describe Castoro::Gateway do
               
               it "should be request sent to peers." do
                 # mock for peer of multicast receiver.
-                multicast_receiver = Castoro::Receiver::UDP.new(@logger, @conf["peer_multicast_port"]) { |h, d, p, i|
+                multicast_receiver = Castoro::Receiver::UDP.new(@logger, @conf["peer_comm_udpport_multicast"]) { |h, d, p, i|
                   multicast_sender = Castoro::Sender::UDP.new nil
                   multicast_sender.start
               
@@ -333,7 +335,7 @@ describe Castoro::Gateway do
               context "when drop the basket" do
                 before do
                   drop = Castoro::Protocol::Command::Drop.new(@key1, @peer200, @content1_path)
-                  @peer.send @udp_header, drop, @localhost, @conf["gateway_multicast_port"]
+                  @peer.send @udp_header, drop, @localhost, @conf["gateway_learning_udpport_multicast"]
                   sleep 2.0
                 end
                 
@@ -355,7 +357,7 @@ describe Castoro::Gateway do
                 context "when the cache is emptied" do
                   before do 
                     drop = Castoro::Protocol::Command::Drop.new(@key1, @peer100, @content1_path)
-                    @peer.send @udp_header, drop, @localhost, @conf["gateway_multicast_port"]
+                    @peer.send @udp_header, drop, @localhost, @conf["gateway_learning_udpport_multicast"]
                     sleep 1.0
                   end
   

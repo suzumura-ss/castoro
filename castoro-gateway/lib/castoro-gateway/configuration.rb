@@ -38,7 +38,7 @@ module Castoro; class Gateway
       "watchdog_limit" => 15,
       "return_peer_number" => 5,
       "cache_size" => 500000,
-      "base_dir" => "/expdsk",
+      "basket_basedir" => "/expdsk",
       "options" => {},
     }.freeze
     CONVERTER_SETTINGS = {
@@ -49,36 +49,40 @@ module Castoro; class Gateway
     DEFAULT_SETTINGS = {
       "original" => {
         "type" => "original",
-        "gateway_console_port" => 30110,
-        "gateway_unicast_port" => 30111,
-        "gateway_multicast_port" => 30109,
-        "gateway_watchdog_port" => 30113,
+        "gateway_console_tcpport" => 30110,
+        "gateway_comm_udpport" => 30111,
+        "gateway_learning_udpport_multicast" => 30109,
+        "gateway_watchdog_udpport_multicast" => 30113,
         "gateway_watchdog_logging" => false,
-        "peer_multicast_addr" => "239.192.1.1",
-        "peer_multicast_device" => "eth0",
-        "peer_multicast_port" => 30112,
+        "gateway_comm_ipaddr_multicast" => "239.192.1.1",
+        "gateway_comm_device_multicast" => "eth0",
+        "peer_comm_udpport_multicast" => 30112,
+        "peer_comm_ipaddr_multicast" => "239.192.1.1",
+        "peer_comm_device_multicast" => "eth0",
       },
       "master" => {
         "type" => "master",
-        "gateway_unicast_port" => 30111,
-        "gateway_multicast_port" => 30109,
-        "master_multicast_addr" => "239.192.254.254",
-        "island_broadcast_port" => 30108,
-        "island_multicast_device" => "eth0",
+        "gateway_comm_udpport" => 30111,
+        "gateway_learning_udpport_multicast" => 30109,
+        "master_comm_ipaddr_multicast" => "239.192.254.254",
+        "isladn_comm_udpport_broadcast" => 30108,
+        "island_comm_device_multicast" => "eth0",
       },
       "island" => {
         "type" => "island",
-        "gateway_console_port" => 30110,
-        "gateway_multicast_port" => 30109,
-        "gateway_watchdog_port" => 30113,
+        "gateway_console_tcpport" => 30110,
+        "gateway_learning_udpport_multicast" => 30109,
+        "gateway_watchdog_udpport_multicast" => 30113,
         "gateway_watchdog_logging" => false,
-        "peer_multicast_addr" => "239.192.1.1",
-        "peer_multicast_device" => "eth0",
-        "peer_multicast_port" => 30112,
-        "master_multicast_addr" => "239.192.254.254",
-        "island_broadcast_port" => 30108,
-        "island_multicast_addr" => nil,
-        "island_multicast_device" => "eth0",
+        "gateway_comm_ipaddr_multicast" => "239.192.1.1",
+        "gateway_comm_device_multicast" => "eth0",
+        "peer_comm_udpport_multicast" => 30112,
+        "peer_comm_ipaddr_multicast" => "239.192.1.1",
+        "peer_comm_device_multicast" => "eth0",
+        "master_comm_ipaddr_multicast" => "239.192.254.254",
+        "isladn_comm_udpport_broadcast" => 30108,
+        "island_comm_ipaddr_multicast" => nil,
+        "island_comm_device_multicast" => "eth0",
       },
     }.freeze
 
@@ -92,8 +96,8 @@ module Castoro; class Gateway
           result["cache"] = {}; options["cache"] ||= {}
           CACHE_SETTINGS.each { |k,v| result["cache"][k] = options["cache"][k] || v }
 
-          result["cache"]["converter"] = {}; options["cache"]["converter"] ||= {}
-          CONVERTER_SETTINGS.each { |k,v| result["cache"]["converter"][k] = options["cache"]["converter"][k] || v }
+          result["cache"]["basket_keyconverter"] = {}; options["cache"]["basket_keyconverter"] ||= {}
+          CONVERTER_SETTINGS.each { |k,v| result["cache"]["basket_keyconverter"][k] = options["cache"]["basket_keyconverter"][k] || v }
         end
       }
     }
@@ -106,7 +110,7 @@ module Castoro; class Gateway
       conf = @@set_default_options.call({
         "type" => type,
         "loglevel" => "<%= Logger::INFO %>",
-        "island_multicast_addr" => "TODO: please specify multicast address",
+        "island_comm_ipaddr_multicast" => "TODO: please specify multicast address",
       })
       "<% require 'logger' %>\n" <<
       { "default" => conf }.to_yaml.split(/(\r|\n|\r\n)/).select { |l| !l.strip.empty? }.join("\n")
@@ -164,36 +168,40 @@ module Castoro; class Gateway
     end
 
     def validate_original options
-      check_port_number       options, "gateway_console_port"
-      check_port_number       options, "gateway_unicast_port"
-      check_port_number       options, "gateway_multicast_port"
-      check_port_number       options, "gateway_watchdog_port"
+      check_port_number       options, "gateway_console_tcpport"
+      check_port_number       options, "gateway_comm_udpport"
+      check_port_number       options, "gateway_learning_udpport_multicast"
+      check_port_number       options, "gateway_watchdog_udpport_multicast"
       boolean_normalize       options, "gateway_watchdog_logging"
-      check_multicast_address options, "peer_multicast_addr"
-      check_network_interface options, "peer_multicast_device"
-      check_port_number       options, "peer_multicast_port"
+      check_multicast_address options, "gateway_comm_ipaddr_multicast"
+      check_network_interface options, "gateway_comm_device_multicast"
+      check_port_number       options, "peer_comm_udpport_multicast"
+      check_multicast_address options, "peer_comm_ipaddr_multicast"
+      check_network_interface options, "peer_comm_device_multicast"
     end
 
     def validate_master options
-      check_port_number       options, "gateway_unicast_port"
-      check_port_number       options, "gateway_multicast_port"
-      check_multicast_address options, "master_multicast_addr"
-      check_port_number       options, "island_broadcast_port"
-      check_network_interface options, "island_multicast_device"
+      check_port_number       options, "gateway_comm_udpport"
+      check_port_number       options, "gateway_learning_udpport_multicast"
+      check_multicast_address options, "master_comm_ipaddr_multicast"
+      check_port_number       options, "isladn_comm_udpport_broadcast"
+      check_network_interface options, "island_comm_device_multicast"
     end
 
     def validate_island options
-      check_port_number       options, "gateway_console_port"
-      check_port_number       options, "gateway_multicast_port"
-      check_port_number       options, "gateway_watchdog_port"
+      check_port_number       options, "gateway_console_tcpport"
+      check_port_number       options, "gateway_learning_udpport_multicast"
+      check_port_number       options, "gateway_watchdog_udpport_multicast"
       boolean_normalize       options, "gateway_watchdog_logging"
-      check_multicast_address options, "peer_multicast_addr"
-      check_network_interface options, "peer_multicast_device"
-      check_port_number       options, "peer_multicast_port"
-      check_multicast_address options, "master_multicast_addr"
-      check_port_number       options, "island_broadcast_port"
-      check_multicast_address options, "island_multicast_addr"
-      check_network_interface options, "island_multicast_device"
+      check_multicast_address options, "gateway_comm_ipaddr_multicast"
+      check_network_interface options, "gateway_comm_device_multicast"
+      check_port_number       options, "peer_comm_udpport_multicast"
+      check_multicast_address options, "peer_comm_ipaddr_multicast"
+      check_network_interface options, "peer_comm_device_multicast"
+      check_multicast_address options, "master_comm_ipaddr_multicast"
+      check_port_number       options, "isladn_comm_udpport_broadcast"
+      check_multicast_address options, "island_comm_ipaddr_multicast"
+      check_network_interface options, "island_comm_device_multicast"
     end
 
     def check_port_number options, key

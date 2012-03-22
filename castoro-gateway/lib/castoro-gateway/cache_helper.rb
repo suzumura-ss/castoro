@@ -28,9 +28,9 @@ module Castoro
 
       # converter
       converter_options = {}.tap { |opt|
-        opt[:base_dir] = config["base_dir"] if config["base_dir"]
+        opt[:base_dir] = config["basket_basedir"] if config["basket_basedir"]
       }
-      @converter          = BasketKeyConverter.new(config["converter"], converter_options)
+      @converter          = BasketKeyConverter.new(config["basket_keyconverter"], converter_options)
 
       # cache options.
       options = {}.tap { |h| (config["options"] || {}).each { |k,v| h[k.to_sym] = v } }

@@ -25,16 +25,16 @@ MULTICAST = 30159
 WATCHDOG  = 30153
 
 SETTINGS = Castoro::Gateway::Configuration.new({
-  "peer_multicast_addr" => "239.192.1.1",
-  "peer_multicast_device" => "eth0",
-  "gateway_console_port" => CONSOLE,
-  "gateway_unicast_port" => UNICAST,
-  "gateway_multicast_port" => MULTICAST,
-  "gateway_watchdog_port" => WATCHDOG,
+  "gateway_comm_ipaddr_multicast" => "239.192.1.1",
+  "gateway_comm_device_multicast" => "eth0",
+  "gateway_console_tcpport" => CONSOLE,
+  "gateway_comm_udpport" => UNICAST,
+  "gateway_learning_udpport_multicast" => MULTICAST,
+  "gateway_watchdog_udpport_multicast" => WATCHDOG,
   "gateway_watchdog_logging" => false,
   "type" => "original",
-  "master_multicast_addr" => "239.192.254.254",
-  "island_multicast_device" =>  "eth0",
+  "master_comm_ipaddr_multicast" => "239.192.254.254",
+  "island_comm_device_multicast" =>  "eth0",
 })
 
 describe Castoro::Gateway::Facade do

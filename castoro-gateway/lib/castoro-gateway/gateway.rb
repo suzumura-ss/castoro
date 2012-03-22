@@ -94,9 +94,9 @@ module Castoro
                          @config["workers"],
                          @facade,
                          @repository,
-                         @config["peer_multicast_addr"].to_s,
-                         Castoro::Utils.network_interfaces[@config["peer_multicast_device"]][:ip],
-                         @config["peer_multicast_port"].to_i,
+                         @config["peer_comm_ipaddr_multicast"].to_s,
+                         Castoro::Utils.network_interfaces[@config["peer_comm_device_multicast"]][:ip],
+                         @config["peer_comm_udpport_multicast"].to_i,
                          nil
                      )
                    when "master"
@@ -104,20 +104,20 @@ module Castoro
                          @logger,
                          @config["workers"],
                          @facade,
-                         Castoro::Utils.network_interfaces[@config["island_multicast_device"]][:broadcast],
-                         Castoro::Utils.network_interfaces[@config["island_multicast_device"]][:ip],
-                         @config["gateway_multicast_port"],
-                         @config["island_broadcast_port"]
+                         Castoro::Utils.network_interfaces[@config["island_comm_device_multicast"]][:broadcast],
+                         Castoro::Utils.network_interfaces[@config["island_comm_device_multicast"]][:ip],
+                         @config["gateway_learning_udpport_multicast"],
+                         @config["isladn_comm_udpport_broadcast"]
                      )
                    when "island"
                      @@workers_class.new(
                          @logger, @config["workers"],
                          @facade,
                          @repository,
-                         @config["peer_multicast_addr"].to_s,
-                         Castoro::Utils.network_interfaces[@config["peer_multicast_device"]][:ip],
-                         @config["peer_multicast_port"].to_i,
-                         @config["island_multicast_addr"].to_island
+                         @config["peer_comm_ipaddr_multicast"].to_s,
+                         Castoro::Utils.network_interfaces[@config["peer_comm_device_multicast"]][:ip],
+                         @config["peer_comm_udpport_multicast"].to_i,
+                         @config["island_comm_ipaddr_multicast"].to_island
                      )
                    else
                      raise CastoroError, "type needs to be original, master, or island."
@@ -126,16 +126,16 @@ module Castoro
 
         # start console server.
         @config.is_original_or_island_when {
-          @console = @@console_server_class.new @logger, @repository, @config["gateway_console_port"].to_i
+          @console = @@console_server_class.new @logger, @repository, @config["gateway_console_tcpport"].to_i
           @console.start
         }
 
         # start watchdog sender.
         @config.is_island_when {
-          @watchdog_sender = @@watchdog_sender_class.new @logger, @repository, @config["island_multicast_addr"],
-                                :dest_port => @config["gateway_multicast_port"],
-                                :dest_host => @config["master_multicast_addr"],
-                                :if_addr => Castoro::Utils.network_interfaces[@config["island_multicast_device"]][:ip]
+          @watchdog_sender = @@watchdog_sender_class.new @logger, @repository, @config["island_comm_ipaddr_multicast"],
+                                :dest_port => @config["gateway_learning_udpport_multicast"],
+                                :dest_host => @config["master_comm_ipaddr_multicast"],
+                                :if_addr => Castoro::Utils.network_interfaces[@config["island_comm_device_multicast"]][:ip]
           @watchdog_sender.start
         }
       }

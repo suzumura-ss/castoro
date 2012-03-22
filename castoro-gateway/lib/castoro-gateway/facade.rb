@@ -46,25 +46,25 @@ module Castoro
         @locker           = Monitor.new
         @recv_locker      = Monitor.new
 
-        @gup              = config["gateway_unicast_port"].to_i
-        @gmp              = config["gateway_multicast_port"].to_i
-        @gwp              = config["gateway_watchdog_port"].to_i
+        @gup              = config["gateway_comm_udpport"].to_i
+        @gmp              = config["gateway_learning_udpport_multicast"].to_i
+        @gwp              = config["gateway_watchdog_udpport_multicast"].to_i
         @watchdog_logging = config["gateway_watchdog_logging"]
-        config.is_island_when { @ibp = config["island_broadcast_port"].to_i }
+        config.is_island_when { @ibp = config["isladn_comm_udpport_broadcast"].to_i }
 
-        ifs                = Castoro::Utils.network_interfaces
-        peer_device_addr   = (ifs[config["peer_multicast_device"]] || {})[:ip]
-        island_device_addr = (ifs[config["island_multicast_device"]] || {})[:ip]
+        ifs                 = Castoro::Utils.network_interfaces
+        gateway_device_addr = (ifs[config["gateway_comm_device_multicast"]] || {})[:ip]
+        island_device_addr  = (ifs[config["island_comm_device_multicast"]] || {})[:ip]
 
         @mreqs = []
         config.is_original_or_island_when {
-          @mreqs << (IPAddr.new(config["peer_multicast_addr"]).hton + IPAddr.new(peer_device_addr).hton)
+          @mreqs << (IPAddr.new(config["gateway_comm_ipaddr_multicast"]).hton + IPAddr.new(gateway_device_addr).hton)
         }
         config.is_master_when {
-          @mreqs << (IPAddr.new(config["master_multicast_addr"]).hton + IPAddr.new(island_device_addr).hton)
+          @mreqs << (IPAddr.new(config["master_comm_ipaddr_multicast"]).hton + IPAddr.new(island_device_addr).hton)
         }
         config.is_island_when {
-          @mreqs << (IPAddr.new(config["island_multicast_addr"]).hton + IPAddr.new(island_device_addr).hton)
+          @mreqs << (IPAddr.new(config["island_comm_ipaddr_multicast"]).hton + IPAddr.new(island_device_addr).hton)
         }
       end
 

@@ -167,23 +167,25 @@ default:
   workers: 5
   loglevel: <%= Logger::INFO %>
   type: original
-  gateway_console_port: 30110
-  gateway_unicast_port: 30111
-  gateway_multicast_port: 30109
-  gateway_watchdog_port: 30113
+  gateway_console_tcpport: 30110
+  gateway_comm_udpport: 30111
+  gateway_learning_udpport_multicast: 30109
+  gateway_watchdog_udpport_multicast: 30113
   gateway_watchdog_logging: false
-  peer_multicast_addr: 239.192.1.1
-  peer_multicast_device: eth0
-  peer_multicast_port: 30112
+  gateway_comm_ipaddr_multicast: 239.192.1.1
+  gateway_comm_device_multicast: eth0
+  peer_comm_udpport_multicast: 30112
+  peer_comm_ipaddr_multicast: 239.192.1.1
+  peer_comm_device_multicast: eth0
   cache:
     class:
     replication_count: 3
     watchdog_limit: 15
     return_peer_number: 5
     cache_size: 500000
-    base_dir: /expdsk
+    basket_basedir: /expdsk
     options: {}
-    converter:
+    basket_keyconverter:
       Dec40Seq: 0-65535
       Hex64Seq: ""
 </pre>
@@ -220,22 +222,22 @@ h4. type
 
 "original", "master", "island" either.
 
-h4. gateway_console_port
+h4. gateway_console_tcpport
 
 TCP Port number for console.
 for original and island.
 
-h4. gateway_unicast_port
+h4. gateway_comm_udpport
 
 UDP Port number for unicast. (Client to Gateway)
 for original and master.
 
-h4. gateway_multicast_port
+h4. gateway_learning_udpport_multicast
 
 UDP Port number for multicast. (Peer to Gateway, and Island to Master)
 for original, master, and island.
 
-h4. gateway_watchdog_port
+h4. gateway_watchdog_udpport_multicast
 
 UDP Port number for watchdog. (Peer to Gateway)
 for original and island.
@@ -245,39 +247,49 @@ h4. gateway_watchdog_logging
 When true, watchdog packet logging.
 for original and island.
 
-h4. peer_multicast_addr
+h4. gateway_comm_ipaddr_multicast
 
-Address for multicast. (Gateway to Peer, and Peer to Gateway)
+Address for multicast. (Peer to Gateway)
 for original and island.
 
-h4. peer_multicast_device
+h4. gateway_comm_device_multicast
 
-Network interface name for peer_multicast_addr.
+Network interface name for gateway_comm_ipaddr_multicast.
 for original and island.
 
-h4. peer_multicast_port
+h4. peer_comm_udpport_multicast
 
 UDP Port number for multicast. (Gateway to Peer)
 for original and island.
 
-h4. master_multicast_addr
+h4. peer_comm_ipaddr_multicast
+
+Address for multicast. (Gateway to Peer)
+for original and island.
+
+h4. peer_comm_device_multicast
+
+Network interface name for peer_comm_ipaddr_multicast.
+for original and island.
+
+h4. master_comm_ipaddr_multicast
 
 Multicast address for master-gateway.
 for master and island.
 
-h4. island_broadcast_port
+h4. isladn_comm_udpport_broadcast
 
 Port number for island broadcast.
 for master and island.
 
-h4. island_multicast_addr
+h4. island_comm_ipaddr_multicast
 
 Multicast address for island.
 for island.
 
-h4. island_multicast_device
+h4. island_comm_device_multicast
 
-Network interface name for island_multicast_addr.
+Network interface name for island_comm_ipaddr_multicast.
 for master and island.
 
 h4. cache => class
@@ -300,7 +312,7 @@ h4. cache => cache_size
 
 Cache size. (Bytes)
 
-h4. cache => base_dir
+h4. cache => basket_basedir
 
 Basket stored base directory.
 
@@ -308,7 +320,7 @@ h4. cache => options
 
 Initialization arguments when creating a cache.
 
-h4. cache => converter
+h4. cache => basket_keyconverter
 
 Resolve configurations for Basket to Path.
 
@@ -322,25 +334,27 @@ h3. configurations key list
 |workers|Integer|required|required|required|5|
 |loglevel|Integer|required|required|required|1 (Logger::INFO)|
 |type|String|required|required|required|original|
-|gateway_console_port|Integer|required||required|30110|
-|gateway_unicast_port|Integer|required|required||30111|
-|gateway_multicast_port|Integer|required|required|required|30109|
-|gateway_watchdog_port|Integer|required||required|30113|
+|gateway_console_tcpport|Integer|required||required|30110|
+|gateway_comm_udpport|Integer|required|required||30111|
+|gateway_learning_udpport_multicast|Integer|required|required|required|30109|
+|gateway_watchdog_udpport_multicast|Integer|required||required|30113|
 |gateway_watchdog_logging|Boolean|required||required|false|
-|peer_multicast_addr|String|required||required|239.192.1.1|
-|peer_multicast_device|String|required||required|eth0|
-|peer_multicast_port|Integer|required||required|30112|
-|master_multicast_addr|String||required|required|239.192.254.254|
-|island_broadcast_port|Integer||required|required|30108|
-|island_multicast_addr|String|||required||
-|island_multicast_device|String||required|required|eth0|
+|gateway_comm_ipaddr_multicast|String|required||required|239.192.1.1|
+|gateway_comm_device_multicast|String|required||required|eth0|
+|peer_comm_udpport_multicast|Integer|required||required|30112|
+|peer_comm_ipaddr_multicast|String|required||required|239.192.1.1|
+|peer_comm_device_multicast|String|required||required|eth0|
+|master_comm_ipaddr_multicast|String||required|required|239.192.254.254|
+|isladn_comm_udpport_broadcast|Integer||required|required|30108|
+|island_comm_ipaddr_multicast|String|||required||
+|island_comm_device_multicast|String||required|required|eth0|
 |cache / class|String|required||required||
 |cache / replication_count|Integer|required||required|3|
 |cache / watchdog_limit|Integer|required||required|15|
 |cache / return_peer_number|Integer|required||required|5|
 |cache / cache_size|Integer|required||required|500000|
-|cache / base_dir|String|required||required|/expdsk|
+|cache / basket_basedir|String|required||required|/expdsk|
 |cache / options|Hash|required||required|{}|
-|cache / converter / Dec40Seq|Hash|required||required|"Dec40Seq"=>"0-65535"|
-|cache / converter / Hex64Seq|Hash|required||required|"Hex64Seq"=>""|
+|cache / basket_keyconverter / Dec40Seq|Hash|required||required|"Dec40Seq"=>"0-65535"|
+|cache / basket_keyconverter / Hex64Seq|Hash|required||required|"Hex64Seq"=>""|
 

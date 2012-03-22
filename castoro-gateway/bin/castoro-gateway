@@ -49,15 +49,15 @@ COMMAND_OPTIONS = {
   },
   :status => {
     :verbose => false,
-    :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_port"].to_i,
+    :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_tcpport"].to_i,
   },
   :dump => {
     :verbose => false,
-    :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_port"].to_i,
+    :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_tcpport"].to_i,
   },
   :purge => {
     :verbose => false,
-    :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_port"].to_i,
+    :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_tcpport"].to_i,
   }
 }
 
