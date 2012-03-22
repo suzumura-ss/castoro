@@ -43,7 +43,7 @@ module Castoro
 
         [*config["require"]].each { |r| require r } if config["require"]
 
-        group = config["group"] || Gateway::Configuration.new()["group"]
+        group = config["group"] || Gateway::Configuration::COMMON_SETTINGS["group"]
         if group
           gid = begin
                   group.kind_of?(Integer) ? Etc.getgrgid(group.to_i).gid : Etc.getgrnam(group.to_s).gid
@@ -53,7 +53,7 @@ module Castoro
           Process::Sys.setegid(gid)
         end
   
-        user = config["user"] || Gateway::Configuration.new()["user"]
+        user = config["user"] || Gateway::Configuration::COMMON_SETTINGS["user"]
         
         uid = begin
                 user.kind_of?(Integer) ? Etc.getpwuid(user.to_i).uid : Etc.getpwnam(user.to_s).uid 
@@ -72,7 +72,7 @@ module Castoro
           logger = if config["logger"]
                      eval(config["logger"].to_s).call(options[:log])
                    else
-                     eval(Gateway::Configuration.new()["logger"]).call(options[:log])
+                     eval(Gateway::Configuration::COMMON_SETTINGS["logger"]).call(options[:log])
                    end
   
           # daemonize and create pidfile.
