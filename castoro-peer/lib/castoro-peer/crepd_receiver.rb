@@ -37,7 +37,7 @@ module Castoro
     
     class ReplicationReceiveServer < PreThreadedTcpServer
       def initialize
-        port = Configurations.instance.ReplicationTCPCommunicationPort
+        port = Configurations.instance.crepd_transmission_tcpport
         host = '0.0.0.0'
         maxConnections = 20
         super( port, host, maxConnections )
@@ -198,7 +198,7 @@ module Castoro
 
       def do_data
         sent = @args[ 'size' ]
-        unit_size = @config.ReplicationTransmissionDataUnitSize
+        unit_size = @config.crepd_transmission_data_unit_size
 
         rest = sent
         while ( 0 < rest )
@@ -255,9 +255,9 @@ module Castoro
 
       def send_multicast_packet( command, path )
         channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
-        host = @config.HostnameForClient
+        host = @config.hostname_for_client
         ip   = @config.MulticastAddress
-        port = @config.GatewayUDPCommandPort
+        port = @config.gateway_learning_udpport_multicast
         args = { 'basket' => @basket.to_s, 'host' => host, 'path' => path }
         channel.send( command, args, ip, port )
       end

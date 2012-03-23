@@ -158,22 +158,22 @@ module Castoro
 
       def initialize
         c = Configurations.instance
-        Basket.setup c.TypeIdRangesHash, c.BasketBaseDir
+        Basket.setup c.type_id_rangesHash, c.basket_basedir
         @w = []
-        @w << UdpCommandReceiver.new( UDPCommandReceiverPL.instance, c.PeerUDPCommandPort )
-        @w << TcpCommandAcceptor.new( TcpAcceptorPL.instance, c.PeerTCPCommandPort )
+        @w << UdpCommandReceiver.new( UDPCommandReceiverPL.instance, c.peer_comm_udpport_multicast )
+        @w << TcpCommandAcceptor.new( TcpAcceptorPL.instance, c.peer_comm_tcpport )
         5.times { @w << TcpCommandReceiver.new( TcpAcceptorPL.instance, TCPCommandReceiverPL.instance ) }
-        c.NumberOfUDPCommandProcessor.times   { @w << CommandProcessor.new( UDPCommandReceiverPL.instance ) }
-        c.NumberOfTCPCommandProcessor.times   { @w << CommandProcessor.new( TCPCommandReceiverPL.instance ) }
-        c.NumberOfBasketStatusQueryDB.times { @w << BasketStatusQueryDB.new() }
-        c.NumberOfCsmController.times      { @w << CsmController.new() }
-        c.NumberOfUdpResponseSender.times  { @w << UdpResponseSender.new( UdpResponseSenderPL.instance ) }
-        c.NumberOfTcpResponseSender.times  { @w << TcpResponseSender.new( TcpResponseSenderPL.instance ) }
-        c.NumberOfMulticastCommandSender.times { @w << MulticastCommandSender.new( c.MulticastAddress, c.GatewayUDPCommandPort ) }
-        c.NumberOfReplicationDBClient.times  { @w << ReplicationDBClient.new() }
+        c.cpeerd_number_of_udp_command_processor.times   { @w << CommandProcessor.new( UDPCommandReceiverPL.instance ) }
+        c.cpeerd_number_of_tcp_command_processor.times   { @w << CommandProcessor.new( TCPCommandReceiverPL.instance ) }
+        c.cpeerd_number_of_basket_status_query_db.times { @w << BasketStatusQueryDB.new() }
+        c.cpeerd_number_of_csm_controller.times      { @w << CsmController.new() }
+        c.cpeerd_number_of_udp_response_sender.times  { @w << UdpResponseSender.new( UdpResponseSenderPL.instance ) }
+        c.cpeerd_number_of_tcp_response_sender.times  { @w << TcpResponseSender.new( TcpResponseSenderPL.instance ) }
+        c.cpeerd_number_of_multicast_command_sender.times { @w << MulticastCommandSender.new( c.MulticastAddress, c.gateway_learning_udpport_multicast ) }
+        c.cpeerd_number_of_replication_db_client.times  { @w << ReplicationDBClient.new() }
         @w << StatisticsLogger.new()
-        @m = CpeerdTcpMaintenaceServer.new( c.CpeerdMaintenancePort )
-        @h = TCPHealthCheckPatientServer.new( c.CpeerdHealthCheckPort )
+        @m = CpeerdTcpMaintenaceServer.new( c.cpeerd_maintenance_tcpport )
+        @h = TCPHealthCheckPatientServer.new( c.cpeerd_healthcheck_tcpport )
       end
 
       def start_workers
@@ -325,7 +325,7 @@ module Castoro
         def initialize( pipeline )
           @pipeline = pipeline
           super
-          @hostname = Configurations.instance.HostnameForClient
+          @hostname = Configurations.instance.hostname_for_client
         end
 
         def serve
@@ -608,7 +608,7 @@ module Castoro
           ReplicationQueueDirectories.instance
           super
           @ip = '127.0.0.1'
-          @port = Configurations.instance.ReplicationUDPCommandPort
+          @port = Configurations.instance.crepd_registration_udpport
           @channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
         end
 
@@ -633,7 +633,7 @@ module Castoro
       class CpeerdTcpMaintenaceServer < TcpMaintenaceServer
         def initialize( port )
           super
-          @hostname = Configurations.instance.HostnameForClient
+          @hostname = Configurations.instance.hostname_for_client
         end
 
         def do_help
@@ -697,7 +697,7 @@ module Castoro
       class StatisticsLogger < Worker
         def initialize
           super
-          @period = Configurations.instance.PeriodOfStatisticsLogger
+          @period = Configurations.instance.cpeerd_period_of_statistics_logger
         end
 
         def serve

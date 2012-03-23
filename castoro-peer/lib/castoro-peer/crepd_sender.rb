@@ -38,7 +38,7 @@ module Castoro
         @entry, @host = entry, host
         @basket = @entry.basket
         @config = Configurations.instance
-        @port = @config.ReplicationTCPCommunicationPort
+        @port = @config.crepd_transmission_tcpport
         @connection = nil
       end
 
@@ -128,7 +128,7 @@ module Castoro
       end
 
       def transmit_data( path, size )
-        unit_size = @config.ReplicationTransmissionDataUnitSize
+        unit_size = @config.crepd_transmission_data_unit_size
 
         File.open( path, 'r' ) do |src|
           @connection.send( 'DATA', { :size => size } )

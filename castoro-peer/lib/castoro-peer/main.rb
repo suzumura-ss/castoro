@@ -60,8 +60,8 @@ module Castoro
         Configurations.instance
 
         if ( Process.euid == 0 )
-          # Todo: notifies with an understandable error message if EffectiveUser is not set
-          pwnam = Etc.getpwnam( Configurations.instance.EffectiveUser )
+          # Todo: notifies with an understandable error message if effective_user is not set
+          pwnam = Etc.getpwnam( Configurations.instance.effective_user )
           Process.egid = pwnam.gid
           Process.euid = pwnam.uid
         end

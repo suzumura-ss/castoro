@@ -39,14 +39,14 @@ module Castoro
     class ReplicationWorkers
       def initialize
         c = Configurations.instance
-        Basket.setup c.TypeIdRangesHash, c.BasketBaseDir
+        Basket.setup c.type_id_rangesHash, c.basket_basedir
         @w = []
-        @w << ReplicationInternalCommandReceiver.new( c.ReplicationUDPCommandPort )
+        @w << ReplicationInternalCommandReceiver.new( c.crepd_registration_udpport )
         @w << ReplicationQueueDirectoriesMonitor.new
         @w << ReplicationReceiveServer.new
-        c.NumberOfReplicationSender.times { @w << ReplicationSenderManager.new }
-        @m = CrepdTcpMaintenaceServer.new( c.CrepdMaintenancePort )
-        @h = TCPHealthCheckPatientServer.new( c.CrepdHealthCheckPort )
+        c.crepd_number_of_replication_sender.times { @w << ReplicationSenderManager.new }
+        @m = CrepdTcpMaintenaceServer.new( c.crepd_maintenance_tcpport )
+        @h = TCPHealthCheckPatientServer.new( c.crepd_healthcheck_tcpport )
       end
 
       def start_workers

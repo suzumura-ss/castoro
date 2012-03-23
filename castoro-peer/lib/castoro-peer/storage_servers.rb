@@ -30,7 +30,7 @@ module Castoro
 
       def initialize
         c = Configurations.instance
-        hostname = c.HostnameForClient
+        hostname = c.hostname_for_client
         storages = c.StorageHostsData
         groups = c.StorageGroupsData
         g = groups.select { |a| a.include? hostname }
