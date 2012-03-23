@@ -20,7 +20,7 @@
 #
 
 config=/etc/castoro/peer.conf
-port=`/bin/awk '/^CmondMaintenancePort/ {print $2}' $config`
+port=`/bin/awk '/^cmond_maintenance_tcpport/ {print $2}' $config`
 script=cmond
 
 export PATH=/usr/bin:/usr/sbin:/sbin:/usr/local/bin

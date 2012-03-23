@@ -20,7 +20,7 @@
 #
 
 config=/etc/castoro/peer.conf
-port=`/bin/awk '/^CrepdMaintenancePort/ {print $2}' $config`
+port=`/bin/awk '/^crepd_maintenance_tcpport/ {print $2}' $config`
 script=crepd
 
 export PATH=/usr/bin:/usr/sbin:/sbin:/usr/local/bin

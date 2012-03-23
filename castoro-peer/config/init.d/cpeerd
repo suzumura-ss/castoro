@@ -20,7 +20,7 @@
 #
 
 config=/etc/castoro/peer.conf
-port=`/bin/awk '/^CpeerdMaintenancePort/ {print $2}' $config`
+port=`/bin/awk '/^cpeerd_maintenance_tcpport/ {print $2}' $config`
 script=cpeerd
 
 export PATH=/usr/bin:/usr/sbin:/sbin:/usr/local/bin
