@@ -81,7 +81,7 @@ module Castoro
         c = Configurations.instance
         @w = []
         @s = StorageSpaceMonitor.new( c.basket_basedir )
-        @a = AlivePacketSender.new( c.MulticastAddress, c.gateway_watchdog_udpport_multicast, @s )
+        @a = AlivePacketSender.new( c.gateway_comm_ipaddr_multicast, c.gateway_watchdog_udpport_multicast, @s )
         @p = CxxxdCommnicationWorker.new( '127.0.0.1', c.cpeerd_healthcheck_tcpport )
         @r = CxxxdCommnicationWorker.new( '127.0.0.1', c.crepd_healthcheck_tcpport )
         @colleague_hosts = StorageServers.instance.colleague_hosts

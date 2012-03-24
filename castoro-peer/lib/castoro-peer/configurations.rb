@@ -218,52 +218,55 @@ module Castoro
       class GlobalSection < Section
         def initialize
           super(
-                :hostname_for_client                    => [ :optional,  :string ],
-                :MulticastAddress                     => [ :optional,  :string ],
-                :MulticastNetwork                     => [ :optional,  :string ],
-                :MulticastIf                          => [ :optional,  :string ],
-                :gateway_learning_udpport_multicast                => [ :mandatory, :number ],
-                :peer_comm_tcpport                   => [ :mandatory, :number ],
-                :peer_comm_udpport_multicast                   => [ :mandatory, :number ],
-                :gateway_watchdog_udpport_multicast               => [ :mandatory, :number ],
-                :crepd_transmission_tcpport      => [ :mandatory, :number ],
-                :crepd_registration_udpport            => [ :mandatory, :number ],
-                :cmond_maintenance_tcpport                 => [ :mandatory, :number ],
-                :cpeerd_maintenance_tcpport                => [ :mandatory, :number ],
-                :crepd_maintenance_tcpport                 => [ :mandatory, :number ],
-                :cmond_healthcheck_tcpport                 => [ :mandatory, :number ],
-                :cpeerd_healthcheck_tcpport                => [ :mandatory, :number ],
-                :crepd_healthcheck_tcpport                 => [ :mandatory, :number ],
-                :cpeerd_number_of_udp_command_processor          => [ :mandatory, :number ],
-                :cpeerd_number_of_tcp_command_processor          => [ :mandatory, :number ],
-                :cpeerd_number_of_basket_status_query_db          => [ :mandatory, :number ],
-                :cpeerd_number_of_csm_controller                => [ :mandatory, :number ],
-                :cpeerd_number_of_udp_response_sender            => [ :mandatory, :number ],
-                :cpeerd_number_of_tcp_response_sender            => [ :mandatory, :number ],
-                :cpeerd_number_of_multicast_command_sender       => [ :mandatory, :number ],
-                :cpeerd_number_of_replication_db_client          => [ :mandatory, :number ],
+                :hostname_for_client                        => [ :optional,  :string ],
+                :gateway_comm_ipaddr_multicast              => [ :optional,  :string ],
+                :gateway_comm_ipaddr_network                => [ :optional,  :string ],
+                :gateway_comm_ipaddr_nic                    => [ :optional,  :string ],
+                :peer_comm_ipaddr_multicast                 => [ :optional,  :string ],
+                :peer_comm_ipaddr_network                   => [ :optional,  :string ],
+                :peer_comm_ipaddr_nic                       => [ :optional,  :string ],
+                :gateway_learning_udpport_multicast         => [ :mandatory, :number ],
+                :peer_comm_tcpport                          => [ :mandatory, :number ],
+                :peer_comm_udpport_multicast                => [ :mandatory, :number ],
+                :gateway_watchdog_udpport_multicast         => [ :mandatory, :number ],
+                :crepd_transmission_tcpport                 => [ :mandatory, :number ],
+                :crepd_registration_udpport                 => [ :mandatory, :number ],
+                :cmond_maintenance_tcpport                  => [ :mandatory, :number ],
+                :cpeerd_maintenance_tcpport                 => [ :mandatory, :number ],
+                :crepd_maintenance_tcpport                  => [ :mandatory, :number ],
+                :cmond_healthcheck_tcpport                  => [ :mandatory, :number ],
+                :cpeerd_healthcheck_tcpport                 => [ :mandatory, :number ],
+                :crepd_healthcheck_tcpport                  => [ :mandatory, :number ],
+                :cpeerd_number_of_udp_command_processor     => [ :mandatory, :number ],
+                :cpeerd_number_of_tcp_command_processor     => [ :mandatory, :number ],
+                :cpeerd_number_of_basket_status_query_db    => [ :mandatory, :number ],
+                :cpeerd_number_of_csm_controller            => [ :mandatory, :number ],
+                :cpeerd_number_of_udp_response_sender       => [ :mandatory, :number ],
+                :cpeerd_number_of_tcp_response_sender       => [ :mandatory, :number ],
+                :cpeerd_number_of_multicast_command_sender  => [ :mandatory, :number ],
+                :cpeerd_number_of_replication_db_client     => [ :mandatory, :number ],
                 :cmond_period_of_watchdog_sender            => [ :mandatory, :number ],
-                :cpeerd_period_of_statistics_logger             => [ :mandatory, :number ],
-                :config_group_file                    => [ :mandatory, :string, :path ],
-                :config_host_file                     => [ :mandatory, :string, :path ],
-                :effective_user                        => [ :mandatory, :string ],
-                :crepd_transmission_data_unit_size  => [ :mandatory, :number ],
-                :crepd_number_of_replication_sender            => [ :mandatory, :number ],
-                :manipulator_in_use                 => [ :mandatory, :boolean ],
-                :manipulator_socket                    => [ :optional,  :string, :path ],
-                :basket_basedir                        => [ :mandatory, :string, :path ],
-                :dir_w_user                           => [ :mandatory, :string ],
-                :dir_w_group                          => [ :mandatory, :string ],
-                :dir_w_perm                           => [ :mandatory, :octal  ],
-                :dir_a_user                           => [ :mandatory, :string ],
-                :dir_a_group                          => [ :mandatory, :string ],
-                :dir_a_perm                           => [ :mandatory, :octal  ],
-                :dir_d_user                           => [ :mandatory, :string ],
-                :dir_d_group                          => [ :mandatory, :string ],
-                :dir_d_perm                           => [ :mandatory, :octal  ],
-                :dir_c_user                           => [ :mandatory, :string ],
-                :dir_c_group                          => [ :mandatory, :string ],
-                :dir_c_perm                           => [ :mandatory, :octal  ],
+                :cpeerd_period_of_statistics_logger         => [ :mandatory, :number ],
+                :config_group_file                          => [ :mandatory, :string, :path ],
+                :config_host_file                           => [ :mandatory, :string, :path ],
+                :effective_user                             => [ :mandatory, :string ],
+                :crepd_transmission_data_unit_size          => [ :mandatory, :number ],
+                :crepd_number_of_replication_sender         => [ :mandatory, :number ],
+                :manipulator_in_use                         => [ :mandatory, :boolean ],
+                :manipulator_socket                         => [ :optional,  :string, :path ],
+                :basket_basedir                             => [ :mandatory, :string, :path ],
+                :dir_w_user                                 => [ :mandatory, :string ],
+                :dir_w_group                                => [ :mandatory, :string ],
+                :dir_w_perm                                 => [ :mandatory, :octal  ],
+                :dir_a_user                                 => [ :mandatory, :string ],
+                :dir_a_group                                => [ :mandatory, :string ],
+                :dir_a_perm                                 => [ :mandatory, :octal  ],
+                :dir_d_user                                 => [ :mandatory, :string ],
+                :dir_d_group                                => [ :mandatory, :string ],
+                :dir_d_perm                                 => [ :mandatory, :octal  ],
+                :dir_c_user                                 => [ :mandatory, :string ],
+                :dir_c_group                                => [ :mandatory, :string ],
+                :dir_c_perm                                 => [ :mandatory, :octal  ],
                 )
         end
 
@@ -271,7 +274,8 @@ module Castoro
           super
           validate_hostname
           validate_manipulator
-          validate_network
+          validate_network :gateway_comm_ipaddr_nic, :gateway_comm_ipaddr_network
+          validate_network :peer_comm_ipaddr_nic,    :peer_comm_ipaddr_network
         end
 
         private
@@ -288,11 +292,11 @@ module Castoro
           end
         end
 
-        def validate_network
-          ip  = @data[ :MulticastIf ]
-          net = @data[ :MulticastNetwork ]
+        def validate_network nic, network
+          ip  = @data[ nic ]
+          net = @data[ network ]
           if ip
-            raise ConfigurationError, "Both MulticastIf and MulticastNetwork are specified" if net
+            raise ConfigurationError, "Both #{nic} and #{network} are specified" if net
           else
             if net
               ip = Ifconfig.instance.multicast_interface_by_network_address( net )
@@ -301,7 +305,7 @@ module Castoro
             end
           end
           Ifconfig.instance.has_interface?( ip ) or raise ConfigurationError, "This host does not have the IP address: #{ip}"
-          @data[ :MulticastIf ] = ip
+          @data[ nic ] = ip
         end
       end
 
@@ -309,9 +313,9 @@ module Castoro
       class ServiceSection < Section
         def initialize
           super(
-                :service_name                          => [ :mandatory, :string ],
-                :type_id_ranges                         => [ :mandatory, :string ],
-                :basket_keyconverter         => [ :mandatory, :string ],
+                :service_name                               => [ :mandatory, :string ],
+                :type_id_ranges                             => [ :mandatory, :string ],
+                :basket_keyconverter                        => [ :mandatory, :string ],
                 )
         end
       end
@@ -324,24 +328,23 @@ if $0 == __FILE__
   module Castoro
     module Peer
       f = '../../config/etc/peer.conf-sample-en.conf'
-      f = 'peer.conf'
       Configurations.file = f
 
       x = Configurations.instance
-      p x.MulticastIf
+      p x.gateway_comm_ipaddr_nic
       p x.type_id_rangesHash
 
       x.load()
-      p x.MulticastIf
+      p x.gateway_comm_ipaddr_nic
       x.load( f )
-      p x.MulticastIf
+      p x.gateway_comm_ipaddr_nic
       x.reload
-      p x.MulticastIf
+      p x.gateway_comm_ipaddr_nic
     end
   end
 end
 
 __END__
 
-time ruby -I ..  -e "require 'configurations'; 1000000.times{ x=Castoro::Peer::Configurations.instance.MulticastIf }"
-time ruby -I ..  -e "require 'configurations'; c=Castoro::Peer::Configurations.instance; 1000000.times{ x=c.MulticastIf }"
+time ruby -I ..  -e "require 'configurations'; 1000000.times{ x=Castoro::Peer::Configurations.instance.gateway_comm_ipaddr_nic }"
+time ruby -I ..  -e "require 'configurations'; c=Castoro::Peer::Configurations.instance; 1000000.times{ x=c.gateway_comm_ipaddr_nic }"
