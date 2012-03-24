@@ -27,11 +27,13 @@ module Castoro
 
     PROTOCOL_VERSION = '1.1'
 
-    class ServerChannel
+    class Channel
       def initialize
         @command = nil
       end
+    end
 
+    class ServerChannel < Channel
       def parse( body )
         a = JSON.parse( body )
         version, direction, command, args = a
@@ -159,11 +161,7 @@ module Castoro
     end
 
 
-    class ClientChannel
-      def initialize
-        @command = nil
-      end
-
+    class ClientChannel < Channel
       def send( socket, command, args )
         @command = command
         [ PROTOCOL_VERSION, 'C', @command, args ].to_json
