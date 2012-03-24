@@ -34,7 +34,8 @@ describe Castoro::Peer::UdpServerChannel do
   end
 
   before do
-    @channel = Castoro::Peer::UdpServerChannel.new
+    @socket = Castoro::Peer::ExtendedUDPSocket.new
+    @channel = Castoro::Peer::UdpServerChannel.new @socket
   end
 
   context 'when initialize' do
@@ -229,6 +230,7 @@ describe Castoro::Peer::UdpServerChannel do
       @socket = mock(Castoro::Peer::ExtendedUDPSocket)
       @socket.stub!(:getpeername)
       @socket.stub!(:sending)
+      @channel = Castoro::Peer::UdpServerChannel.new @socket
       Socket.stub!(:unpack_sockaddr_in).and_return("30150", "192.168.0.1")
       Castoro::Peer::ExtendedUDPSocket.stub!(:new).and_return(@socket)
     end
@@ -238,7 +240,7 @@ describe Castoro::Peer::UdpServerChannel do
         it 'should raise InternalServerError.' do
           pending "this case should be checked and rescued."
           Proc.new{
-            @channel.send("socket", {"bar" => "100"})
+            @channel.send({"bar" => "100"})
           }.should raise_error(Castoro::Peer::InternalServerError)
         end
       end
@@ -247,7 +249,7 @@ describe Castoro::Peer::UdpServerChannel do
         it 'should raise InternalServerError.' do
           pending "this case should be checked and rescued."
           Proc.new{
-            @channel.send(@socket, {"bar" => "100"}, "ticket")
+            @channel.send({"bar" => "100"}, "ticket")
           }.should raise_error(Castoro::Peer::InternalServerError)
         end
       end
@@ -255,28 +257,28 @@ describe Castoro::Peer::UdpServerChannel do
       context '(socket, {"bar" => "100"})' do
         it 'should call Castoro::Peer::ExtendedUDPSocket#sending.' do
           @socket.should_receive(:sending).with("\r\n#{["1.1","R",nil,{"bar"=>"100"}].to_json}\r\n",nil,nil,nil)
-          @channel.send(@socket,{"bar" => "100"})
+          @channel.send({"bar" => "100"})
         end
       end
 
       context '(socket, {"bar" => "100"}, ticket)' do
         it 'should call Castoro::Peer::ExtendedUDPSocket#sending.' do
           @socket.should_receive(:sending).with("\r\n#{["1.1","R",nil,{"bar"=>"100"}].to_json}\r\n",nil,nil,an_instance_of(Castoro::Peer::Ticket))
-          @channel.send(@socket,{"bar" => "100"},@ticket)
+          @channel.send({"bar" => "100"},@ticket)
         end
       end
 
       context '(socket, error)' do
         it 'should call Castoro::Peer::ExtendedUDPSocket#sending.' do
           @socket.should_receive(:sending).with("\r\n#{["1.1","R",nil,{"error"=>{"code"=>"RuntimeError","message"=>"exception message"}}].to_json}\r\n",nil,nil,nil)
-          @channel.send(@socket,@error)
+          @channel.send(@error)
         end
       end
 
       context '(socket, error, ticket)' do
         it 'should call Castoro::Peer::ExtendedUDPSocket#sending.' do
           @socket.should_receive(:sending).with("\r\n#{["1.1","R",nil,{"error"=>{"code"=>"RuntimeError","message"=>"exception message"}}].to_json}\r\n",nil,nil,an_instance_of(Castoro::Peer::Ticket))
-          @channel.send(@socket,@error,@ticket)
+          @channel.send(@error,@ticket)
         end
       end
     end
@@ -294,6 +296,7 @@ describe Castoro::Peer::UdpServerChannel do
       @socket = mock(Castoro::Peer::ExtendedUDPSocket)
       @socket.stub!(:getpeername)
       @socket.stub!(:sending)
+      @channel = Castoro::Peer::UdpServerChannel.new @socket
       Socket.stub!(:unpack_sockaddr_in).and_return("30150", "192.168.0.1")
       Castoro::Peer::ExtendedUDPSocket.stub!(:new).and_return(@socket)
       @channel.instance_variable_set(:@data, UDP_HEADER1 + REQUEST1)
@@ -302,25 +305,25 @@ describe Castoro::Peer::UdpServerChannel do
     it 'instance valiables should be setted and used in send.' do
       @channel.parse
       @socket.should_receive(:sending).with("#{UDP_HEADER1}#{["1.1","R","FINALIZE",{"bar"=>"100"}].to_json}\r\n", "192.168.0.1", 30150, nil)
-      @channel.send(@socket,{"bar" => "100"})
+      @channel.send({"bar" => "100"})
     end
 
     it 'instance valiables should be setted and used in send.' do
       @channel.parse
       @socket.should_receive(:sending).with("#{UDP_HEADER1}#{["1.1","R","FINALIZE",{"bar"=>"100"}].to_json}\r\n", "192.168.0.1", 30150, an_instance_of(Castoro::Peer::Ticket))
-      @channel.send(@socket, {"bar" => "100"}, @ticket)
+      @channel.send({"bar" => "100"}, @ticket)
     end
 
     it 'instance valiables should be setted and used in send.' do
       @channel.parse
       @socket.should_receive(:sending).with("#{UDP_HEADER1}#{["1.1","R","FINALIZE",{"error"=>{"code"=>"RuntimeError","message"=>"exception message"}}].to_json}\r\n", "192.168.0.1", 30150, nil) 
-      @channel.send(@socket,@error)
+      @channel.send(@error)
     end
 
     it 'instance valiables should be setted and used in send.' do
       @channel.parse
       @socket.should_receive(:sending).with("#{UDP_HEADER1}#{["1.1","R","FINALIZE",{"error"=>{"code"=>"RuntimeError","message"=>"exception message"}}].to_json}\r\n", "192.168.0.1", 30150, an_instance_of(Castoro::Peer::Ticket))
-      @channel.send(@socket,@error,@ticket)
+      @channel.send(@error,@ticket)
     end
 
     after do

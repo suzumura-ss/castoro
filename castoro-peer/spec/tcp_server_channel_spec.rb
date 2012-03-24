@@ -1,6 +1,7 @@
 require File.dirname(__FILE__) + '/spec_helper.rb'
 
 require 'castoro-peer/channel'
+require 'castoro-peer/extended_tcp_socket'
 require 'castoro-peer/extended_udp_socket'
 
 INVALID_REQUEST1  = '["1.1", "D", "CREATE", {"foo":"bar"}]'            + "\r\n"
@@ -23,17 +24,17 @@ describe Castoro::Peer::TcpServerChannel do
   end
 
   before do
-    @channel = Castoro::Peer::TcpServerChannel.new
+    @socket = Castoro::Peer::ExtendedTCPSocket.new
+    @channel = Castoro::Peer::TcpServerChannel.new @socket
   end
 
   context 'when initialize' do
     it 'instance variables should be nil.' do
       @channel.instance_variable_get(:@command).should be_nil
-      @channel.get_peeraddr.should == [nil, nil]
     end
 
     it 'shoud have methods of Castoro::Peer::TcpServerChannel.' do
-      @channel.should respond_to(:parse, :send, :receive, :get_peeraddr, :closed?, :tcp?)
+      @channel.should respond_to(:parse, :send, :receive, :closed?, :tcp?)
     end
 
     it '#parse should raise Error.' do
@@ -167,6 +168,9 @@ describe Castoro::Peer::TcpServerChannel do
     end
   end
 
+#  require 'tracer'
+#  Tracer.on
+
   context "when #send" do
     before do
       @ticket = Castoro::Peer::Ticket.new
@@ -176,6 +180,7 @@ describe Castoro::Peer::TcpServerChannel do
       @socket.stub!(:syswrite)
       Socket.stub!(:unpack_sockaddr_in).and_return("30150", "192.168.0.1")
       Castoro::Peer::ExtendedUDPSocket.stub!(:new).and_return(@socket)
+      @channel = Castoro::Peer::TcpServerChannel.new @socket
     end
 
     context 'with' do
@@ -192,7 +197,7 @@ describe Castoro::Peer::TcpServerChannel do
         it 'should raise_error.' do
           pending 'do not need to check to be correct ticket.'
           Proc.new{
-            @channel.send(@socket, "hoge")
+            @channel.send("hoge")
           }.should raise_error(BadRequestError)
         end
       end
@@ -200,35 +205,35 @@ describe Castoro::Peer::TcpServerChannel do
       context '(socket, {"bar" => "100"})' do
         it 'should be called Castoro::Peer::ExtendedUDPSocket#syswrite.' do
           @socket.should_receive(:syswrite).with("#{["1.1","R",nil,{"bar"=>"100"}].to_json}\r\n")
-          @channel.send(@socket,{"bar" => "100"})
+          @channel.send({"bar" => "100"})
         end
       end
 
       context '(socket, {"bar" => "100"}, ticket)' do
         it 'should be called Castoro::Peer::ExtendedUDPSocket#syswrite.' do
           @socket.should_receive(:syswrite).with("#{["1.1","R",nil,{"bar"=>"100"}].to_json}\r\n")
-          @channel.send(@socket,{"bar" => "100"},@ticket)
+          @channel.send({"bar" => "100"},@ticket)
         end
       end
 
       context '(socket, error)' do
         it 'should be called Castoro::Peer::ExtendedUDPSocket#syswrite.' do
           @socket.should_receive(:syswrite).with("#{["1.1","R",nil,{"error"=>{"code"=>"RuntimeError","message"=>"exception message"}}].to_json}\r\n")
-          @channel.send(@socket,@error)
+          @channel.send(@error)
         end
       end
 
       context '(socket, error, ticket)' do
         it 'should be called Castoro::Peer::ExtendedUDPSocket#syswrite.' do
           @socket.should_receive(:syswrite).with("#{["1.1","R",nil,{"error"=>{"code"=>"RuntimeError","message"=>"exception message"}}].to_json}\r\n")
-          @channel.send(@socket,@error,@ticket)
+          @channel.send(@error,@ticket)
         end
       end
     end
 
     it 'no memory leak.' do
       scket = Castoro::Peer::ExtendedUDPSocket.new
-      10000.times{@channel.send(@socket, {})}
+      10000.times{@channel.send({})}
     end
 
     after do
@@ -246,6 +251,7 @@ describe Castoro::Peer::TcpServerChannel do
       @socket.stub!(:syswrite)
       Socket.stub!(:unpack_sockaddr_in).and_return("30150", "192.168.0.1")
       Castoro::Peer::ExtendedUDPSocket.stub!(:new).and_return(@socket)
+      @channel = Castoro::Peer::TcpServerChannel.new @socket
       @channel.instance_variable_set(:@data, REQUEST1)
     end
 
@@ -253,28 +259,28 @@ describe Castoro::Peer::TcpServerChannel do
       @channel.parse
       @ticket.should_receive(:mark).exactly(0)
       @socket.should_receive(:syswrite).with("#{["1.1","R","FINALIZE",{"bar"=>"100"}].to_json}\r\n")
-      @channel.send(@socket,{"bar" => "100"})
+      @channel.send({"bar" => "100"})
     end
 
     it 'should be called Castoro::Peer::ExtendedUDPSocket#syswrite.' do
       @channel.parse
       @ticket.should_receive(:mark).exactly(2)
       @socket.should_receive(:syswrite).with("#{["1.1","R","FINALIZE",{"bar"=>"100"}].to_json}\r\n")
-      @channel.send(@socket, {"bar" => "100"}, @ticket)
+      @channel.send({"bar" => "100"}, @ticket)
     end
 
     it 'should be called Castoro::Peer::ExtendedUDPSocket#syswrite.' do
       @channel.parse
       @ticket.should_receive(:mark).exactly(0)
       @socket.should_receive(:syswrite).with("#{["1.1","R","FINALIZE",{"error"=>{"code"=>"RuntimeError","message"=>"exception message"}}].to_json}\r\n")
-      @channel.send(@socket,@error)
+      @channel.send(@error)
     end
 
     it 'should be called Castoro::Peer::ExtendedUDPSocket#syswrite.' do
       @channel.parse
       @ticket.should_receive(:mark).exactly(2)
       @socket.should_receive(:syswrite).with("#{["1.1","R","FINALIZE",{"error"=>{"code"=>"RuntimeError","message"=>"exception message"}}].to_json}\r\n")
-      @channel.send(@socket,@error,@ticket)
+      @channel.send(@error,@ticket)
     end
 
     after do

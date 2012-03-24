@@ -23,7 +23,8 @@ describe Castoro::Peer::ServerChannel do
   end
 
   before do
-    @channel = Castoro::Peer::ServerChannel.new
+    @socket = Castoro::Peer::ExtendedUDPSocket.new
+    @channel = Castoro::Peer::ServerChannel.new @socket
   end
 
   context 'when initialize' do
@@ -140,6 +141,7 @@ describe Castoro::Peer::ServerChannel do
       @ticket = Castoro::Peer::Ticket.new
       @error  = RuntimeError.new "exception message"
       @socket = mock(Castoro::Peer::ExtendedUDPSocket)
+      @channel = Castoro::Peer::ServerChannel.new @socket
       Castoro::Peer::ExtendedUDPSocket.stub!(:new).and_return(@socket)
     end
 
@@ -150,26 +152,26 @@ describe Castoro::Peer::ServerChannel do
 
     context '(socket, {"bar" => "100"})' do
       it 'should return response of Json format.' do
-        @channel.send(@socket,{"bar" => "100"}).should == '["1.1","R",null,{"bar":"100"}]'
+        @channel.send({"bar" => "100"}).should == '["1.1","R",null,{"bar":"100"}]'
       end
     end
 
     context '(socket, {"bar" => "100"}, ticket)' do
       it 'should return response of Json format.' do
-        @channel.send(@socket,{"bar" => "100"},@ticket).should ==  '["1.1","R",null,{"bar":"100"}]'
+        @channel.send({"bar" => "100"},@ticket).should ==  '["1.1","R",null,{"bar":"100"}]'
       end
     end
 
     context '(socket, error)' do
       it 'should return response of Json format.' do
-        @channel.send(@socket,@error).should ==  
+        @channel.send(@error).should ==  
           '["1.1","R",null,{"error":{"code":"RuntimeError","message":"exception message"}}]'
       end
     end
 
     context '(socket, error, ticket)' do
       it 'should return response of Json format.' do
-        @channel.send(@socket,@error,@ticket).should ==  
+        @channel.send(@error,@ticket).should ==  
           '["1.1","R",null,{"error":{"code":"RuntimeError","message":"exception message"}}]'
       end
     end
@@ -190,25 +192,25 @@ describe Castoro::Peer::ServerChannel do
 
     it '@command should not be nil.' do
       @channel.parse REQUEST1
-      @channel.send(@socket, {"bar" => "100"}).should == 
+      @channel.send({"bar" => "100"}).should == 
           '["1.1","R","FINALIZE",{"bar":"100"}]'
     end
 
     it '@command should not be nil.' do
       @channel.parse REQUEST1
-      @channel.send(@socket, {"bar" => "100"}, @ticket).should == 
+      @channel.send({"bar" => "100"}, @ticket).should == 
           '["1.1","R","FINALIZE",{"bar":"100"}]'
     end
 
     it '@command should not be nil.' do
       @channel.parse REQUEST1
-      @channel.send(@socket, @error).should == 
+      @channel.send(@error).should == 
           '["1.1","R","FINALIZE",{"error":{"code":"RuntimeError","message":"exception message"}}]'
     end
 
     it '@command should not be nil.' do
       @channel.parse REQUEST1
-      @channel.send(@socket, @error, @ticket).should == 
+      @channel.send(@error, @ticket).should == 
           '["1.1","R","FINALIZE",{"error":{"code":"RuntimeError","message":"exception message"}}]'
     end
 
