@@ -41,10 +41,6 @@ module Castoro
           @data.nil? or @data == ''
         end
 
-        def get_peeraddr
-          [ @ip, @port ]
-        end
-
         def parse
           super @data
         end
@@ -86,44 +82,28 @@ module Castoro
     class TcpServerChannel < ServerChannel
       include Channel::TcpModule
 
-      def initialize
-        @port, @ip = nil, nil
-        super
-      end
-
       def receive( socket, ticket = nil )
         @data = socket.gets
         ticket.mark unless ticket.nil?
-        unless ( closed? )
-          @port, @ip = nil, nil
-          begin
-            # @port, @ip = socket.peeraddr[1], socket.peeraddr[3]
-            @port, @ip = Socket.unpack_sockaddr_in( socket.getpeername )
-          rescue
-            # do nothing
-          end
-        else
+        if closed?
           socket.close unless socket.closed?
         end
-        if ( $DEBUG )
-          unless ( closed? )
-            Log.debug( sprintf( "TCP I : %s:%s %s", @ip, @port, @data ) ) if $DEBUG
+        if $DEBUG
+          unless closed?
+            Log.debug "TCP I : #{socket.ip}:#{socket.port} #{@data}"
           else
-            Log.debug( sprintf( "TCP Closed   : %s:%s %s", @ip, @port, 'nil' ) ) if $DEBUG
+            Log.debug "TCP Closed : #{socket.ip}:#{socket.port}"
           end
         end
       end
 
       def send( socket, result, ticket = nil )
-        # p [ 'TcpServerChannel#send', result ]
         s = "#{super}\r\n"
-        # @port, @ip = socket.peeraddr[1], socket.peeraddr[3]
-        @port, @ip = Socket.unpack_sockaddr_in( socket.getpeername )
         ticket.mark unless ticket.nil?
         socket.syswrite( s )
         ticket.mark unless ticket.nil?
-        if ( $DEBUG )
-          Log.debug( sprintf( "TCP O : %s:%s %s", @ip, @port, s ) ) if $DEBUG
+        if $DEBUG
+          Log.debug "TCP O : #{socket.ip}:#{socket.port} #{s}"
         end
       end
     end
@@ -198,10 +178,8 @@ module Castoro
       def send( socket, command, args )
         s = "#{super}\r\n"
         socket.syswrite( s )
-        if ( $DEBUG )
-          # @port, @ip = socket.peeraddr[1], socket.peeraddr[3]
-          @port, @ip = Socket.unpack_sockaddr_in( socket.getpeername )
-          Log.debug( sprintf( "TCP O : %s:%s %s", @ip, @port, s ) ) if $DEBUG
+        if $DEBUG
+          Log.debug "TCP O : #{socket.ip}:#{socket.port} #{s}"
         end
       end
 
@@ -212,13 +190,11 @@ module Castoro
           socket.close unless socket.closed?
         end
 
-        if ( $DEBUG )
-          # @port, @ip = socket.peeraddr[1], socket.peeraddr[3]
-          @port, @ip = Socket.unpack_sockaddr_in( socket.getpeername )
-          unless ( @data.nil? )
-            Log.debug( sprintf( "TCP I : %s:%s %s", @ip, @port, @data ) ) if $DEBUG
+        if $DEBUG
+          unless closed?
+            Log.debug "TCP I : #{socket.ip}:#{socket.port} #{@data}"
           else
-            Log.debug( sprintf( "TCP Closed   : %s:%s %s", @ip, @port, 'nil' ) ) if $DEBUG
+            Log.debug "TCP Closed : #{socket.ip}:#{socket.port}"
           end
         end
       end

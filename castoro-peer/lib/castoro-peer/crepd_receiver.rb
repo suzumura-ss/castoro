@@ -73,7 +73,7 @@ module Castoro
               raise RetryableError, "server status: #{ServerStatus.instance.status} #{ServerStatus.instance.status_name} for #{@basket}" 
             end
             @command, @args = @channel.parse
-            @ip, @port = @channel.get_peeraddr
+            @ip, @port = @io.ip, @io.port
             @response = @args
             dispatch  # some commands alter @response during their process
             @channel.send( @io, @response )

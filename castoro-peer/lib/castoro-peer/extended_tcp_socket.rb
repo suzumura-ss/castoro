@@ -25,6 +25,8 @@ module Castoro
   module Peer
 
     class ExtendedTCPSocket < Socket
+      attr_reader :port, :ip
+
       def initialize
         super(Socket::AF_INET, Socket::SOCK_STREAM, 0)
         @buffer = []
@@ -49,15 +51,19 @@ module Castoro
         end
 
         begin
-          # p Socket.unpack_sockaddr_in( socket.getpeername )
-          # => port, host
-          getpeername  # to confirm if the connection is established
+          # confirm if the connection is established and find its port and ip address
+          @port, @ip = Socket.unpack_sockaddr_in( getpeername )
         rescue Errno::ENOTCONN => e
           raise StandardError, "Connection timed out #{timedout}s: #{host}:#{port}"
         end
 
         set_blocking
         setsockopt( Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true )
+      end
+
+      def accept
+        super
+        @port, @ip = Socket.unpack_sockaddr_in( getpeername )
       end
 
       def set_blocking
