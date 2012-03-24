@@ -254,7 +254,9 @@ module Castoro
       end
 
       def send_multicast_packet( command, path )
-        channel = UdpClientChannel.new( ExtendedUDPSocket.new )
+        socket = ExtendedUDPSocket.new
+        socket.set_multicast_if Configurations.instance.gateway_comm_ipaddr_nic
+        channel = UdpClientChannel.new( socket )
         host = @config.hostname_for_client
         ip   = @config.MulticastAddress
         port = @config.gateway_learning_udpport_multicast

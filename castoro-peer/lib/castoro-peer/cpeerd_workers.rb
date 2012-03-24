@@ -205,7 +205,8 @@ module Castoro
         def initialize( pipeline, port )
           @pipeline = pipeline
           @socket = ExtendedUDPSocket.new
-          @socket.bind( Configurations.instance.MulticastAddress, port )
+          @socket.join_multicast_group Configurations.instance.peer_comm_ipaddr_multicast, Configurations.instance.peer_comm_ipaddr_nic
+          @socket.bind Configurations.instance.peer_comm_ipaddr_nic, port
           super
         end
 
@@ -589,7 +590,9 @@ module Castoro
 
       class MulticastCommandSender < Worker
         def initialize( ip, port )
-          @channel = UdpClientChannel.new( ExtendedUDPSocket.new )
+          socket = ExtendedUDPSocket.new
+          socket.set_multicast_if Configurations.instance.gateway_comm_ipaddr_nic
+          @channel = UdpClientChannel.new( socket )
           @ip, @port = ip, port
           super
         end
