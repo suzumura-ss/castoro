@@ -44,6 +44,21 @@ module Castoro
         def parse
           super @data
         end
+
+        def receive socket, ticket = nil
+          @data = socket.gets
+          ticket.mark unless ticket.nil?
+          if closed?
+            socket.close unless socket.closed?
+          end
+          if $DEBUG
+            unless closed?
+              Log.debug "TCP I : #{socket.ip}:#{socket.port} #{@data}"
+            else
+              Log.debug "TCP Closed : #{socket.ip}:#{socket.port}"
+            end
+          end
+        end
       end
 
       module UdpModule
@@ -81,21 +96,6 @@ module Castoro
 
     class TcpServerChannel < ServerChannel
       include Channel::TcpModule
-
-      def receive( socket, ticket = nil )
-        @data = socket.gets
-        ticket.mark unless ticket.nil?
-        if closed?
-          socket.close unless socket.closed?
-        end
-        if $DEBUG
-          unless closed?
-            Log.debug "TCP I : #{socket.ip}:#{socket.port} #{@data}"
-          else
-            Log.debug "TCP Closed : #{socket.ip}:#{socket.port}"
-          end
-        end
-      end
 
       def send( socket, result, ticket = nil )
         s = "#{super}\r\n"
@@ -180,22 +180,6 @@ module Castoro
         socket.syswrite( s )
         if $DEBUG
           Log.debug "TCP O : #{socket.ip}:#{socket.port} #{s}"
-        end
-      end
-
-      def receive( socket )
-        @data = socket.gets
-
-        if ( closed? )
-          socket.close unless socket.closed?
-        end
-
-        if $DEBUG
-          unless closed?
-            Log.debug "TCP I : #{socket.ip}:#{socket.port} #{@data}"
-          else
-            Log.debug "TCP Closed : #{socket.ip}:#{socket.port}"
-          end
         end
       end
     end
