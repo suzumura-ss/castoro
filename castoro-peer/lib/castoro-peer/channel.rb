@@ -173,10 +173,5 @@ module Castoro
         @socket.sending( "#{header}\r\n#{body}\r\n", ip, port )
       end
     end
-
-
-    class UdpMulticastClientChannel < UdpClientChannel
-      # same as UdpClientChannel
-    end
   end
 end

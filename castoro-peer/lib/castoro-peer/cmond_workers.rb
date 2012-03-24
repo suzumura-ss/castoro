@@ -328,7 +328,7 @@ module Castoro
         def initialize( ip, port, space_monitor )
           @ip, @port, @space_monitor = ip, port, space_monitor
           super
-          @channel   = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
+          @channel   = UdpClientChannel.new( ExtendedUDPSocket.new )
           @host      = Configurations.instance.hostname_for_client
           @period    = Configurations.instance.cmond_period_of_watchdog_sender
           @mutex     = Mutex.new

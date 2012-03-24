@@ -589,7 +589,7 @@ module Castoro
 
       class MulticastCommandSender < Worker
         def initialize( ip, port )
-          @channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
+          @channel = UdpClientChannel.new( ExtendedUDPSocket.new )
           @ip, @port = ip, port
           super
         end
