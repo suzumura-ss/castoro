@@ -32,6 +32,16 @@ module Castoro
         @command = nil
       end
 
+      def parse body, direction_code, exception
+        a = JSON.parse body
+        version, direction, command, args = a
+        @command = command  # @command will be used in a response whatever exception occurs
+        a.size == 4 or raise exception, "The number of parameters does not equal to 4: #{a.size}: #{body}"
+        version == PROTOCOL_VERSION or raise exception, "Version #{PROTOCOL_VERSION} is expected: #{version}: #{body}"
+        direction == direction_code or raise exception, "Direction #{direction_code} is expected: #{direction}: #{body}"
+        [ command, args ]
+      end
+
       module TcpModule
         def tcp?
           true
@@ -72,20 +82,11 @@ module Castoro
 
     class ServerChannel < Channel
       def parse body
-        a = JSON.parse( body )
-        version, direction, command, args = a
-        @command = command  # @command would be needed for a response whatever exception occurs
-        version == PROTOCOL_VERSION or raise BadRequestError, "Version #{PROTOCOL_VERSION} is expected, but version: #{version}: #{body}"
-        direction == 'C' or raise BadRequestError, "Direction C is expected, but direction: #{direction}: #{body}"
-        # the forth parameter could be nil in the inter-crepd communication, so do not block it
-        # args.class == Hash or raise BadRequestError, "The forth parameter is not a Hash: #{args}: #{body}"
-        a.size == 4 or raise BadRequestError, "The number of parameters does not equal to 4: #{a.size}: #{body}"
-        [ command, args ]
+        super body, 'C', BadRequestError
       end
 
       def send socket, result, ticket = nil
-        # p [ 'ServerChannel#send', result ]
-        if ( result.is_a? Exception )
+        if result.is_a? Exception
           [ PROTOCOL_VERSION, 'R', @command, 
             { 'error' => { 'code' => result.class, 'message' => result.message } } ].to_json
         else
@@ -99,9 +100,9 @@ module Castoro
       include Channel::TcpModule
 
       def send socket, result, ticket = nil
-        s = "#{super}\r\n"
+        s = super
         ticket.mark unless ticket.nil?
-        socket.syswrite( s )
+        socket.syswrite( "#{s}\r\n" )
         ticket.mark unless ticket.nil?
         Log.debug "TCP O : #{socket.ip}:#{socket.port} #{s}" if $DEBUG
       end
@@ -118,12 +119,11 @@ module Castoro
 
       def parse
         @header, body = @data.split("\r\n")
-        # p @header
-        a = JSON.parse( @header )
+        a = JSON.parse @header
         a.size == 3 or raise BadRequestError, "The number of parameters does not equal to 3: #{a.size}: #{@header}"
         @ip, @port, @sid = a
         # Todo: validation on ip, port, sid
-        super( body )
+        super body
       end
 
       def send socket, result, ticket = nil
@@ -158,14 +158,9 @@ module Castoro
       end
 
       def parse body
-        a = JSON.parse( body )
-        version, direction, command, args = a
-        version == PROTOCOL_VERSION or raise BadResponseError, "Version #{PROTOCOL_VERSION} is expected, but version: #{version}: #{body}"
-        direction == 'R' or raise BadResponseError, "Direction R is expected, but direction: #{direction}: #{body}"
-        command == @command or raise BadResponseError, "Command #{@command} is expected, but command: #{command}: #{body}"
-        # the forth parameter could be nil in the inter-crepd communication, so do not block it
-        # args.class == Hash or raise BadResponseError, "The forth parameter is not a Hash: #{args}: #{body}"
-        a.size == 4 or raise BadResponseError, "The number of parameters does not equal to 4: #{a.size}: #{body}"
+        sent_command = @command
+        command, args = super body, 'R', BadResponseError
+        sent_command == command or raise BadResponseError, "Command #{sent_command} is expected: #{command}: #{body}"
         [ command, args ]
       end
     end
@@ -175,8 +170,8 @@ module Castoro
       include Channel::TcpModule
 
       def send socket, command, args
-        s = "#{super}\r\n"
-        socket.syswrite( s )
+        s = super
+        socket.syswrite( "#{s}\r\n" )
         Log.debug "TCP O : #{socket.ip}:#{socket.port} #{s}" if $DEBUG
       end
     end
