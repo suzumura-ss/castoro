@@ -33,8 +33,8 @@ module Castoro
         self.do_not_reverse_lookup = true
       end
 
-      def bind host, port
-        Log.debug "ExtendedUDPSocket.bind( #{host}, #{port} )" if $DEBUG
+      def bind ip, port
+        Log.debug "ExtendedUDPSocket.bind( #{ip}, #{port} )" if $DEBUG
         super
       end
 
@@ -43,39 +43,39 @@ module Castoro
 
         # select the default interface for outgoing multicasts
         Log.debug "IP_MULTICAST_IF   : #{if_addr}" if $DEBUG
-        self.setsockopt Socket::IPPROTO_IP, Socket::IP_MULTICAST_IF, interface
+        setsockopt Socket::IPPROTO_IP, Socket::IP_MULTICAST_IF, interface
 
         # disable loopback of outgoing multicasts
         Log.debug "IP_MULTICAST_LOOP : 0" if $DEBUG
-        self.setsockopt Socket::IPPROTO_IP, Socket::IP_MULTICAST_LOOP, "\x00"
+        setsockopt Socket::IPPROTO_IP, Socket::IP_MULTICAST_LOOP, "\x00"
       end
 
       def join_multicast_group multicast_address, if_addr
         Log.debug "IP_ADD_MEMBERSHIP : #{multicast_address} #{if_addr}" if $DEBUG
         ip_mreq = IPAddr.new( multicast_address ).hton + IPAddr.new( if_addr ).hton
-        self.setsockopt Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, ip_mreq
+        setsockopt Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, ip_mreq
       end
 
-      def sending data, host, port, ticket = nil
+      def sending data, ip, port, ticket = nil
         ticket.mark unless ticket.nil?
         begin
-          self.send( data, 0, host, port )
+          send( data, 0, ip, port )
         rescue Errno::EINTR
           retry
         rescue => e
-          s = debug_information data, host, port
+          s = debug_information ip, port, data
           Log.notice( "UDP sendto: #{e.class} #{e.message} : from #{self.addr[3]}:#{self.addr[1]} to #{s}" )
         end
         ticket.mark unless ticket.nil?
         if $DEBUG
-          s = debug_information data, host, port
+          s = debug_information ip, port, data
           Log.debug "UDP O : #{s}"
         end
       end
 
       def receiving ticket = nil
         begin
-          data, array = self.recvfrom( BUFFER_SIZE )
+          data, array = recvfrom( BUFFER_SIZE )
           ticket.mark unless ticket.nil?
         rescue Errno::EINTR
           retry
@@ -85,14 +85,14 @@ module Castoro
         end
         if $DEBUG
           family, port, hostname, ip = array
-          s = debug_information data, ip, port
+          s = debug_information ip, port, data
           Log.debug "UDP I : #{s}"
         end
         data
       end
 
-      def debug_information data, host, port
-        h = host.nil? ? 'nil' : host
+      def debug_information ip, port, data
+        h = ip.nil? ? 'nil' : ip
         p = port.nil? ? 'nil' : port
         d = data.nil? ? 'nil' : data
         "#{h}:#{p} #{d}"
