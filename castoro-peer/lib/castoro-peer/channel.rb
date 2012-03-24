@@ -31,7 +31,32 @@ module Castoro
       def initialize
         @command = nil
       end
+
+      module TcpModule
+        def tcp?
+          true
+        end
+
+        def closed?
+          @data.nil? or @data == ''
+        end
+
+        def get_peeraddr
+          [ @ip, @port ]
+        end
+
+        def parse
+          super @data
+        end
+      end
+
+      module UdpModule
+        def tcp?
+          false
+        end
+      end
     end
+
 
     class ServerChannel < Channel
       def parse( body )
@@ -59,6 +84,8 @@ module Castoro
 
 
     class TcpServerChannel < ServerChannel
+      include Channel::TcpModule
+
       def initialize
         @port, @ip = nil, nil
         super
@@ -87,18 +114,6 @@ module Castoro
         end
       end
 
-      def get_peeraddr
-        [ @ip, @port ]
-      end
-
-      def closed?
-        @data.nil? or @data == ''
-      end
-
-      def parse
-        super( @data )
-      end
-
       def send( socket, result, ticket = nil )
         # p [ 'TcpServerChannel#send', result ]
         s = "#{super}\r\n"
@@ -111,14 +126,12 @@ module Castoro
           Log.debug( sprintf( "TCP O : %s:%s %s", @ip, @port, s ) ) if $DEBUG
         end
       end
-
-      def tcp?
-        true
-      end
     end
 
 
     class UdpServerChannel < ServerChannel
+      include Channel::UdpModule
+
       def receive( socket, ticket = nil )
         @data = socket.receiving( ticket )
         ticket.mark unless ticket.nil?
@@ -137,14 +150,12 @@ module Castoro
       def send( socket, result, ticket = nil )
         socket.sending( "#{@header}\r\n#{super}\r\n", @ip, @port, ticket )
       end
-
-      def tcp?
-        false
-      end
     end
 
 
     class UdpMulticastClientChannel
+      include Channel::UdpModule
+
       def initialize( socket )
         @socket = socket
         @reply_ip = Configurations.instance.MulticastIf
@@ -182,6 +193,8 @@ module Castoro
 
 
     class TcpClientChannel < ClientChannel
+      include Channel::TcpModule
+
       def send( socket, command, args )
         s = "#{super}\r\n"
         socket.syswrite( s )
@@ -208,22 +221,6 @@ module Castoro
             Log.debug( sprintf( "TCP Closed   : %s:%s %s", @ip, @port, 'nil' ) ) if $DEBUG
           end
         end
-      end
-
-      def get_peeraddr
-        [ @ip, @port ]
-      end
-
-      def closed?
-        @data.nil? or @data == ''
-      end
-
-      def parse
-        super( @data )
-      end
-
-      def tcp?
-        true
       end
     end
 
