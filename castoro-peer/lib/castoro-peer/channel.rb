@@ -46,6 +46,7 @@ module Castoro
         end
 
         def receive socket, ticket = nil
+          ticket.mark unless ticket.nil?
           @data = socket.gets
           ticket.mark unless ticket.nil?
           if closed?
@@ -70,7 +71,7 @@ module Castoro
 
 
     class ServerChannel < Channel
-      def parse( body )
+      def parse body
         a = JSON.parse( body )
         version, direction, command, args = a
         @command = command  # @command would be needed for a response whatever exception occurs
@@ -82,7 +83,7 @@ module Castoro
         [ command, args ]
       end
 
-      def send( socket, result, ticket = nil )
+      def send socket, result, ticket = nil
         # p [ 'ServerChannel#send', result ]
         if ( result.is_a? Exception )
           [ PROTOCOL_VERSION, 'R', @command, 
@@ -97,14 +98,12 @@ module Castoro
     class TcpServerChannel < ServerChannel
       include Channel::TcpModule
 
-      def send( socket, result, ticket = nil )
+      def send socket, result, ticket = nil
         s = "#{super}\r\n"
         ticket.mark unless ticket.nil?
         socket.syswrite( s )
         ticket.mark unless ticket.nil?
-        if $DEBUG
-          Log.debug "TCP O : #{socket.ip}:#{socket.port} #{s}"
-        end
+        Log.debug "TCP O : #{socket.ip}:#{socket.port} #{s}" if $DEBUG
       end
     end
 
@@ -112,7 +111,7 @@ module Castoro
     class UdpServerChannel < ServerChannel
       include Channel::UdpModule
 
-      def receive( socket, ticket = nil )
+      def receive socket, ticket = nil
         @data = socket.receiving( ticket )
         ticket.mark unless ticket.nil?
       end
@@ -127,7 +126,7 @@ module Castoro
         super( body )
       end
 
-      def send( socket, result, ticket = nil )
+      def send socket, result, ticket = nil
         socket.sending( "#{@header}\r\n#{super}\r\n", @ip, @port, ticket )
       end
     end
@@ -136,13 +135,13 @@ module Castoro
     class UdpMulticastClientChannel
       include Channel::UdpModule
 
-      def initialize( socket )
+      def initialize socket
         @socket = socket
         @reply_ip = Configurations.instance.MulticastIf
         @reply_port = 0
       end
 
-      def send( command, args, ip, port )  # Todo: swap parameters
+      def send command, args, ip, port
         # p [ 'command', command, 'args', args ]
         sid = SessionIdGenerator.instance.generate
         header = [ @reply_ip, @reply_port, sid ].to_json
@@ -153,12 +152,12 @@ module Castoro
 
 
     class ClientChannel < Channel
-      def send( socket, command, args )
+      def send socket, command, args
         @command = command
         [ PROTOCOL_VERSION, 'C', @command, args ].to_json
       end
 
-      def parse( body )
+      def parse body
         a = JSON.parse( body )
         version, direction, command, args = a
         version == PROTOCOL_VERSION or raise BadResponseError, "Version #{PROTOCOL_VERSION} is expected, but version: #{version}: #{body}"
@@ -175,21 +174,12 @@ module Castoro
     class TcpClientChannel < ClientChannel
       include Channel::TcpModule
 
-      def send( socket, command, args )
+      def send socket, command, args
         s = "#{super}\r\n"
         socket.syswrite( s )
-        if $DEBUG
-          Log.debug "TCP O : #{socket.ip}:#{socket.port} #{s}"
-        end
+        Log.debug "TCP O : #{socket.ip}:#{socket.port} #{s}" if $DEBUG
       end
     end
 
-  end
-end
-
-if $0 == __FILE__
-  module Castoro
-    module Peer
-    end
   end
 end
