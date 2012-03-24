@@ -609,7 +609,7 @@ module Castoro
           super
           @ip = '127.0.0.1'
           @port = Configurations.instance.crepd_registration_udpport
-          @channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
+          @channel = UdpClientChannel.new( ExtendedUDPSocket.new )
         end
 
         def serve

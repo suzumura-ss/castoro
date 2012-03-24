@@ -132,29 +132,10 @@ module Castoro
     end
 
 
-    class UdpMulticastClientChannel
-      include Channel::UdpModule
-
-      def initialize socket
-        @socket = socket
-        @reply_ip = Configurations.instance.MulticastIf
-        @reply_port = 0
-      end
-
-      def send command, args, ip, port
-        # p [ 'command', command, 'args', args ]
-        sid = SessionIdGenerator.instance.generate
-        header = [ @reply_ip, @reply_port, sid ].to_json
-        body   = [ PROTOCOL_VERSION, 'C', command, args ].to_json
-        @socket.sending( "#{header}\r\n#{body}\r\n", ip, port )  # Todo: ticket
-      end
-    end
-
-
     class ClientChannel < Channel
       def send socket, command, args
         @command = command
-        [ PROTOCOL_VERSION, 'C', @command, args ].to_json
+        [ PROTOCOL_VERSION, 'C', command, args ].to_json
       end
 
       def parse body
@@ -176,5 +157,26 @@ module Castoro
       end
     end
 
+
+    class UdpClientChannel < ClientChannel
+      include Channel::UdpModule
+
+      def initialize socket
+        @socket = socket
+      end
+
+      def send command, args, ip, port
+        sid = SessionIdGenerator.instance.generate
+        # Todo: peer does not expect any response from a receipient
+        header = [ '0.0.0.0', 0, sid ].to_json  # reply id, reply port, sid
+        body   = super socket, command, args
+        @socket.sending( "#{header}\r\n#{body}\r\n", ip, port )
+      end
+    end
+
+
+    class UdpMulticastClientChannel < UdpClientChannel
+      # same as UdpClientChannel
+    end
   end
 end
