@@ -1,3 +1,7 @@
+=== 0.2.0.pre3 2012-03-24
+
+* fixed issue #73 - Substitute configuration entry names with commonalized names
+
 === 0.2.0.pre2 2012-02-22
 
 * fixed issue #60 - crepd does not replicate baskets with ruby-1.9.2-p290
