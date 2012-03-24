@@ -211,9 +211,9 @@ module Castoro
         end
 
         def serve
-          channel = UdpServerChannel.new
+          channel = UdpServerChannel.new @socket
           ticket = CommandReceiverTicketPool.instance.create_ticket
-          channel.receive( @socket, ticket )
+          channel.receive ticket
           ticket.channel = channel
           ticket.socket = nil
           ticket.mark
@@ -290,8 +290,8 @@ module Castoro
           end
           loop do
             ticket = CommandReceiverTicketPool.instance.create_ticket
-            channel = TcpServerChannel.new
-            channel.receive( client, ticket )
+            channel = TcpServerChannel.new client
+            channel.receive ticket
             if ( channel.closed? )
               CommandReceiverTicketPool.instance.delete( ticket )
               return
@@ -548,7 +548,7 @@ module Castoro
           message = ticket.message
           socket = @socket || ticket.socket
           begin
-            ticket.channel.send( socket, result )
+            ticket.channel.send result
           rescue IOError => e  # e.g. "closed stream occurred"
             Log.warning e, basket_text
           rescue => e
@@ -592,7 +592,7 @@ module Castoro
         def initialize( ip, port )
           socket = ExtendedUDPSocket.new
           socket.set_multicast_if Configurations.instance.gateway_comm_ipaddr_nic
-          @channel = UdpClientChannel.new( socket )
+          @channel = UdpClientChannel.new socket
           @ip, @port = ip, port
           super
         end
@@ -600,7 +600,7 @@ module Castoro
         def serve
           ticket = MulticastCommandSenderPL.instance.deq
           command, args = ticket.pop2
-          @channel.send( command, args, @ip, @port )
+          @channel.send command, args, @ip, @port
           MulticastCommandSenderTicketPool.instance.delete( ticket )
         end
       end
@@ -623,8 +623,8 @@ module Castoro
           begin
             args = Hash[ 'basket', basket.to_s ]
             case action
-            when :replicate ; @channel.send( 'REPLICATE', args, @ip, @port )
-            when :delete    ; @channel.send( 'DELETE',    args, @ip, @port )
+            when :replicate ; @channel.send 'REPLICATE', args, @ip, @port
+            when :delete    ; @channel.send 'DELETE',    args, @ip, @port
             end
           rescue => e
             Log.warning e, "#{action} #{basket}"

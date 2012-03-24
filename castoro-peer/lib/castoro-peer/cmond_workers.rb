@@ -330,7 +330,7 @@ module Castoro
           super
           socket = ExtendedUDPSocket.new
           socket.set_multicast_if Configurations.instance.gateway_comm_ipaddr_nic
-          @channel   = UdpClientChannel.new( socket )
+          @channel   = UdpClientChannel.new socket
           @host      = Configurations.instance.hostname_for_client
           @period    = Configurations.instance.cmond_period_of_watchdog_sender
           @mutex     = Mutex.new
@@ -346,7 +346,7 @@ module Castoro
             status = ServerStatus.instance.status
             unless ( status == ServerStatus::UNKNOWN )
               args = Hash[ 'host', @host, 'status', status, 'available', @space_monitor.space_bytes ]
-              @channel.send( 'ALIVE', args, @ip, @port )
+              @channel.send 'ALIVE', args, @ip, @port
             end
           }
         end

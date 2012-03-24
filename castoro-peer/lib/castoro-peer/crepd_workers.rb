@@ -186,8 +186,8 @@ module Castoro
       end
 
       def serve
-        channel = UdpServerChannel.new
-        channel.receive( @socket )
+        channel = UdpServerChannel.new @socket
+        channel.receive
         command, args = channel.parse
         basket_text = args[ 'basket' ]
         if ( basket_text )

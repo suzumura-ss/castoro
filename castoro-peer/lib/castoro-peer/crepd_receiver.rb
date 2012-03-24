@@ -56,7 +56,7 @@ module Castoro
     class ReplicationReceiver
       def initialize( io )
         @io = io
-        @channel = TcpServerChannel.new
+        @channel = TcpServerChannel.new io
         @config = Configurations.instance
         @fd = nil
         @csm_executor = Csm.create_executor
@@ -67,7 +67,7 @@ module Castoro
       def initiate
         loop do
           begin
-            @channel.receive( @io )
+            @channel.receive
             break if @channel.closed?
             unless ( ServerStatus.instance.replication_activated? )
               raise RetryableError, "server status: #{ServerStatus.instance.status} #{ServerStatus.instance.status_name} for #{@basket}" 
@@ -76,10 +76,10 @@ module Castoro
             @ip, @port = @io.ip, @io.port
             @response = @args
             dispatch  # some commands alter @response during their process
-            @channel.send( @io, @response )
+            @channel.send @response
           rescue => e
             Log.warning e, "#{@command} #{@args} from #{@ip}:#{@port}"
-            @channel.send( @io, e )
+            @channel.send e
           end
         end
       ensure
@@ -256,12 +256,12 @@ module Castoro
       def send_multicast_packet( command, path )
         socket = ExtendedUDPSocket.new
         socket.set_multicast_if Configurations.instance.gateway_comm_ipaddr_nic
-        channel = UdpClientChannel.new( socket )
+        channel = UdpClientChannel.new socket
         host = @config.hostname_for_client
         ip   = @config.MulticastAddress
         port = @config.gateway_learning_udpport_multicast
         args = { 'basket' => @basket.to_s, 'host' => host, 'path' => path }
-        channel.send( command, args, ip, port )
+        channel.send command, args, ip, port
       end
 
       def register_entry
