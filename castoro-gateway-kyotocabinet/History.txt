@@ -1,0 +1,6 @@
+
+=== 0.2.0 2012-03-27
+
+* Supported island.
+** refer https://github.com/ToshiyukiTerashita/castoro/wiki/0.2
+

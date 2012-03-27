@@ -1,4 +1,9 @@
 
+=== 0.2.0 2012-03-27
+
+* Supported island.
+** refer https://github.com/ToshiyukiTerashita/castoro/wiki/0.2
+
 === 0.1.2 2011-08-22
 
 * cache supported basketid 64bit more.

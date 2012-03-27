@@ -37,11 +37,12 @@ spec = Gem::Specification.new do |s|
   s.files = %w(History.txt LICENSE README.textile COPYING.LESSER Rakefile) + Dir.glob("{bin,ext,lib,spec,resources}/**/*")
   s.require_path = "lib"
   s.bindir = "bin"
+  s.required_ruby_version = ">= 1.9.2"
   s.authors = ['Castoro project']
 
   s.extensions = ["ext/cache/extconf.rb", "ext/utils/extconf.rb"]
 
-  s.add_dependency('castoro-common', '>=0.2.0.pre')
+  s.add_dependency('castoro-common', '>=0.2.0')
   s.add_development_dependency('rspec', '>=2.0.0')
 end
 
