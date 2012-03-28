@@ -229,6 +229,23 @@ module Castoro
 
 
       class TcpCommandAcceptor < Worker
+
+        class SocketDelegator
+          attr_reader :ip, :port
+
+          def initialize socket
+            @socket = socket
+          end
+
+          def method_missing(m, *args, &block)
+            @socket.__send__(m, *args, &block)
+          end
+
+          def client_sockaddr= client_sockaddr
+            @port, @ip = Socket.unpack_sockaddr_in( client_sockaddr )
+          end
+        end
+
         def initialize( pipeline, port )
           @pipeline, @port = pipeline, port
           super
@@ -249,6 +266,8 @@ module Castoro
             client_socket = nil
             begin
               client_socket, client_sockaddr = @socket.accept
+              s = SocketDelegator.new client_socket
+              s.client_sockaddr = client_sockaddr
             rescue IOError, Errno::EBADF => e
               # IOError "closed stream"
               # Errno::EBADF "Bad file number"
@@ -264,7 +283,7 @@ module Castoro
               @finished = true
               return
             end
-            @pipeline.enq client_socket
+            @pipeline.enq s
           end
         end
 
