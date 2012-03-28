@@ -19,6 +19,9 @@
 
 DEST = /etc/init.d
 
+default:
+	@echo Do nothing.
+
 install :
 	/bin/cp cmond $(DEST)
 	/bin/cp cpeerd $(DEST)
