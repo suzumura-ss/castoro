@@ -37,7 +37,7 @@ if [ -z "$ruby" ]; then echo ruby is not found; exit 1; fi
 
 case "$1" in
     'start')
-	$command -c $config
+	$command
 	;;
 
     'stop')
