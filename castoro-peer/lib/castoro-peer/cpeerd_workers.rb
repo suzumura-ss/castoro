@@ -207,7 +207,7 @@ module Castoro
           @socket = ExtendedUDPSocket.new
           c = Configurations.instance
           @socket.join_multicast_group c.peer_comm_ipaddr_multicast, c.peer_comm_ipaddr_nic
-          @socket.bind c.peer_comm_ipaddr_nic, port
+          @socket.bind '0.0.0.0', port
           super
         end
 
