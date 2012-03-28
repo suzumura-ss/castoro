@@ -226,7 +226,7 @@ module Castoro
 
       def do_cancel
         if ( File.exist? @path_r )
-          csm_request = Csm::Request::Cancel.new( @path_r, @basket.path_c( @path_r ) )
+          csm_request = Csm::Request::Cancel.new( @path_r, @basket.path_c_with_hint( @path_r ) )
           begin
             @csm_executor.execute( csm_request )
           rescue => e
