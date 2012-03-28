@@ -559,7 +559,7 @@ module Castoro
 #          socket.close if ticket.channel.tcp?
           ip, port = nil, nil
           if ( ticket.channel.tcp? )
-            port, ip = Socket.unpack_sockaddr_in( socket.getpeername )
+            port, ip = Socket.unpack_sockaddr_in( socket )
           else
             # Todo: should be implemented for UDP
           end
