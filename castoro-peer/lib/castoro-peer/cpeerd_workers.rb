@@ -327,7 +327,7 @@ module Castoro
         def initialize( pipeline )
           @pipeline = pipeline
           super
-          @hostname = Configurations.instance.hostname_for_client
+          @hostname = Configurations.instance.peer_hostname
         end
 
         def serve
@@ -637,7 +637,7 @@ module Castoro
       class CpeerdTcpMaintenaceServer < TcpMaintenaceServer
         def initialize( port )
           super
-          @hostname = Configurations.instance.hostname_for_client
+          @hostname = Configurations.instance.peer_hostname
         end
 
         def do_help

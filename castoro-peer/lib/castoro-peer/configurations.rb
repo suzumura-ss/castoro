@@ -218,7 +218,7 @@ module Castoro
       class GlobalSection < Section
         def initialize
           super(
-                :hostname_for_client                        => [ :optional,  :string ],
+                :peer_hostname                              => [ :optional,  :string ],
                 :gateway_comm_ipaddr_multicast              => [ :optional,  :string ],
                 :gateway_comm_ipaddr_network                => [ :optional,  :string ],
                 :gateway_comm_ipaddr_nic                    => [ :optional,  :string ],
@@ -281,8 +281,8 @@ module Castoro
         private
 
         def validate_hostname
-          unless @data[ :hostname_for_client ]
-            @data[ :hostname_for_client ] = Ifconfig.instance.default_hostname
+          unless @data[ :peer_hostname ]
+            @data[ :peer_hostname ] = Ifconfig.instance.default_hostname
           end
         end
 

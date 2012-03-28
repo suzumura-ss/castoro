@@ -34,7 +34,7 @@ module Castoro
     remove_const :Configurations
     class Configurations
       # mock for Castoro::Peer::Configurations.
-      #hostname_for_client = "host5"
+      #peer_hostname = "host5"
       #StorageHosts = {"host1"=> "host1rep","host6"=> "host6rep",}
       #StorageGroups = [["host1","host2","host3"],["host4","host5","host6","host7"],["host8","host9"]]
       #dir_w_user    = "castoro"
@@ -43,7 +43,7 @@ module Castoro
 
       # mock for Castoro::Peer::Configurations.
       CONF = {
-        "hostname_for_client" => "host5",
+        "peer_hostname" => "host5",
         "storage_hosts"       => {"host1"=> "host1rep","host6"=> "host6rep",},
         "storage_groups"      => [["host1","host2","host3"],["host4","host5","host6","host7"],["host8","host9"]],
 
@@ -65,7 +65,7 @@ module Castoro
       }
 
       CONF1 = CONF.merge({
-        "hostname_for_client" => "host",
+        "peer_hostname" => "host",
       })
 
       @@type = nil
@@ -73,7 +73,7 @@ module Castoro
       def self.type=(val); @@type = val; end
 
       def initialize conf
-        @hostname_for_client = conf["hostname_for_client"]
+        @peer_hostname = conf["peer_hostname"]
         @storage_hosts       = conf["storage_hosts"]
         @storage_groups      = conf["storage_groups"]
         @dir_w_user          = conf["dir_w_user"]
@@ -100,7 +100,7 @@ module Castoro
         end
       end
 
-      def hostname_for_client; @hostname_for_client; end
+      def peer_hostname; @peer_hostname; end
       def StorageHostsData;  @storage_hosts; end
       def StorageGroupsData; @storage_groups; end
       def dir_w_user;        @dir_w_user;  end

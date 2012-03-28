@@ -257,7 +257,7 @@ module Castoro
         socket = ExtendedUDPSocket.new
         socket.set_multicast_if Configurations.instance.gateway_comm_ipaddr_nic
         channel = UdpClientChannel.new socket
-        host = @config.hostname_for_client
+        host = @config.peer_hostname
         ip   = @config.gateway_comm_ipaddr_multicast
         port = @config.gateway_learning_udpport_multicast
         args = { 'basket' => @basket.to_s, 'host' => host, 'path' => path }

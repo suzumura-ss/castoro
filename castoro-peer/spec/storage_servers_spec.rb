@@ -25,13 +25,13 @@ require "castoro-peer/storage_servers"
 #
 # When Castoro::Peer::Configurations::type == 0 (default)
 #
-# hostname_for_client = "host5"
+# peer_hostname = "host5"
 # StorageHostsYaml  = {"host1"=> "host1rep","host6"=> "host6rep",}
 # StorageGroups     = [["host1","host2","host3"],["host4","host5","host6","host7"],["host8","host9"]]
 #
 # When Castoro::Peer::Configurations::type == 1 (invalid configuration)
 #
-# hostname_for_client = "host"
+# peer_hostname = "host"
 # StorageHostsYaml  = {"host1"=> "host1rep","host6"=> "host6rep",}
 # StorageGroups     = [["host1","host2","host3"],["host4","host5","host6","host7"],["host8","host9"]]
 
@@ -58,7 +58,7 @@ describe Castoro::Peer::StorageServers do
       @servers.instance.colleague_hosts.should == ["host6rep","host7","host4"]
     end
 
-    context "but if hostname_for_client is not included in StorageGroups" do
+    context "but if peer_hostname is not included in StorageGroups" do
       before do
         Castoro::Peer::Configurations::type = 1
       end

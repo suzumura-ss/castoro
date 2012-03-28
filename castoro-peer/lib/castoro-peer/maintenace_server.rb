@@ -97,7 +97,7 @@ module Castoro
     class TcpMaintenaceServer < PreThreadedTcpServer
       def initialize( port )
         super( port, '0.0.0.0', 10 )
-        @hostname = Configurations.instance.hostname_for_client
+        @hostname = Configurations.instance.peer_hostname
         @program = $0.sub(/.*\//, '')
       end
 

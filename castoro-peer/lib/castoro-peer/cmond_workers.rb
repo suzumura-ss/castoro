@@ -331,7 +331,7 @@ module Castoro
           socket = ExtendedUDPSocket.new
           socket.set_multicast_if Configurations.instance.gateway_comm_ipaddr_nic
           @channel   = UdpClientChannel.new socket
-          @host      = Configurations.instance.hostname_for_client
+          @host      = Configurations.instance.peer_hostname
           @period    = Configurations.instance.cmond_period_of_watchdog_sender
           @mutex     = Mutex.new
         end
