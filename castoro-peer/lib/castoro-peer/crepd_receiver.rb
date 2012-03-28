@@ -69,14 +69,15 @@ module Castoro
           begin
             @channel.receive
             break if @channel.closed?
-            unless ( ServerStatus.instance.replication_activated? )
-              raise RetryableError, "server status: #{ServerStatus.instance.status} #{ServerStatus.instance.status_name} for #{@basket}" 
-            end
             @command, @args = @channel.parse
             @ip, @port = @io.ip, @io.port
-            @response = @args
-            dispatch  # some commands alter @response during their process
-            @channel.send @response
+            if ServerStatus.instance.replication_activated?
+              @response = @args
+              dispatch  # some commands alter @response during their process
+              @channel.send @response
+            else
+              raise RetryableError, "server status: #{ServerStatus.instance.status} #{ServerStatus.instance.status_name} for #{@basket}" 
+            end
           rescue => e
             Log.warning e, "#{@command} #{@args} from #{@ip}:#{@port}"
             @channel.send e
