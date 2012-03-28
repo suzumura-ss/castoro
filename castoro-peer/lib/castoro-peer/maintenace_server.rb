@@ -35,7 +35,7 @@ module Castoro
       end
 
       def serve( io )
-        peer_port, peer_host = io.port, io.ip
+        peer_port, peer_host = Socket.unpack_sockaddr_in( io.getpeername )
         Log.notice "Health check: connection established from #{peer_host}:#{peer_port}"
 
 #        flags = io.fcntl(Fcntl::F_GETFL, 0)
