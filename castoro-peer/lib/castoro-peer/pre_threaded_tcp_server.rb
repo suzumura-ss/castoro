@@ -26,13 +26,24 @@ module Castoro
   module Peer
 
     class PreThreadedTcpServer
+
+      class XSocket < Socket
+        attr_reader :ip, :port
+
+        def accept
+          client_socket, client_sockaddr = super
+          @port, @ip = Socket.unpack_sockaddr_in( client_sockaddr )
+          [ client_socket, client_sockaddr ]
+        end
+      end
+
       def initialize( port, host, number_of_threads )
         @number_of_threads = number_of_threads
         factor = 1
         backlog = number_of_threads * factor
         backlog = 5 if backlog < 5
         sockaddr = Socket.pack_sockaddr_in( port, host )
-        @server_socket = Socket.new( Socket::AF_INET, Socket::SOCK_STREAM, 0 )
+        @server_socket = XSocket.new( Socket::AF_INET, Socket::SOCK_STREAM, 0 )
         @server_socket.setsockopt( Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true )
         @server_socket.setsockopt( Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true )
         @server_socket.setsockopt( Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true )
