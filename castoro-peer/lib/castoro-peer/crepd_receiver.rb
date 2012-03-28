@@ -70,7 +70,7 @@ module Castoro
             @channel.receive
             break if @channel.closed?
             @command, @args = @channel.parse
-            @ip, @port = @io.ip, @io.port
+            @port, @ip = Socket.unpack_sockaddr_in( @io.getpeername )
             if ServerStatus.instance.replication_activated?
               @response = @args
               dispatch  # some commands alter @response during their process
