@@ -26,6 +26,23 @@ module Castoro
   module Peer
 
     class PreThreadedTcpServer
+
+      class SocketDelegator
+        attr_reader :ip, :port
+
+        def initialize socket
+          @socket = socket
+        end
+
+        def method_missing(m, *args, &block)
+          @socket.__send__(m, *args, &block)
+        end
+
+        def client_sockaddr= client_sockaddr
+          @port, @ip = Socket.unpack_sockaddr_in( client_sockaddr )
+        end
+      end
+
       def initialize( port, host, number_of_threads )
         @number_of_threads = number_of_threads
         factor = 1
@@ -60,7 +77,9 @@ module Castoro
           Thread.current.priority = 3
           begin
             client_socket, client_sockaddr = @server_socket.accept
-            @queue.enq client_socket
+            s = SocketDelegator.new client_socket
+            s.client_sockaddr = client_sockaddr
+            @queue.enq s
           rescue IOError => e
             return if e.message.match( /closed stream/ )
             Log.warning e
