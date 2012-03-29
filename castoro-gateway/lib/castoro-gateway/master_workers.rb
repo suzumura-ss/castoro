@@ -129,7 +129,12 @@ module Castoro
         def create_relay create_header, create_command
           island = choice_island(create_command)
           @logger.info { "[key:#{create_command.basket}] choiced island: #{island}" }
-          sender(island).multicast(create_header, create_command)
+          if island
+            sender(island).multicast(create_header, create_command)
+          else
+            hints = "#{create_command.hints.map { |k,v| "#{k}=>#{v}" }.join(",")}"
+            @logger.warn { "[key:#{create_command.basket}] not exists storable island! - #{hints}" }
+          end
         end
 
         def get_relay get_header, get_command
