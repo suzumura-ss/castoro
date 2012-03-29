@@ -1,6 +1,7 @@
 h1. castoro-peer
 
 h2. Installation
+
 <pre>
 gem uninstall castoro-common castoro-manipulator castoro-peer
 gem install --no-rdoc --no-ri castoro-common-0.2.0.gem castoro-manipulator-0.2.0.gem castoro-peer-0.2.0.gem
@@ -10,6 +11,7 @@ make install
 
 
 h2. Configuration files
+
 <pre>
 There are some sample files available at /usr/local/lib/ruby/gems/1.9.1/gems/castoro-peer-0.2.0/etc/castoro
   peer.conf-sample-en.conf
@@ -27,13 +29,89 @@ Please prepare your configuration files in /etc/castoro:
 
 
 h2. Starting up daemons
+
 <pre>
 /etc/init.d/castoro-manipulatord start ; /etc/init.d/crepd start ; /etc/init.d/cpeerd start ; /etc/init.d/cmond start
 </pre>
 
 
 h2. Shutting down daemons
+
 <pre>
 /etc/init.d/castoro-manipulatord stop ; /etc/init.d/crepd stop ; /etc/init.d/cpeerd stop ; /etc/init.d/cmond stop
 </pre>
 
+
+h2. Requirements
+
+* Ruby 1.9.1 or 1.9.2
+
+
+h2. Test Environments
+
+This version of castoro-peer has been tested with
+* ruby-1.9.2p290 64bits running on CentOS 6.2
+* ruby 1.9.1p376 32bits running on OpenSolaris snv_133 X86
+
+
+h2. Configuration file /etc/castoro/peer.conf
+
+Entry names in the configration file have been renamed in the following way:
+
+<pre>
+0.2.0.pre2 or earlier  ==============>  0.2.0 or later
+</pre>
+<pre>
+HostnameForClient                       peer_hostname
+MulticastAddress                        gateway_comm_ipaddr_multicast
+MulticastAddress                        peer_comm_ipaddr_multicast
+MulticastNetwork                        gateway_comm_ipaddr_network
+MulticastNetwork                        peer_comm_ipaddr_network
+MulticastIf                             gateway_comm_ipaddr_nic
+MulticastIf                             peer_comm_ipaddr_nic
+GatewayUDPCommandPort                   gateway_learning_udpport_multicast
+PeerTCPCommandPort                      peer_comm_tcpport
+PeerUDPCommandPort                      peer_comm_udpport_multicast
+WatchDogUDPCommandPort                  gateway_watchdog_udpport_multicast
+ReplicationTCPCommunicationPort         crepd_transmission_tcpport
+ReplicationUDPCommandPort               crepd_registration_udpport
+CmondMaintenancePort                    cmond_maintenance_tcpport
+CpeerdMaintenancePort                   cpeerd_maintenance_tcpport
+CrepdMaintenancePort                    crepd_maintenance_tcpport
+CmondHealthCheckPort                    cmond_healthcheck_tcpport
+CpeerdHealthCheckPort                   cpeerd_healthcheck_tcpport
+CrepdHealthCheckPort                    crepd_healthcheck_tcpport
+NumberOfUDPCommandProcessor             cpeerd_number_of_udp_command_processor
+NumberOfTCPCommandProcessor             cpeerd_number_of_tcp_command_processor
+NumberOfBasketStatusQueryDB             cpeerd_number_of_basket_status_query_db
+NumberOfCsmController                   cpeerd_number_of_csm_controller
+NumberOfUdpResponseSender               cpeerd_number_of_udp_response_sender
+NumberOfTcpResponseSender               cpeerd_number_of_tcp_response_sender
+NumberOfMulticastCommandSender          cpeerd_number_of_multicast_command_sender
+NumberOfReplicationDBClient             cpeerd_number_of_replication_db_client
+PeriodOfAlivePacketSender               cmond_period_of_watchdog_sender
+PeriodOfStatisticsLogger                cpeerd_period_of_statistics_logger
+StorageGroupsFile                       config_group_file
+StorageHostsFile                        config_host_file
+EffectiveUser                           effective_user
+ReplicationTransmissionDataUnitSize     crepd_transmission_data_unit_size
+NumberOfReplicationSender               crepd_number_of_replication_sender
+UseManipulatorDaemon                    manipulator_in_use
+ManipulatorSocket                       manipulator_socket
+BasketBaseDir                           basket_basedir
+Dir_w_user                              dir_w_user
+Dir_w_group                             dir_w_group
+Dir_w_perm                              dir_w_perm
+Dir_a_user                              dir_a_user
+Dir_a_group                             dir_a_group
+Dir_a_perm                              dir_a_perm
+Dir_d_user                              dir_d_user
+Dir_d_group                             dir_d_group
+Dir_d_perm                              dir_d_perm
+Dir_c_user                              dir_c_user
+Dir_c_group                             dir_c_group
+Dir_c_perm                              dir_c_perm
+ServiceName                             service_name
+TypeIdRanges                            type_id_ranges
+BasketKeyConverterModuleName            basket_keyconverter
+</pre>
