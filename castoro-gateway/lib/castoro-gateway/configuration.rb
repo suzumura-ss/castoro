@@ -66,7 +66,7 @@ module Castoro; class Gateway
         "gateway_comm_udpport" => 30111,
         "gateway_learning_udpport_multicast" => 30109,
         "master_comm_ipaddr_multicast" => "239.192.254.254",
-        "isladn_comm_udpport_broadcast" => 30108,
+        "island_comm_udpport_broadcast" => 30108,
         "island_comm_device_multicast" => "eth0",
       },
       "island" => {
@@ -81,7 +81,7 @@ module Castoro; class Gateway
         "peer_comm_ipaddr_multicast" => "239.192.1.1",
         "peer_comm_device_multicast" => "eth0",
         "master_comm_ipaddr_multicast" => "239.192.254.254",
-        "isladn_comm_udpport_broadcast" => 30108,
+        "island_comm_udpport_broadcast" => 30108,
         "island_comm_ipaddr_multicast" => nil,
         "island_comm_device_multicast" => "eth0",
       },
@@ -185,7 +185,7 @@ module Castoro; class Gateway
       check_port_number       options, "gateway_comm_udpport"
       check_port_number       options, "gateway_learning_udpport_multicast"
       check_multicast_address options, "master_comm_ipaddr_multicast"
-      check_port_number       options, "isladn_comm_udpport_broadcast"
+      check_port_number       options, "island_comm_udpport_broadcast"
       check_network_interface options, "island_comm_device_multicast"
     end
 
@@ -200,7 +200,7 @@ module Castoro; class Gateway
       check_multicast_address options, "peer_comm_ipaddr_multicast"
       check_network_interface options, "peer_comm_device_multicast"
       check_multicast_address options, "master_comm_ipaddr_multicast"
-      check_port_number       options, "isladn_comm_udpport_broadcast"
+      check_port_number       options, "island_comm_udpport_broadcast"
       check_multicast_address options, "island_comm_ipaddr_multicast"
       check_network_interface options, "island_comm_device_multicast"
     end

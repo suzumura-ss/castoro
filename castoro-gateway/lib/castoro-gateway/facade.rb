@@ -50,7 +50,7 @@ module Castoro
         @gmp              = config["gateway_learning_udpport_multicast"].to_i
         @gwp              = config["gateway_watchdog_udpport_multicast"].to_i
         @watchdog_logging = config["gateway_watchdog_logging"]
-        config.is_island_when { @ibp = config["isladn_comm_udpport_broadcast"].to_i }
+        config.is_island_when { @ibp = config["island_comm_udpport_broadcast"].to_i }
 
         ifs                 = Castoro::Utils.network_interfaces
         gateway_device_addr = (ifs[config["gateway_comm_device_multicast"]] || {})[:ip]

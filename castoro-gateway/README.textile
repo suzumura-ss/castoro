@@ -277,7 +277,7 @@ h4. master_comm_ipaddr_multicast
 Multicast address for master-gateway.
 for master and island.
 
-h4. isladn_comm_udpport_broadcast
+h4. island_comm_udpport_broadcast
 
 Port number for island broadcast.
 for master and island.
@@ -345,7 +345,7 @@ h3. configurations key list
 |peer_comm_ipaddr_multicast|String|required||required|239.192.1.1|
 |peer_comm_device_multicast|String|required||required|eth0|
 |master_comm_ipaddr_multicast|String||required|required|239.192.254.254|
-|isladn_comm_udpport_broadcast|Integer||required|required|30108|
+|island_comm_udpport_broadcast|Integer||required|required|30108|
 |island_comm_ipaddr_multicast|String|||required||
 |island_comm_device_multicast|String||required|required|eth0|
 |cache / class|String|required||required||

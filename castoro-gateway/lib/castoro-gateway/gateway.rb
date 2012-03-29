@@ -107,7 +107,7 @@ module Castoro
                          Castoro::Utils.network_interfaces[@config["island_comm_device_multicast"]][:broadcast],
                          Castoro::Utils.network_interfaces[@config["island_comm_device_multicast"]][:ip],
                          @config["gateway_learning_udpport_multicast"],
-                         @config["isladn_comm_udpport_broadcast"]
+                         @config["island_comm_udpport_broadcast"]
                      )
                    when "island"
                      @@workers_class.new(
