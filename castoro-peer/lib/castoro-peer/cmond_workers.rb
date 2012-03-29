@@ -66,10 +66,10 @@ module Castoro
       def self.set_mode_of_every_local_target
         c = Configurations.instance
         Thread.new {
-          self.set_mode( '127.0.0.1', c.CpeerdMaintenancePort )
+          self.set_mode( '127.0.0.1', c.cpeerd_maintenance_tcpport )
         }
         Thread.new {
-          self.set_mode( '127.0.0.1', c.CrepdMaintenancePort )
+          self.set_mode( '127.0.0.1', c.crepd_maintenance_tcpport )
         }
       end
     end
@@ -80,16 +80,16 @@ module Castoro
       def initialize
         c = Configurations.instance
         @w = []
-        @s = StorageSpaceMonitor.new( c.BasketBaseDir )
-        @a = AlivePacketSender.new( c.MulticastAddress, c.WatchDogUDPCommandPort, @s )
-        @p = CxxxdCommnicationWorker.new( '127.0.0.1', c.CpeerdHealthCheckPort )
-        @r = CxxxdCommnicationWorker.new( '127.0.0.1', c.CrepdHealthCheckPort )
+        @s = StorageSpaceMonitor.new( c.basket_basedir )
+        @a = AlivePacketSender.new( c.gateway_comm_ipaddr_multicast, c.gateway_watchdog_udpport_multicast, @s )
+        @p = CxxxdCommnicationWorker.new( '127.0.0.1', c.cpeerd_healthcheck_tcpport )
+        @r = CxxxdCommnicationWorker.new( '127.0.0.1', c.crepd_healthcheck_tcpport )
         @colleague_hosts = StorageServers.instance.colleague_hosts
-        @colleague_hosts.each { |h| @w << CxxxdCommnicationWorker.new( h, c.CmondHealthCheckPort ) }
+        @colleague_hosts.each { |h| @w << CxxxdCommnicationWorker.new( h, c.cmond_healthcheck_tcpport ) }
         @d = nil
         @z = SupervisorWorker.new( @p, @r, @d, @w, @a )
-        @m = CmondTcpMaintenaceServer.new( c.CmondMaintenancePort, @p, @r, @d, @w, @a )
-        @h = TCPHealthCheckPatientServer.new( c.CmondHealthCheckPort )
+        @m = CmondTcpMaintenaceServer.new( c.cmond_maintenance_tcpport, @p, @r, @d, @w, @a )
+        @h = TCPHealthCheckPatientServer.new( c.cmond_healthcheck_tcpport )
       end
 
       def start_workers
@@ -328,9 +328,11 @@ module Castoro
         def initialize( ip, port, space_monitor )
           @ip, @port, @space_monitor = ip, port, space_monitor
           super
-          @channel   = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
-          @host      = Configurations.instance.HostnameForClient
-          @period    = Configurations.instance.PeriodOfAlivePacketSender
+          socket = ExtendedUDPSocket.new
+          socket.set_multicast_if Configurations.instance.gateway_comm_ipaddr_nic
+          @channel   = UdpClientChannel.new socket
+          @host      = Configurations.instance.peer_hostname
+          @period    = Configurations.instance.cmond_period_of_watchdog_sender
           @mutex     = Mutex.new
         end
 
@@ -344,7 +346,7 @@ module Castoro
             status = ServerStatus.instance.status
             unless ( status == ServerStatus::UNKNOWN )
               args = Hash[ 'host', @host, 'status', status, 'available', @space_monitor.space_bytes ]
-              @channel.send( 'ALIVE', args, @ip, @port )
+              @channel.send 'ALIVE', args, @ip, @port
             end
           }
         end
@@ -364,8 +366,8 @@ module Castoro
           @p, @r, @d, @w, @alive_packet_sender = p, r, d, w, alive_packet_sender
           super( port )
           c = Configurations.instance
-          @cpeerd_maintenance_port = c.CpeerdMaintenancePort
-          @crepd_maintenance_port  = c.CrepdMaintenancePort
+          @cpeerd_maintenance_port = c.cpeerd_maintenance_tcpport
+          @crepd_maintenance_port  = c.crepd_maintenance_tcpport
         end
 
         def do_help

@@ -87,9 +87,9 @@ describe Castoro::Peer::Csm::Request::Finalize do
 
       it 'should instance valiables be set correctly.' do
         @csm_req.instance_variable_get(:@subcommand).should == "mv"
-        @csm_req.instance_variable_get(:@user).should == @conf.Dir_a_user
-        @csm_req.instance_variable_get(:@group).should == @conf.Dir_a_group
-        @csm_req.instance_variable_get(:@mode).should == @conf.Dir_a_perm
+        @csm_req.instance_variable_get(:@user).should == @conf.dir_a_user
+        @csm_req.instance_variable_get(:@group).should == @conf.dir_a_group
+        @csm_req.instance_variable_get(:@mode).should == @conf.dir_a_perm
         @csm_req.instance_variable_get(:@path1).should == PATH1
         @csm_req.instance_variable_get(:@path2).should == PATH2
       end

@@ -158,22 +158,22 @@ module Castoro
 
       def initialize
         c = Configurations.instance
-        Basket.setup c.TypeIdRangesHash, c.BasketBaseDir
+        Basket.setup c.type_id_rangesHash, c.basket_basedir
         @w = []
-        @w << UdpCommandReceiver.new( UDPCommandReceiverPL.instance, c.PeerUDPCommandPort )
-        @w << TcpCommandAcceptor.new( TcpAcceptorPL.instance, c.PeerTCPCommandPort )
+        @w << UdpCommandReceiver.new( UDPCommandReceiverPL.instance, c.peer_comm_udpport_multicast )
+        @w << TcpCommandAcceptor.new( TcpAcceptorPL.instance, c.peer_comm_tcpport )
         5.times { @w << TcpCommandReceiver.new( TcpAcceptorPL.instance, TCPCommandReceiverPL.instance ) }
-        c.NumberOfUDPCommandProcessor.times   { @w << CommandProcessor.new( UDPCommandReceiverPL.instance ) }
-        c.NumberOfTCPCommandProcessor.times   { @w << CommandProcessor.new( TCPCommandReceiverPL.instance ) }
-        c.NumberOfBasketStatusQueryDB.times { @w << BasketStatusQueryDB.new() }
-        c.NumberOfCsmController.times      { @w << CsmController.new() }
-        c.NumberOfUdpResponseSender.times  { @w << UdpResponseSender.new( UdpResponseSenderPL.instance ) }
-        c.NumberOfTcpResponseSender.times  { @w << TcpResponseSender.new( TcpResponseSenderPL.instance ) }
-        c.NumberOfMulticastCommandSender.times { @w << MulticastCommandSender.new( c.MulticastAddress, c.GatewayUDPCommandPort ) }
-        c.NumberOfReplicationDBClient.times  { @w << ReplicationDBClient.new() }
+        c.cpeerd_number_of_udp_command_processor.times    { @w << CommandProcessor.new( UDPCommandReceiverPL.instance ) }
+        c.cpeerd_number_of_tcp_command_processor.times    { @w << CommandProcessor.new( TCPCommandReceiverPL.instance ) }
+        c.cpeerd_number_of_basket_status_query_db.times   { @w << BasketStatusQueryDB.new() }
+        c.cpeerd_number_of_csm_controller.times           { @w << CsmController.new() }
+        c.cpeerd_number_of_udp_response_sender.times      { @w << UdpResponseSender.new( UdpResponseSenderPL.instance ) }
+        c.cpeerd_number_of_tcp_response_sender.times      { @w << TcpResponseSender.new( TcpResponseSenderPL.instance ) }
+        c.cpeerd_number_of_multicast_command_sender.times { @w << MulticastCommandSender.new( c.gateway_comm_ipaddr_multicast, c.gateway_learning_udpport_multicast ) }
+        c.cpeerd_number_of_replication_db_client.times    { @w << ReplicationDBClient.new() }
         @w << StatisticsLogger.new()
-        @m = CpeerdTcpMaintenaceServer.new( c.CpeerdMaintenancePort )
-        @h = TCPHealthCheckPatientServer.new( c.CpeerdHealthCheckPort )
+        @m = CpeerdTcpMaintenaceServer.new( c.cpeerd_maintenance_tcpport )
+        @h = TCPHealthCheckPatientServer.new( c.cpeerd_healthcheck_tcpport )
       end
 
       def start_workers
@@ -205,14 +205,16 @@ module Castoro
         def initialize( pipeline, port )
           @pipeline = pipeline
           @socket = ExtendedUDPSocket.new
-          @socket.bind( Configurations.instance.MulticastAddress, port )
+          c = Configurations.instance
+          @socket.join_multicast_group c.peer_comm_ipaddr_multicast, c.peer_comm_ipaddr_nic
+          @socket.bind '0.0.0.0', port
           super
         end
 
         def serve
-          channel = UdpServerChannel.new
+          channel = UdpServerChannel.new @socket
           ticket = CommandReceiverTicketPool.instance.create_ticket
-          channel.receive( @socket, ticket )
+          channel.receive ticket
           ticket.channel = channel
           ticket.socket = nil
           ticket.mark
@@ -227,6 +229,23 @@ module Castoro
 
 
       class TcpCommandAcceptor < Worker
+
+        class SocketDelegator
+          attr_reader :ip, :port
+
+          def initialize socket
+            @socket = socket
+          end
+
+          def method_missing(m, *args, &block)
+            @socket.__send__(m, *args, &block)
+          end
+
+          def client_sockaddr= client_sockaddr
+            @port, @ip = Socket.unpack_sockaddr_in( client_sockaddr )
+          end
+        end
+
         def initialize( pipeline, port )
           @pipeline, @port = pipeline, port
           super
@@ -247,6 +266,8 @@ module Castoro
             client_socket = nil
             begin
               client_socket, client_sockaddr = @socket.accept
+              s = SocketDelegator.new client_socket
+              s.client_sockaddr = client_sockaddr
             rescue IOError, Errno::EBADF => e
               # IOError "closed stream"
               # Errno::EBADF "Bad file number"
@@ -262,7 +283,7 @@ module Castoro
               @finished = true
               return
             end
-            @pipeline.enq client_socket
+            @pipeline.enq s
           end
         end
 
@@ -289,8 +310,8 @@ module Castoro
           end
           loop do
             ticket = CommandReceiverTicketPool.instance.create_ticket
-            channel = TcpServerChannel.new
-            channel.receive( client, ticket )
+            channel = TcpServerChannel.new client
+            channel.receive ticket
             if ( channel.closed? )
               CommandReceiverTicketPool.instance.delete( ticket )
               return
@@ -325,7 +346,7 @@ module Castoro
         def initialize( pipeline )
           @pipeline = pipeline
           super
-          @hostname = Configurations.instance.HostnameForClient
+          @hostname = Configurations.instance.peer_hostname
         end
 
         def serve
@@ -547,7 +568,7 @@ module Castoro
           message = ticket.message
           socket = @socket || ticket.socket
           begin
-            ticket.channel.send( socket, result )
+            ticket.channel.send result
           rescue IOError => e  # e.g. "closed stream occurred"
             Log.warning e, basket_text
           rescue => e
@@ -557,7 +578,7 @@ module Castoro
 #          socket.close if ticket.channel.tcp?
           ip, port = nil, nil
           if ( ticket.channel.tcp? )
-            ip, port = ticket.channel.get_peeraddr
+            ip, port = socket.ip, socket.port
           else
             # Todo: should be implemented for UDP
           end
@@ -589,7 +610,9 @@ module Castoro
 
       class MulticastCommandSender < Worker
         def initialize( ip, port )
-          @channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
+          socket = ExtendedUDPSocket.new
+          socket.set_multicast_if Configurations.instance.gateway_comm_ipaddr_nic
+          @channel = UdpClientChannel.new socket
           @ip, @port = ip, port
           super
         end
@@ -597,7 +620,7 @@ module Castoro
         def serve
           ticket = MulticastCommandSenderPL.instance.deq
           command, args = ticket.pop2
-          @channel.send( command, args, @ip, @port )
+          @channel.send command, args, @ip, @port
           MulticastCommandSenderTicketPool.instance.delete( ticket )
         end
       end
@@ -608,8 +631,8 @@ module Castoro
           ReplicationQueueDirectories.instance
           super
           @ip = '127.0.0.1'
-          @port = Configurations.instance.ReplicationUDPCommandPort
-          @channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
+          @port = Configurations.instance.crepd_registration_udpport
+          @channel = UdpClientChannel.new( ExtendedUDPSocket.new )
         end
 
         def serve
@@ -620,8 +643,8 @@ module Castoro
           begin
             args = Hash[ 'basket', basket.to_s ]
             case action
-            when :replicate ; @channel.send( 'REPLICATE', args, @ip, @port )
-            when :delete    ; @channel.send( 'DELETE',    args, @ip, @port )
+            when :replicate ; @channel.send 'REPLICATE', args, @ip, @port
+            when :delete    ; @channel.send 'DELETE',    args, @ip, @port
             end
           rescue => e
             Log.warning e, "#{action} #{basket}"
@@ -633,7 +656,7 @@ module Castoro
       class CpeerdTcpMaintenaceServer < TcpMaintenaceServer
         def initialize( port )
           super
-          @hostname = Configurations.instance.HostnameForClient
+          @hostname = Configurations.instance.peer_hostname
         end
 
         def do_help
@@ -697,7 +720,7 @@ module Castoro
       class StatisticsLogger < Worker
         def initialize
           super
-          @period = Configurations.instance.PeriodOfStatisticsLogger
+          @period = Configurations.instance.cpeerd_period_of_statistics_logger
         end
 
         def serve

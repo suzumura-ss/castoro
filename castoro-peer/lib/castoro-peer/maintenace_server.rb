@@ -35,7 +35,7 @@ module Castoro
       end
 
       def serve( io )
-        peer_port, peer_host = Socket.unpack_sockaddr_in( io.getpeername )
+        peer_port, peer_host = io.port, io.ip
         Log.notice "Health check: connection established from #{peer_host}:#{peer_port}"
 
 #        flags = io.fcntl(Fcntl::F_GETFL, 0)
@@ -97,7 +97,7 @@ module Castoro
     class TcpMaintenaceServer < PreThreadedTcpServer
       def initialize( port )
         super( port, '0.0.0.0', 10 )
-        @hostname = Configurations.instance.HostnameForClient
+        @hostname = Configurations.instance.peer_hostname
         @program = $0.sub(/.*\//, '')
       end
 

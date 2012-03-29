@@ -115,10 +115,10 @@ module Castoro
         @data = @global.data.dup
         load_storage_hosts_file
         load_storage_groups_file
-        @data[ :TypeIdRangesHash ] = Hash.new.tap do |h|
+        @data[ :type_id_rangesHash ] = Hash.new.tap do |h|
           @services.each do |s|
             s.validate
-            h[ s[ :BasketKeyConverterModuleName ] ] = s[ :TypeIdRanges ]
+            h[ s[ :basket_keyconverter ] ] = s[ :type_id_ranges ]
           end
         end
         @data
@@ -158,11 +158,11 @@ module Castoro
       end
 
       def load_storage_hosts_file
-        @data[ :StorageHostsData ] = YAML::load_file( @global[ :StorageHostsFile ] )
+        @data[ :StorageHostsData ] = YAML::load_file( @global[ :config_host_file ] )
       end
       
       def load_storage_groups_file
-        @data[ :StorageGroupsData ] = JSON::parse( IO.read @global[ :StorageGroupsFile ] )
+        @data[ :StorageGroupsData ] = JSON::parse( IO.read @global[ :config_group_file ] )
       end
 
 
@@ -218,52 +218,55 @@ module Castoro
       class GlobalSection < Section
         def initialize
           super(
-                :HostnameForClient                    => [ :optional,  :string ],
-                :MulticastAddress                     => [ :optional,  :string ],
-                :MulticastNetwork                     => [ :optional,  :string ],
-                :MulticastIf                          => [ :optional,  :string ],
-                :GatewayUDPCommandPort                => [ :mandatory, :number ],
-                :PeerTCPCommandPort                   => [ :mandatory, :number ],
-                :PeerUDPCommandPort                   => [ :mandatory, :number ],
-                :WatchDogUDPCommandPort               => [ :mandatory, :number ],
-                :ReplicationTCPCommunicationPort      => [ :mandatory, :number ],
-                :ReplicationUDPCommandPort            => [ :mandatory, :number ],
-                :CmondMaintenancePort                 => [ :mandatory, :number ],
-                :CpeerdMaintenancePort                => [ :mandatory, :number ],
-                :CrepdMaintenancePort                 => [ :mandatory, :number ],
-                :CmondHealthCheckPort                 => [ :mandatory, :number ],
-                :CpeerdHealthCheckPort                => [ :mandatory, :number ],
-                :CrepdHealthCheckPort                 => [ :mandatory, :number ],
-                :NumberOfUDPCommandProcessor          => [ :mandatory, :number ],
-                :NumberOfTCPCommandProcessor          => [ :mandatory, :number ],
-                :NumberOfBasketStatusQueryDB          => [ :mandatory, :number ],
-                :NumberOfCsmController                => [ :mandatory, :number ],
-                :NumberOfUdpResponseSender            => [ :mandatory, :number ],
-                :NumberOfTcpResponseSender            => [ :mandatory, :number ],
-                :NumberOfMulticastCommandSender       => [ :mandatory, :number ],
-                :NumberOfReplicationDBClient          => [ :mandatory, :number ],
-                :PeriodOfAlivePacketSender            => [ :mandatory, :number ],
-                :PeriodOfStatisticsLogger             => [ :mandatory, :number ],
-                :StorageGroupsFile                    => [ :mandatory, :string, :path ],
-                :StorageHostsFile                     => [ :mandatory, :string, :path ],
-                :EffectiveUser                        => [ :mandatory, :string ],
-                :ReplicationTransmissionDataUnitSize  => [ :mandatory, :number ],
-                :NumberOfReplicationSender            => [ :mandatory, :number ],
-                :UseManipulatorDaemon                 => [ :mandatory, :boolean ],
-                :ManipulatorSocket                    => [ :optional,  :string, :path ],
-                :BasketBaseDir                        => [ :mandatory, :string, :path ],
-                :Dir_w_user                           => [ :mandatory, :string ],
-                :Dir_w_group                          => [ :mandatory, :string ],
-                :Dir_w_perm                           => [ :mandatory, :octal  ],
-                :Dir_a_user                           => [ :mandatory, :string ],
-                :Dir_a_group                          => [ :mandatory, :string ],
-                :Dir_a_perm                           => [ :mandatory, :octal  ],
-                :Dir_d_user                           => [ :mandatory, :string ],
-                :Dir_d_group                          => [ :mandatory, :string ],
-                :Dir_d_perm                           => [ :mandatory, :octal  ],
-                :Dir_c_user                           => [ :mandatory, :string ],
-                :Dir_c_group                          => [ :mandatory, :string ],
-                :Dir_c_perm                           => [ :mandatory, :octal  ],
+                :peer_hostname                              => [ :optional,  :string ],
+                :gateway_comm_ipaddr_multicast              => [ :optional,  :string ],
+                :gateway_comm_ipaddr_network                => [ :optional,  :string ],
+                :gateway_comm_ipaddr_nic                    => [ :optional,  :string ],
+                :peer_comm_ipaddr_multicast                 => [ :optional,  :string ],
+                :peer_comm_ipaddr_network                   => [ :optional,  :string ],
+                :peer_comm_ipaddr_nic                       => [ :optional,  :string ],
+                :gateway_learning_udpport_multicast         => [ :mandatory, :number ],
+                :peer_comm_tcpport                          => [ :mandatory, :number ],
+                :peer_comm_udpport_multicast                => [ :mandatory, :number ],
+                :gateway_watchdog_udpport_multicast         => [ :mandatory, :number ],
+                :crepd_transmission_tcpport                 => [ :mandatory, :number ],
+                :crepd_registration_udpport                 => [ :mandatory, :number ],
+                :cmond_maintenance_tcpport                  => [ :mandatory, :number ],
+                :cpeerd_maintenance_tcpport                 => [ :mandatory, :number ],
+                :crepd_maintenance_tcpport                  => [ :mandatory, :number ],
+                :cmond_healthcheck_tcpport                  => [ :mandatory, :number ],
+                :cpeerd_healthcheck_tcpport                 => [ :mandatory, :number ],
+                :crepd_healthcheck_tcpport                  => [ :mandatory, :number ],
+                :cpeerd_number_of_udp_command_processor     => [ :mandatory, :number ],
+                :cpeerd_number_of_tcp_command_processor     => [ :mandatory, :number ],
+                :cpeerd_number_of_basket_status_query_db    => [ :mandatory, :number ],
+                :cpeerd_number_of_csm_controller            => [ :mandatory, :number ],
+                :cpeerd_number_of_udp_response_sender       => [ :mandatory, :number ],
+                :cpeerd_number_of_tcp_response_sender       => [ :mandatory, :number ],
+                :cpeerd_number_of_multicast_command_sender  => [ :mandatory, :number ],
+                :cpeerd_number_of_replication_db_client     => [ :mandatory, :number ],
+                :cmond_period_of_watchdog_sender            => [ :mandatory, :number ],
+                :cpeerd_period_of_statistics_logger         => [ :mandatory, :number ],
+                :config_group_file                          => [ :mandatory, :string, :path ],
+                :config_host_file                           => [ :mandatory, :string, :path ],
+                :effective_user                             => [ :mandatory, :string ],
+                :crepd_transmission_data_unit_size          => [ :mandatory, :number ],
+                :crepd_number_of_replication_sender         => [ :mandatory, :number ],
+                :manipulator_in_use                         => [ :mandatory, :boolean ],
+                :manipulator_socket                         => [ :optional,  :string, :path ],
+                :basket_basedir                             => [ :mandatory, :string, :path ],
+                :dir_w_user                                 => [ :mandatory, :string ],
+                :dir_w_group                                => [ :mandatory, :string ],
+                :dir_w_perm                                 => [ :mandatory, :octal  ],
+                :dir_a_user                                 => [ :mandatory, :string ],
+                :dir_a_group                                => [ :mandatory, :string ],
+                :dir_a_perm                                 => [ :mandatory, :octal  ],
+                :dir_d_user                                 => [ :mandatory, :string ],
+                :dir_d_group                                => [ :mandatory, :string ],
+                :dir_d_perm                                 => [ :mandatory, :octal  ],
+                :dir_c_user                                 => [ :mandatory, :string ],
+                :dir_c_group                                => [ :mandatory, :string ],
+                :dir_c_perm                                 => [ :mandatory, :octal  ],
                 )
         end
 
@@ -271,28 +274,29 @@ module Castoro
           super
           validate_hostname
           validate_manipulator
-          validate_network
+          validate_network :gateway_comm_ipaddr_nic, :gateway_comm_ipaddr_network
+          validate_network :peer_comm_ipaddr_nic,    :peer_comm_ipaddr_network
         end
 
         private
 
         def validate_hostname
-          unless @data[ :HostnameForClient ]
-            @data[ :HostnameForClient ] = Ifconfig.instance.default_hostname
+          unless @data[ :peer_hostname ]
+            @data[ :peer_hostname ] = Ifconfig.instance.default_hostname
           end
         end
 
         def validate_manipulator
-          if @data[ :UseManipulatorDaemon ]
-            @data[ :ManipulatorSocket ] or raise ConfigurationError, "ManipulatorSocket is not specified"
+          if @data[ :manipulator_in_use ]
+            @data[ :manipulator_socket ] or raise ConfigurationError, "manipulator_socket is not specified"
           end
         end
 
-        def validate_network
-          ip  = @data[ :MulticastIf ]
-          net = @data[ :MulticastNetwork ]
+        def validate_network nic, network
+          ip  = @data[ nic ]
+          net = @data[ network ]
           if ip
-            raise ConfigurationError, "Both MulticastIf and MulticastNetwork are specified" if net
+            raise ConfigurationError, "Both #{nic} and #{network} are specified" if net
           else
             if net
               ip = Ifconfig.instance.multicast_interface_by_network_address( net )
@@ -301,7 +305,7 @@ module Castoro
             end
           end
           Ifconfig.instance.has_interface?( ip ) or raise ConfigurationError, "This host does not have the IP address: #{ip}"
-          @data[ :MulticastIf ] = ip
+          @data[ nic ] = ip
         end
       end
 
@@ -309,9 +313,9 @@ module Castoro
       class ServiceSection < Section
         def initialize
           super(
-                :ServiceName                          => [ :mandatory, :string ],
-                :TypeIdRanges                         => [ :mandatory, :string ],
-                :BasketKeyConverterModuleName         => [ :mandatory, :string ],
+                :service_name                               => [ :mandatory, :string ],
+                :type_id_ranges                             => [ :mandatory, :string ],
+                :basket_keyconverter                        => [ :mandatory, :string ],
                 )
         end
       end
@@ -324,24 +328,23 @@ if $0 == __FILE__
   module Castoro
     module Peer
       f = '../../config/etc/peer.conf-sample-en.conf'
-      f = 'peer.conf'
       Configurations.file = f
 
       x = Configurations.instance
-      p x.MulticastIf
-      p x.TypeIdRangesHash
+      p x.gateway_comm_ipaddr_nic
+      p x.type_id_rangesHash
 
       x.load()
-      p x.MulticastIf
+      p x.gateway_comm_ipaddr_nic
       x.load( f )
-      p x.MulticastIf
+      p x.gateway_comm_ipaddr_nic
       x.reload
-      p x.MulticastIf
+      p x.gateway_comm_ipaddr_nic
     end
   end
 end
 
 __END__
 
-time ruby -I ..  -e "require 'configurations'; 1000000.times{ x=Castoro::Peer::Configurations.instance.MulticastIf }"
-time ruby -I ..  -e "require 'configurations'; c=Castoro::Peer::Configurations.instance; 1000000.times{ x=c.MulticastIf }"
+time ruby -I ..  -e "require 'configurations'; 1000000.times{ x=Castoro::Peer::Configurations.instance.gateway_comm_ipaddr_nic }"
+time ruby -I ..  -e "require 'configurations'; c=Castoro::Peer::Configurations.instance; 1000000.times{ x=c.gateway_comm_ipaddr_nic }"

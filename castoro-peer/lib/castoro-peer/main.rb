@@ -30,7 +30,7 @@ require 'castoro-peer/custom_condition_variable'
 module Castoro
   module Peer
 
-    PROGRAM_VERSION = 'peer-0.2.0.pre2 - 2012-02-22'
+    PROGRAM_VERSION = 'peer-0.2 - 2012-03-29'
 
     $RUN_AS_DAEMON = true
 
@@ -60,8 +60,8 @@ module Castoro
         Configurations.instance
 
         if ( Process.euid == 0 )
-          # Todo: notifies with an understandable error message if EffectiveUser is not set
-          pwnam = Etc.getpwnam( Configurations.instance.EffectiveUser )
+          # Todo: notifies with an understandable error message if effective_user is not set
+          pwnam = Etc.getpwnam( Configurations.instance.effective_user )
           Process.egid = pwnam.gid
           Process.euid = pwnam.uid
         end

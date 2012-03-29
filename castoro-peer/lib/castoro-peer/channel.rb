@@ -27,26 +27,67 @@ module Castoro
 
     PROTOCOL_VERSION = '1.1'
 
-    class ServerChannel
-      def initialize
+    class Channel
+      def initialize socket
+        @socket = socket
         @command = nil
       end
 
-      def parse( body )
-        a = JSON.parse( body )
+      def parse body, direction_code, exception
+        a = JSON.parse body
         version, direction, command, args = a
-        @command = command  # @command would be needed for a response whatever exception occurs
-        version == PROTOCOL_VERSION or raise BadRequestError, "Version #{PROTOCOL_VERSION} is expected, but version: #{version}: #{body}"
-        direction == 'C' or raise BadRequestError, "Direction C is expected, but direction: #{direction}: #{body}"
-        # the forth parameter could be nil in the inter-crepd communication, so do not block it
-        # args.class == Hash or raise BadRequestError, "The forth parameter is not a Hash: #{args}: #{body}"
-        a.size == 4 or raise BadRequestError, "The number of parameters does not equal to 4: #{a.size}: #{body}"
+        @command = command  # @command will be used in a response whatever exception occurs
+        a.size == 4 or raise exception, "The number of parameters does not equal to 4: #{a.size}: #{body}"
+        version == PROTOCOL_VERSION or raise exception, "Version #{PROTOCOL_VERSION} is expected: #{version}: #{body}"
+        direction == direction_code or raise exception, "Direction #{direction_code} is expected: #{direction}: #{body}"
         [ command, args ]
       end
 
-      def send( socket, result, ticket = nil )
-        # p [ 'ServerChannel#send', result ]
-        if ( result.is_a? Exception )
+      module TcpModule
+        def tcp?
+          true
+        end
+
+        def closed?
+          @data.nil? or @data == ''
+        end
+
+        def parse
+          super @data
+        end
+
+        def receive ticket = nil
+          ticket.mark unless ticket.nil?
+          @data = @socket.gets
+          ticket.mark unless ticket.nil?
+          if closed?
+            @socket.close unless @socket.closed?
+          end
+          if $DEBUG
+            unless closed?
+              Log.debug "TCP I : #{@socket.ip}:#{@socket.port} #{@data}"
+            else
+              Log.debug "TCP Closed : #{@socket.ip}:#{@socket.port}"
+            end
+          end
+        end
+      end
+
+      module UdpModule
+        def tcp?
+          false
+        end
+      end
+    end
+
+
+    class ServerChannel < Channel
+      def parse body
+        super body, 'C', BadRequestError
+      end
+
+      def send result, ticket = nil
+        if result.is_a? Exception
           [ PROTOCOL_VERSION, 'R', @command, 
             { 'error' => { 'code' => result.class, 'message' => result.message } } ].to_json
         else
@@ -57,184 +98,77 @@ module Castoro
 
 
     class TcpServerChannel < ServerChannel
-      def initialize
-        @port, @ip = nil, nil
-        super
-      end
+      include Channel::TcpModule
 
-      def receive( socket, ticket = nil )
-        @data = socket.gets
+      def send result, ticket = nil
+        s = super
         ticket.mark unless ticket.nil?
-        unless ( closed? )
-          @port, @ip = nil, nil
-          begin
-            # @port, @ip = socket.peeraddr[1], socket.peeraddr[3]
-            @port, @ip = Socket.unpack_sockaddr_in( socket.getpeername )
-          rescue
-            # do nothing
-          end
-        else
-          socket.close unless socket.closed?
-        end
-        if ( $DEBUG )
-          unless ( closed? )
-            Log.debug( sprintf( "TCP I : %s:%s %s", @ip, @port, @data ) ) if $DEBUG
-          else
-            Log.debug( sprintf( "TCP Closed   : %s:%s %s", @ip, @port, 'nil' ) ) if $DEBUG
-          end
-        end
-      end
-
-      def get_peeraddr
-        [ @ip, @port ]
-      end
-
-      def closed?
-        @data.nil? or @data == ''
-      end
-
-      def parse
-        super( @data )
-      end
-
-      def send( socket, result, ticket = nil )
-        # p [ 'TcpServerChannel#send', result ]
-        s = "#{super}\r\n"
-        # @port, @ip = socket.peeraddr[1], socket.peeraddr[3]
-        @port, @ip = Socket.unpack_sockaddr_in( socket.getpeername )
+        @socket.syswrite( "#{s}\r\n" )
         ticket.mark unless ticket.nil?
-        socket.syswrite( s )
-        ticket.mark unless ticket.nil?
-        if ( $DEBUG )
-          Log.debug( sprintf( "TCP O : %s:%s %s", @ip, @port, s ) ) if $DEBUG
-        end
-      end
-
-      def tcp?
-        true
+        Log.debug "TCP O : #{@socket.ip}:#{@socket.port} #{s}" if $DEBUG
       end
     end
 
 
     class UdpServerChannel < ServerChannel
-      def receive( socket, ticket = nil )
-        @data = socket.receiving( ticket )
+      include Channel::UdpModule
+
+      def receive ticket = nil
+        @data = @socket.receiving( ticket )
         ticket.mark unless ticket.nil?
       end
 
       def parse
         @header, body = @data.split("\r\n")
-        # p @header
-        a = JSON.parse( @header )
+        a = JSON.parse @header
         a.size == 3 or raise BadRequestError, "The number of parameters does not equal to 3: #{a.size}: #{@header}"
         @ip, @port, @sid = a
         # Todo: validation on ip, port, sid
-        super( body )
+        super body
       end
 
-      def send( socket, result, ticket = nil )
-        socket.sending( "#{@header}\r\n#{super}\r\n", @ip, @port, ticket )
-      end
-
-      def tcp?
-        false
+      def send result, ticket = nil
+        @socket.sending( "#{@header}\r\n#{super}\r\n", @ip, @port, ticket )
       end
     end
 
 
-    class UdpMulticastClientChannel
-      def initialize( socket )
-        @socket = socket
-        @reply_ip = Configurations.instance.MulticastIf
-        @reply_port = 0
-      end
-
-      def send( command, args, ip, port )  # Todo: swap parameters
-        # p [ 'command', command, 'args', args ]
-        sid = SessionIdGenerator.instance.generate
-        header = [ @reply_ip, @reply_port, sid ].to_json
-        body   = [ PROTOCOL_VERSION, 'C', command, args ].to_json
-        @socket.sending( "#{header}\r\n#{body}\r\n", ip, port )  # Todo: ticket
-      end
-    end
-
-
-    class ClientChannel
-      def initialize
-        @command = nil
-      end
-
-      def send( socket, command, args )
+    class ClientChannel < Channel
+      def send command, args
         @command = command
-        [ PROTOCOL_VERSION, 'C', @command, args ].to_json
+        [ PROTOCOL_VERSION, 'C', command, args ].to_json
       end
 
-      def parse( body )
-        a = JSON.parse( body )
-        version, direction, command, args = a
-        version == PROTOCOL_VERSION or raise BadResponseError, "Version #{PROTOCOL_VERSION} is expected, but version: #{version}: #{body}"
-        direction == 'R' or raise BadResponseError, "Direction R is expected, but direction: #{direction}: #{body}"
-        command == @command or raise BadResponseError, "Command #{@command} is expected, but command: #{command}: #{body}"
-        # the forth parameter could be nil in the inter-crepd communication, so do not block it
-        # args.class == Hash or raise BadResponseError, "The forth parameter is not a Hash: #{args}: #{body}"
-        a.size == 4 or raise BadResponseError, "The number of parameters does not equal to 4: #{a.size}: #{body}"
+      def parse body
+        sent_command = @command
+        command, args = super body, 'R', BadResponseError
+        sent_command == command or raise BadResponseError, "Command #{sent_command} is expected: #{command}: #{body}"
         [ command, args ]
       end
     end
 
 
     class TcpClientChannel < ClientChannel
-      def send( socket, command, args )
-        s = "#{super}\r\n"
-        socket.syswrite( s )
-        if ( $DEBUG )
-          # @port, @ip = socket.peeraddr[1], socket.peeraddr[3]
-          @port, @ip = Socket.unpack_sockaddr_in( socket.getpeername )
-          Log.debug( sprintf( "TCP O : %s:%s %s", @ip, @port, s ) ) if $DEBUG
-        end
-      end
+      include Channel::TcpModule
 
-      def receive( socket )
-        @data = socket.gets
-
-        if ( closed? )
-          socket.close unless socket.closed?
-        end
-
-        if ( $DEBUG )
-          # @port, @ip = socket.peeraddr[1], socket.peeraddr[3]
-          @port, @ip = Socket.unpack_sockaddr_in( socket.getpeername )
-          unless ( @data.nil? )
-            Log.debug( sprintf( "TCP I : %s:%s %s", @ip, @port, @data ) ) if $DEBUG
-          else
-            Log.debug( sprintf( "TCP Closed   : %s:%s %s", @ip, @port, 'nil' ) ) if $DEBUG
-          end
-        end
-      end
-
-      def get_peeraddr
-        [ @ip, @port ]
-      end
-
-      def closed?
-        @data.nil? or @data == ''
-      end
-
-      def parse
-        super( @data )
-      end
-
-      def tcp?
-        true
+      def send command, args
+        s = super
+        @socket.syswrite( "#{s}\r\n" )
+        Log.debug "TCP O : #{@socket.ip}:#{@socket.port} #{s}" if $DEBUG
       end
     end
 
-  end
-end
 
-if $0 == __FILE__
-  module Castoro
-    module Peer
+    class UdpClientChannel < ClientChannel
+      include Channel::UdpModule
+
+      def send command, args, ip, port
+        sid = SessionIdGenerator.instance.generate
+        # Todo: peer does not expect any response from a receipient
+        header = [ '0.0.0.0', 0, sid ].to_json  # reply id, reply port, sid
+        body   = super command, args
+        @socket.sending( "#{header}\r\n#{body}\r\n", ip, port )
+      end
     end
   end
 end

@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 #
 #   Copyright 2010 Ricoh Company, Ltd.
 #
@@ -19,26 +17,12 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require "socket"
+DEST = /etc/init.d
 
-require "rubygems"
-require "castoro-peer/configurations"
+default:
+	@echo Do nothing.
 
-puts "#{File.basename($0)} is going to shutdown ... "
-port = Castoro::Peer::Configurations.instance.CrepdMaintenancePort
-
-s = nil
-begin
-  s = TCPSocket.new 'localhost', port
-  s.puts 'shutdown'
-  s.gets
-
-rescue => e
-  puts e.message
-  exit 1
-
-ensure
-  s.close if s rescue nil
-  s = nil
-end
-
+install :
+	/bin/cp cmond $(DEST)
+	/bin/cp cpeerd $(DEST)
+	/bin/cp crepd $(DEST)

@@ -37,7 +37,7 @@ module Castoro
     
     class ReplicationReceiveServer < PreThreadedTcpServer
       def initialize
-        port = Configurations.instance.ReplicationTCPCommunicationPort
+        port = Configurations.instance.crepd_transmission_tcpport
         host = '0.0.0.0'
         maxConnections = 20
         super( port, host, maxConnections )
@@ -56,7 +56,7 @@ module Castoro
     class ReplicationReceiver
       def initialize( io )
         @io = io
-        @channel = TcpServerChannel.new
+        @channel = TcpServerChannel.new io
         @config = Configurations.instance
         @fd = nil
         @csm_executor = Csm.create_executor
@@ -67,19 +67,20 @@ module Castoro
       def initiate
         loop do
           begin
-            @channel.receive( @io )
+            @channel.receive
             break if @channel.closed?
-            unless ( ServerStatus.instance.replication_activated? )
+            @command, @args = @channel.parse
+            @ip, @port = @io.ip, @io.port
+            if ServerStatus.instance.replication_activated?
+              @response = @args
+              dispatch  # some commands alter @response during their process
+              @channel.send @response
+            else
               raise RetryableError, "server status: #{ServerStatus.instance.status} #{ServerStatus.instance.status_name} for #{@basket}" 
             end
-            @command, @args = @channel.parse
-            @ip, @port = @channel.get_peeraddr
-            @response = @args
-            dispatch  # some commands alter @response during their process
-            @channel.send( @io, @response )
           rescue => e
             Log.warning e, "#{@command} #{@args} from #{@ip}:#{@port}"
-            @channel.send( @io, e )
+            @channel.send e
           end
         end
       ensure
@@ -198,7 +199,7 @@ module Castoro
 
       def do_data
         sent = @args[ 'size' ]
-        unit_size = @config.ReplicationTransmissionDataUnitSize
+        unit_size = @config.crepd_transmission_data_unit_size
 
         rest = sent
         while ( 0 < rest )
@@ -225,7 +226,7 @@ module Castoro
 
       def do_cancel
         if ( File.exist? @path_r )
-          csm_request = Csm::Request::Cancel.new( @path_r, @basket.path_c( @path_r ) )
+          csm_request = Csm::Request::Cancel.new( @path_r, @basket.path_c_with_hint( @path_r ) )
           begin
             @csm_executor.execute( csm_request )
           rescue => e
@@ -254,12 +255,14 @@ module Castoro
       end
 
       def send_multicast_packet( command, path )
-        channel = UdpMulticastClientChannel.new( ExtendedUDPSocket.new )
-        host = @config.HostnameForClient
-        ip   = @config.MulticastAddress
-        port = @config.GatewayUDPCommandPort
+        socket = ExtendedUDPSocket.new
+        socket.set_multicast_if Configurations.instance.gateway_comm_ipaddr_nic
+        channel = UdpClientChannel.new socket
+        host = @config.peer_hostname
+        ip   = @config.gateway_comm_ipaddr_multicast
+        port = @config.gateway_learning_udpport_multicast
         args = { 'basket' => @basket.to_s, 'host' => host, 'path' => path }
-        channel.send( command, args, ip, port )
+        channel.send command, args, ip, port
       end
 
       def register_entry

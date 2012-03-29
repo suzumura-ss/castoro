@@ -34,16 +34,16 @@ module Castoro
     remove_const :Configurations
     class Configurations
       # mock for Castoro::Peer::Configurations.
-      #HostnameForClient = "host5"
+      #peer_hostname = "host5"
       #StorageHosts = {"host1"=> "host1rep","host6"=> "host6rep",}
       #StorageGroups = [["host1","host2","host3"],["host4","host5","host6","host7"],["host8","host9"]]
-      #Dir_w_user    = "castoro"
-      #Dir_w_group   = "castoro"
-      #Dir_w_perm    = "0755"
+      #dir_w_user    = "castoro"
+      #dir_w_group   = "castoro"
+      #dir_w_perm    = "0755"
 
       # mock for Castoro::Peer::Configurations.
       CONF = {
-        "hostname_for_client" => "host5",
+        "peer_hostname" => "host5",
         "storage_hosts"       => {"host1"=> "host1rep","host6"=> "host6rep",},
         "storage_groups"      => [["host1","host2","host3"],["host4","host5","host6","host7"],["host8","host9"]],
 
@@ -65,7 +65,7 @@ module Castoro
       }
 
       CONF1 = CONF.merge({
-        "hostname_for_client" => "host",
+        "peer_hostname" => "host",
       })
 
       @@type = nil
@@ -73,7 +73,7 @@ module Castoro
       def self.type=(val); @@type = val; end
 
       def initialize conf
-        @hostname_for_client = conf["hostname_for_client"]
+        @peer_hostname = conf["peer_hostname"]
         @storage_hosts       = conf["storage_hosts"]
         @storage_groups      = conf["storage_groups"]
         @dir_w_user          = conf["dir_w_user"]
@@ -100,21 +100,21 @@ module Castoro
         end
       end
 
-      def HostnameForClient; @hostname_for_client; end
+      def peer_hostname; @peer_hostname; end
       def StorageHostsData;  @storage_hosts; end
       def StorageGroupsData; @storage_groups; end
-      def Dir_w_user;        @dir_w_user;  end
-      def Dir_w_group;       @dir_w_group; end
-      def Dir_w_perm;        @dir_w_perm;  end
-      def Dir_a_user;        @dir_a_user;  end
-      def Dir_a_group;       @dir_a_group; end
-      def Dir_a_perm;        @dir_a_perm;  end
-      def Dir_d_user;        @dir_d_user;  end
-      def Dir_d_group;       @dir_d_group; end
-      def Dir_d_perm;        @dir_d_perm;  end
-      def Dir_c_user;        @dir_c_user;  end
-      def Dir_c_group;       @dir_c_group; end
-      def Dir_c_perm;        @dir_c_perm;  end
+      def dir_w_user;        @dir_w_user;  end
+      def dir_w_group;       @dir_w_group; end
+      def dir_w_perm;        @dir_w_perm;  end
+      def dir_a_user;        @dir_a_user;  end
+      def dir_a_group;       @dir_a_group; end
+      def dir_a_perm;        @dir_a_perm;  end
+      def dir_d_user;        @dir_d_user;  end
+      def dir_d_group;       @dir_d_group; end
+      def dir_d_perm;        @dir_d_perm;  end
+      def dir_c_user;        @dir_c_user;  end
+      def dir_c_group;       @dir_c_group; end
+      def dir_c_perm;        @dir_c_perm;  end
 
     end
   end

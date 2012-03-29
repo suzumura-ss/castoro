@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby
+#! /bin/bash
 
 #
 #   Copyright 2010 Ricoh Company, Ltd.
@@ -19,26 +19,20 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require "socket"
+export PATH=/usr/bin:/usr/sbin:/sbin:/usr/local/bin
 
-require "rubygems"
-require "castoro-peer/configurations"
+case "$1" in
+    'start')
+	/usr/local/bin/cmond
+	;;
 
-puts "#{File.basename($0)} is going to shutdown ... "
-port = Castoro::Peer::Configurations.instance.CpeerdMaintenancePort
+    'stop')
+	/usr/local/bin/peerctl cmond shutdown
+	;;
 
-s = nil
-begin
-  s = TCPSocket.new 'localhost', port
-  s.puts 'shutdown'
-  s.gets
-
-rescue => e
-  puts e.message
-  exit 1
-
-ensure
-  s.close if s rescue nil
-  s = nil
-end
-
+    *)
+	echo "Usage: $0 { start | stop }"
+	exit 1
+	;;
+esac
+exit 0

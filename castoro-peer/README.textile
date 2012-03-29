@@ -1,17 +1,39 @@
 h1. castoro-peer
 
-h2. Install
-
+h2. Installation
 <pre>
-gem install castoro-peer-0.0.7.gem
+gem uninstall castoro-common castoro-manipulator castoro-peer
+gem install --no-rdoc --no-ri castoro-common-0.2.0.gem castoro-manipulator-0.2.0.gem castoro-peer-0.2.0.gem
+cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-peer-0.2.0/etc/init.d
+make install
 </pre>
 
-h3. Setup
 
-cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-peer-0.0.1/config/
-cd etc/
-make install # => copy to /etc/castoro/*, /var/castoro/*
-cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-peer-0.0.1/config/
-cd init.d/
-make install # => copy to /etc/init.d/*
+h2. Configuration files
+<pre>
+There are some sample files available at /usr/local/lib/ruby/gems/1.9.1/gems/castoro-peer-0.2.0/etc/castoro
+  peer.conf-sample-en.conf
+  peer.conf-sample-ja.conf
+  storage_groups.json
+  storage_hosts.yml
+</pre>
+
+<pre>
+Please prepare your configuration files in /etc/castoro:
+  peer.conf
+  storage_groups.json
+  storage_hosts.yml
+</pre>
+
+
+h2. Starting up daemons
+<pre>
+/etc/init.d/castoro-manipulatord start ; /etc/init.d/crepd start ; /etc/init.d/cpeerd start ; /etc/init.d/cmond start
+</pre>
+
+
+h2. Shutting down daemons
+<pre>
+/etc/init.d/castoro-manipulatord stop ; /etc/init.d/crepd stop ; /etc/init.d/cpeerd stop ; /etc/init.d/cmond stop
+</pre>
 

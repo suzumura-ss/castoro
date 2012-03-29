@@ -38,7 +38,7 @@ module Castoro
         @entry, @host = entry, host
         @basket = @entry.basket
         @config = Configurations.instance
-        @port = @config.ReplicationTCPCommunicationPort
+        @port = @config.crepd_transmission_tcpport
         @connection = nil
       end
 
@@ -128,7 +128,7 @@ module Castoro
       end
 
       def transmit_data( path, size )
-        unit_size = @config.ReplicationTransmissionDataUnitSize
+        unit_size = @config.crepd_transmission_data_unit_size
 
         File.open( path, 'r' ) do |src|
           @connection.send( 'DATA', { :size => size } )
@@ -183,7 +183,7 @@ module Castoro
           raise RetryableError, "#{e.message}: #{@host}:#{@port}"
         end
 
-        @channel = TcpClientChannel.new
+        @channel = TcpClientChannel.new @socket
       end
 
       def close
@@ -201,7 +201,7 @@ module Castoro
         @command = command
 
         begin
-          @channel.send( @socket, command, args )
+          @channel.send command, args
         rescue IOError => e  # e.g. "closed stream occurred"
           raise RetryableError, "#{e.class} #{e.message}, sending #{@command}: #{@basket} to #{@host}:#{@port}"
         end
@@ -214,7 +214,7 @@ module Castoro
           raise RetryableError, m
         end
 
-        @channel.receive( @socket )
+        @channel.receive
         if ( @channel.closed? )
           raise RetryableError, "Connection is unexpectedly closed, waiting response of #{@command}: #{@basket} to #{@host}:#{@port}"
         end
