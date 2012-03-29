@@ -38,6 +38,7 @@ module Castoro; class Gateway
       "watchdog_limit" => 15,
       "return_peer_number" => 5,
       "cache_size" => 500000,
+      "filter" => nil,
       "basket_basedir" => "/expdsk",
       "options" => {},
     }.freeze
