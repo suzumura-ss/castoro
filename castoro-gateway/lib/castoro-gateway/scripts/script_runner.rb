@@ -64,33 +64,43 @@ module Castoro
         raise "Dont't run as root user." if uid == 0
   
         Process::Sys.seteuid(uid)
-  
-        if options[:daemon]
-          raise "PID file already exists - #{options[:pid]}" if File.exist?(options[:pid])
-  
-          # create logger.
-          logger = if config["logger"]
+ 
+        # create logger. 
+        logger = if options[:daemon]
+                   if config["logger"]
                      eval(config["logger"].to_s).call(options[:log])
                    else
                      eval(Gateway::Configuration::COMMON_SETTINGS["logger"]).call(options[:log])
                    end
+                 else
+                   Logger.new(STDOUT)
+                 end
+
+        gateway = Gateway.new config, logger
+
+        if options[:daemon]
+          raise "PID file already exists - #{options[:pid]}" if File.exist?(options[:pid])
   
           # daemonize and create pidfile.
           FileUtils.touch options[:pid]
           fork {
             Process.setsid
             fork {
-              Dir.chdir("/")
-              STDIN.reopen "/dev/null", "r+"
-              STDOUT.reopen "/dev/null", "a"
-              STDERR.reopen "/dev/null", "a"
-  
-              init_gateway config, logger, options[:pid]
-              sleep
+              begin
+                Dir.chdir("/")
+                STDIN.reopen "/dev/null", "r+"
+                STDOUT.reopen "/dev/null", "a"
+                STDERR.reopen "/dev/null", "a"
+
+                init_gateway gateway, options[:pid]
+                sleep
+              rescue => e
+                FileUtils.rm pid_file if options[:pid] and File.exist? options[:pid]
+              end
             }
           }
         else
-          init_gateway config, Logger.new(STDOUT)
+          init_gateway gateway
         end
   
       rescue => e
@@ -186,8 +196,7 @@ module Castoro
   
       private
   
-      def self.init_gateway config, logger, pid_file = nil
-        gateway = Gateway.new(config, logger)
+      def self.init_gateway gateway, pid_file = nil
   
         # signal.
         stopping = false

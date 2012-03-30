@@ -101,7 +101,7 @@ module Castoro
           @locker.synchronize {
             @senders = Hash.new { |h,k|
               island = k.to_island
-              h[island] = Sender::UDP::Multicast.new(@logger, @port, island.to_ip, @device).tap { |s| s.start }
+              h[island.to_s] = Sender::UDP::Multicast.new(@logger, @port, island.to_ip, @device).tap { |s| s.start }
             }
             @status = {}
           }
@@ -119,7 +119,7 @@ module Castoro
 
         def set island_command
           @logger.info { "set island status #{island_command.island}: #{island_command.storables}, #{island_command.capacity}" }
-          @status[island_command.island] = {
+          @status[island_command.island.to_s] = {
             :storables => island_command.storables,
             :capacity => island_command.capacity,
           }
@@ -146,7 +146,7 @@ module Castoro
         private
 
         def sender island
-          @senders[island]
+          @senders[island.to_s]
         end
 
         def choice_island create_command
@@ -158,7 +158,7 @@ module Castoro
           }.map { |q|
             i += 1
             [q[0], q[1], q[2] * weight[i]]
-          }.sort_by { |x| x[2] }.map { |x| x[0] }.first
+          }.sort_by { |x| x[2] }.map { |x| x[0].to_island }.first
         end
       end
 
