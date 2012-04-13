@@ -28,18 +28,26 @@ module Castoro
     $RUN_AS_DAEMON = true
     $VERBOSE = false
 
-    EFFECTIVE_USER = 'xxx'
-
     class Main
       include Singleton
 
       def initialize
         # super should be called in the beginning of subclass method
 
+        @effective_user = nil
+      end
+
+      def effective_user= effective_user
+        @effective_user = effective_user
+      end
+
+      def setup
+        # super should be called in the beginning of subclass method
+
         Log.output = nil if $RUN_AS_DAEMON
 
-        if Process.euid == 0
-          pwnam = Etc.getpwnam EFFECTIVE_USER
+        if @effective_user and Process.euid == 0
+          pwnam = Etc.getpwnam @effective_user
           Process.egid = pwnam.gid
           Process.euid = pwnam.uid
         end
@@ -97,8 +105,7 @@ module Castoro
         Process.exit 0
       end
 
-      def run
-        start
+      def main_loop
         loop do
           @mutex.synchronize do
             until( @f_shutdown ) do
@@ -113,6 +120,12 @@ module Castoro
           end
           sleep 0.1
         end
+      end
+
+      def run
+        setup
+        start
+        main_loop
       end
     end
 

@@ -26,7 +26,11 @@ module Castoro
 
     class CstartdMain < Main
       def initialize
+        super
         CommandLineOptions.new
+      end
+
+      def setup
         super
         @w = CstartdWorkers.new
       end
