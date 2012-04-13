@@ -45,6 +45,13 @@ module Castoro
         end
 
         Daemon.daemonize if $RUN_AS_DAEMON
+
+        @mutex = Mutex.new
+        @cv = CustomConditionVariable.new
+
+        Signal.trap('INT')  { shutdown_requested }   #  2: Interrupt, Ctrl-C
+        Signal.trap('QUIT') { shutdown_requested }   #  3: Quit, Ctrl-|
+        Signal.trap('TERM') { shutdown_requested }   # 15: Terminate, kill process_id
       end
 
       def start
@@ -53,20 +60,85 @@ module Castoro
         STDERR.flush
         Daemon.close_stdio if $RUN_AS_DAEMON
         Log.notice "Started."
-
-        # Activate set_trace_func() being traced with 
-        # pid$target::call_trace_proc:entry of DTrace
-        # set_trace_func proc {}
-
-        # Inactivate it
-        # set_trace_func nil
       end
 
       def stop
         # super should be called in the beggining of subclass method
         Log.notice "Stopping..."
       end
+
+      def shutdown
+        stop
+        sleep 0.5
+        Process.exit 0
+      end
+
+      def notify   # :yield:
+        # If the interrupted thread is the one that has been waiting for 
+        # the ConditionVariable, ConditionVariable.wait fail to wake up.
+        # So, we need an individual thread to handle that.
+        Thread.new do
+          @mutex.synchronize do
+            yield
+          end
+          @cv.signal
+        end
+      end
+
+      def shutdown_requested
+        Log.notice "Shutdown requested."
+        notify { @f_shutdown = true }
+      end
+
+      def do_shutdown
+        stop
+        Log.notice( "Shutdowned." )
+        sleep 0.01
+        Process.exit 0
+      end
+
+      def run
+        start
+        loop do
+          @mutex.synchronize do
+            until( @f_shutdown ) do
+              @cv.wait @mutex
+              sleep 0.1
+            end
+
+            if @f_shutdown
+              @f_shutdown = false
+              do_shutdown
+            end
+          end
+          sleep 0.1
+        end
+      end
     end
 
   end
 end
+
+__END__
+
+Tracing scripts with Tracer
+
+  require 'tracer'
+  Tracer.on
+  Tracer.off
+
+
+Tracing scripts with Dtrace
+
+  Kernel.set_trace_func proc { |eventname, filename, line, id, binding, classname| }
+  Kernel.set_trace_func nil
+
+  pid$target::rb_proc_call_with_block:entry
+  {
+     /* see proc.c */
+  }
+
+  pid$target::call_trace_proc:entry
+  {
+     /* see thread.c */
+  }

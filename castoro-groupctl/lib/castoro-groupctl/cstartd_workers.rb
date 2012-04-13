@@ -35,7 +35,7 @@ module Castoro
       end
 
       def stop
-        @server.graceful_stop
+        @server.stop
       end
     end
 
@@ -74,7 +74,7 @@ module Castoro
           Thread.new( pid ) do |x|  # x should be assigned with a value of pid through by-value rather than by-reference
             x_pid, x_status = Process.waitpid2 x
             Log.debug "Child process #{x_pid} exited with #{x_status.exitstatus}" if $DEBUG
-            graceful_stop if x_status.exitstatus == 99
+            CstartdMain.instance.shutdown_requested if x_status.exitstatus == 99
           end
         else
           # Child process
@@ -93,7 +93,7 @@ module Castoro
         end
       end
 
-      def graceful_stop
+      def stop
         @stop_requested = true
         @listening_socket.close if @listening_socket
         super

@@ -20,7 +20,6 @@
 require 'castoro-groupctl/main'
 require 'castoro-groupctl/cstartd_workers'
 require 'castoro-groupctl/command_line_options'
-require 'castoro-groupctl/signal_handlers'
 
 module Castoro
   module Peer
@@ -56,7 +55,5 @@ if $0 == __FILE__
     $LOAD_PATH.delete x if x.match '\/gems\/'
   }
 
-  main = Castoro::Peer::CstartdMain.instance
-  main.start
-  Castoro::Peer::SignalHandler.instance.run main
+  Castoro::Peer::CstartdMain.instance.run
 end
