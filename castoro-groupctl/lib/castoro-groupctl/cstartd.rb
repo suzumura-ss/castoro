@@ -19,6 +19,7 @@
 
 require 'castoro-groupctl/main'
 require 'castoro-groupctl/cstartd_workers'
+require 'castoro-groupctl/command_line_options'
 require 'castoro-groupctl/signal_handlers'
 
 module Castoro
@@ -26,6 +27,7 @@ module Castoro
 
     class CstartdMain < Main
       def initialize
+        CommandLineOptions.new
         super
         @w = CstartdWorkers.new
       end

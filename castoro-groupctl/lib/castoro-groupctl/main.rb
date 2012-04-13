@@ -19,7 +19,6 @@
 
 require 'singleton'
 require 'etc'
-require 'castoro-groupctl/command_line_options'
 require 'castoro-groupctl/daemon'
 require 'castoro-groupctl/log'
 
@@ -37,7 +36,6 @@ module Castoro
       def initialize
         # super should be called in the beginning of subclass method
 
-        CommandLineOptions.new
         Log.output = nil if $RUN_AS_DAEMON
 
         if Process.euid == 0
