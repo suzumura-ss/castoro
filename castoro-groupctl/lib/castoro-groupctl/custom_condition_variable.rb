@@ -22,11 +22,11 @@ require 'thread'
 module Castoro
   module Peer
 
-    # Compare this to ConditionVariable in /usr/local/lib/ruby/1.9.1/thread.rb
-    # That does not work efficiently while this works expectedly
+    # This class is a working alternative to ConditionVariable in 
+    # /usr/local/lib/ruby/1.9.1/thread.rb which does not work efficiently.
 
-    # Note that since this code is tuned for ruby-1.9.1-p378/thread.c , 
-    # this might not appropriately work with other than Ruby 1.9.1
+    # Note that this code is tuned for ruby-1.9.1-p378/thread.c.
+    # This might not appropriately work with other than Ruby 1.9.1
 
     # ConditionVariable#wait does not wait: 
     # Bug of Ruby: http://redmine.ruby-lang.org/issues/show/3212
@@ -48,10 +48,14 @@ module Castoro
         @mutex.synchronize do
           @sleepers.push Thread.current
         end
-        mutex.sleep duration
-        @mutex.synchronize do
-          @sleepers.delete Thread.current
+        mutex.sleep duration  # there is no way to determine whether waked up or timed out.
+        tid = @mutex.synchronize do
+          @sleepers.delete Thread.current  # remove the current thread if it is included.
         end
+        #  this method returns :etimedout if timed out occured or Thread.current 
+        #  gets waked up by the outsize of this class.
+        #  this returns nil if Thread.current gets waked up by a signal or broadcast.
+        tid ? :etimedout : nil
       end
 
       def signal
