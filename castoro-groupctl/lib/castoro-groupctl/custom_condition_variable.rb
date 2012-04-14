@@ -37,20 +37,20 @@ module Castoro
         @mutex = Mutex.new
       end
 
-      def wait( mutex )
+      def wait mutex
         @mutex.synchronize do
-          @sleepers.push( Thread.current )
+          @sleepers.push Thread.current
         end
         mutex.sleep
       end
 
-      def timedwait( mutex, duration )
+      def timedwait mutex, duration
         @mutex.synchronize do
-          @sleepers.push( Thread.current )
+          @sleepers.push Thread.current
         end
-        mutex.sleep( duration )
+        mutex.sleep duration
         @mutex.synchronize do
-          @sleepers.delete( Thread.current )
+          @sleepers.delete Thread.current
         end
       end
 
