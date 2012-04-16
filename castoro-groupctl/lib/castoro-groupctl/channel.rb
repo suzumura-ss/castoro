@@ -47,7 +47,14 @@ module Castoro
       end
 
       def send_response result
-        args = result.is_a?( Exception ) ? { 'error' => { 'code' => result.class, 'message' => result.message } } : result
+        if result.is_a? Exception
+          args = { :error => { 
+              :code => result.class, 
+              :message => result.message,
+              :backtrace => result.backtrace.slice(0,5) } }
+        else
+          args = result
+        end
         [ PROTOCOL_VERSION, 'R', @command, args ].to_json
       end
     end
@@ -100,7 +107,7 @@ module Castoro
 
       def receive_response
         data = @socket.gets
-        parse body
+        parse data
       end
     end
 
