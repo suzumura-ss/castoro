@@ -145,7 +145,7 @@ module Castoro
           'cmond'         => '/etc/init.d/cmond',
           'cpeerd'        => '/etc/init.d/cpeerd',
           'crepd'         => '/etc/init.d/crepd',
-          'cmanipulatord' => '/etc/init.d/castoro-manipulatord',
+          'manipulatord'  => '/etc/init.d/castoro-manipulatord',
         }
         executable = targets[ target ] or raise ArgumentError, "Unknown target: #{target}"
         x = ProcessExecutor.new
@@ -163,7 +163,7 @@ module Castoro
           'cmond'         => '/usr/local/bin/cmond',
           'cpeerd'        => '/usr/local/bin/cpeerd',
           'crepd'         => '/usr/local/bin/crepd',
-          'cmanipulatord' => '/usr/local/bin/castoro-manipulator',
+          'manipulatord'  => '/usr/local/bin/castoro-manipulator',
         }
         pattern = patterns[ target ] or raise ArgumentError, "Unknown target: #{target}"
         a = []

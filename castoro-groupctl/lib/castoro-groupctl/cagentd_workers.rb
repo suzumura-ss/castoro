@@ -84,8 +84,8 @@ module Castoro
                when 'cmond'         ; Configurations.instance.cmond_maintenance_tcpport
                when 'cpeerd'        ; Configurations.instance.cpeerd_maintenance_tcpport
                when 'crepd'         ; Configurations.instance.crepd_maintenance_tcpport
-               when 'cmanipulatord'
-                 raise ArgumentError, "cmanipulatord has no control port."
+               when 'manipulatord'
+                 raise ArgumentError, "manipulatord has no control port."
                else
                  raise ArgumentError, "Unknown target: #{target}"
                end
