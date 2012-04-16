@@ -103,12 +103,6 @@ module Castoro
 
 
     class CommandProcessor
-      @@Commands = {
-        'START'    => :START,
-        'STOP'     => :STOP,
-        'SHUTDOWN' => :SHUTDOWN,
-      }
-
       @@Targets = {
         'cmond'         => '/etc/init.d/cmond',
         'cpeerd'        => '/etc/init.d/cpeerd',
@@ -122,24 +116,24 @@ module Castoro
 
       def process
         channel = TcpServerChannel.new @socket
-        command, args = channel.receive_command
-        c = @@Commands[ command.upcase ] or raise BadRequestError, "Unknown command: #{command}"
-        status, result = case c
-                         when :START    ; do_start args
-                         when :STOP     ; do_stop args
-                         when :SHUTDOWN ; do_shutdown
-                         end
-        Log.debug "status=#{status} result=#{result.inspect}" if $DEBUG
-        channel.send_response result
-        status
+        loop do
+          command, args = channel.receive_command
+          command.nil? and return 0  # end of file reached
+          result = case command.upcase
+                   when 'START'    ; do_start args
+                   when 'STOP'     ; do_stop args
+                   when 'QUIT'     ; return 0
+                   when 'SHUTDOWN' ; return 99
+                   else
+                     raise BadRequestError, "Unknown command: #{command}"
+                   end
+          Log.debug "result=#{result.inspect}" if $DEBUG
+          channel.send_response result
+        end
 
       rescue => e
         channel.send_response e
         1
-      end
-
-      def do_shutdown
-        [ 99, nil ]
       end
 
       def do_start args
@@ -157,9 +151,9 @@ module Castoro
         x.execute executable, subcommand
         stdout, stderr = x.gets
         status = x.wait
-        [ status, { :status => status, :stdout => stdout, :stderr => stderr } ]
+        { :status => status, :stdout => stdout, :stderr => stderr }
       rescue => e
-        [ 1, { :error => { :code => e.class, :message => e.message, :backtrace => e.backtrace.slice(0,5) } } ]
+        { :error => { :code => e.class, :message => e.message, :backtrace => e.backtrace.slice(0,5) } }
       end
 
     end
