@@ -20,6 +20,7 @@
 require 'castoro-groupctl/worker'
 require 'castoro-groupctl/tcp_socket'
 require 'castoro-groupctl/channel'
+require 'castoro-groupctl/process_executor'
 require 'castoro-groupctl/log'
 
 module Castoro
@@ -108,6 +109,13 @@ module Castoro
         'SHUTDOWN' => :SHUTDOWN,
       }
 
+      @@Targets = {
+        'cmond'         => '/etc/init.d/cmond',
+        'cpeerd'        => '/etc/init.d/cpeerd',
+        'crepd'         => '/etc/init.d/crepd',
+        'cmanipulatord' => '/etc/init.d/castoro-manipulatord',
+      }
+
       def initialize socket
         @socket = socket
       end
@@ -135,12 +143,25 @@ module Castoro
       end
 
       def do_start args
-        [ 0, { :stdout => '', :stderr => '' } ]
+        do_xxx args, 'start'
       end
 
       def do_stop args
-        [ 0, { :stdout => '', :stderr => '' } ]
+        do_xxx args, 'stop'
       end
+
+      def do_xxx args, subcommand
+        target = args[ 'target' ] or raise ArgumentError, "target is not specified"
+        executable = @@Targets[ target ] or raise ArgumentError, "Unknown target: #{target}"
+        x = ProcessExecutor.new
+        x.execute executable, subcommand
+        stdout, stderr = x.gets
+        status = x.wait
+        [ status, { :status => status, :stdout => stdout, :stderr => stderr } ]
+      rescue => e
+        [ 1, { :error => { :code => e.class, :message => e.message, :backtrace => e.backtrace.slice(0,5) } } ]
+      end
+
     end
 
   end
