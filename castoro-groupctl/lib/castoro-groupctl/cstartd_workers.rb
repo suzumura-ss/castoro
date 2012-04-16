@@ -46,13 +46,13 @@ module Castoro
         port = cstartd_comm_tcpport = 30150
         addr = '0.0.0.0'
         backlog = 5
-        @listening_socket = TcpServer.new addr, port, backlog
+        @server = TcpServer.new addr, port, backlog
         super
       end
 
       def serve
         begin
-          connected_socket = @listening_socket.accept
+          connected_socket = @server.accept
         rescue IOError, Errno::EBADF => e
           # IOError "closed stream"
           # Errno::EBADF "Bad file number"
@@ -81,7 +81,7 @@ module Castoro
           # Child process
           status = 1
           begin
-            @listening_socket.close
+            @server.close
             cp = CommandProcessor.new connected_socket
             status = cp.process
             connected_socket.close unless connected_socket.closed?
@@ -96,7 +96,7 @@ module Castoro
 
       def stop
         @stop_requested = true
-        @listening_socket.close if @listening_socket
+        @server.close if @server
         super
       end
     end
