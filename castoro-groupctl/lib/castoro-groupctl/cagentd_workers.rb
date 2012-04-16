@@ -92,9 +92,15 @@ module Castoro
 
         name = args[ 'name' ] or raise ArgumentError, "name is not specified: #{args.inspect}"
         command = case name
-                  when 'mode'  ; 'mode'
-                  when 'auto'  ; 'auto'
-                  when 'debug' ; 'debug'
+                  when 'mode'
+                    value = value.to_s if value
+                    'mode'
+                  when 'auto'
+                    value = value ? 'auto' : 'off' if value
+                    'auto'
+                  when 'debug'
+                    value = value ? 'on' : 'off' if value
+                    'debug'
                   else
                     raise ArgumentError, "Unknown name: #{name}"
                   end
@@ -105,6 +111,17 @@ module Castoro
         socket.puts command
         value = socket.timed_gets 3
         socket.close
+
+        value = case name
+                when 'mode'
+                  value.match( /mode: *([0-9]+)/ )[1].to_i
+                when 'auto'
+                  x = value.match( /auto: *(auto)?(off)?/ )
+                  x[1] ? true : ( x[2] ? false : nil )
+                when 'debug'
+                  x = value.match( /mode: *(on)?(off)?/ )
+                  x[1] ? true : ( x[2] ? false : nil )
+                end
         { :target => target, :name => name, :value => value }
       end
 
