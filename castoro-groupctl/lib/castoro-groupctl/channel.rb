@@ -34,6 +34,7 @@ module Castoro
       def parse body, direction_code, exception
         version, direction, command, args = JSON.parse body
         @command = command  # @command will be used in a response whatever exception occurs
+        command.nil? and raise exception, "Command part is nil: #{body}"
         version == PROTOCOL_VERSION or raise exception, "Version #{PROTOCOL_VERSION} is expected: #{version}: #{body}"
         direction == direction_code or raise exception, "Direction #{direction_code} is expected: #{direction}: #{body}"
         [ command, args ]
@@ -64,6 +65,8 @@ module Castoro
       def receive_command
         data = @socket.gets
         parse data
+      rescue EOFError => e
+        [ nil, nil ]
       end
 
       def send_response result
