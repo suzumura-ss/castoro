@@ -24,7 +24,7 @@ module Castoro
   module Peer
 
     class TcpServer
-      def initialize port, addr, backlog
+      def initialize addr, port, backlog
         s = Socket.new Socket::AF_INET, Socket::SOCK_STREAM, 0
         s.setsockopt Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true
         s.setsockopt Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true

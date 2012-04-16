@@ -46,7 +46,7 @@ module Castoro
         port = cstartd_comm_tcpport = 30150
         addr = '0.0.0.0'
         backlog = 5
-        @listening_socket = TcpServer.new port, addr, backlog
+        @listening_socket = TcpServer.new addr, port, backlog
         super
       end
 
