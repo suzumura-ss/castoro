@@ -26,9 +26,9 @@ module Castoro
       attr_reader :pid
 
       def execute *command
-        r0, @w0 = IO::pipe
-        @r1, w1 = IO::pipe
-        @r2, w2 = IO::pipe
+        r0, @w0 = IO.pipe
+        @r1, w1 = IO.pipe
+        @r2, w2 = IO.pipe
 
         @pid = Process.fork
         if @pid  # in a parent process
@@ -39,7 +39,7 @@ module Castoro
           @w0.close
           @r1.close
           @r2.close
-          exec( *command, STDIN => r0, STDOUT => w1, STDERR => w2 )
+          Process.exec( *command, STDIN => r0, STDOUT => w1, STDERR => w2, :close_others => true )
         end
       end
 
@@ -80,6 +80,7 @@ module Castoro
         tid = Thread.new do
           until fd.eof? do
             s = fd.gets
+            s.sub!( /\n\Z/, '' )
             data.push s
           end
           fd.close
