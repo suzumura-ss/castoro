@@ -104,13 +104,6 @@ module Castoro
 
 
     class CommandProcessor
-      @@Targets = {
-        'cmond'         => '/etc/init.d/cmond',
-        'cpeerd'        => '/etc/init.d/cpeerd',
-        'crepd'         => '/etc/init.d/crepd',
-        'cmanipulatord' => '/etc/init.d/castoro-manipulatord',
-      }
-
       def initialize socket
         @socket = socket
       end
@@ -123,6 +116,7 @@ module Castoro
           result = case command.upcase
                    when 'START'    ; do_start args
                    when 'STOP'     ; do_stop args
+                   when 'PS'       ; do_ps args
                    when 'QUIT'     ; return 0
                    when 'SHUTDOWN' ; return 99
                    else
@@ -147,16 +141,43 @@ module Castoro
 
       def do_xxx args, subcommand
         target = args[ 'target' ] or raise ArgumentError, "target is not specified"
-        executable = @@Targets[ target ] or raise ArgumentError, "Unknown target: #{target}"
+        targets = {
+          'cmond'         => '/etc/init.d/cmond',
+          'cpeerd'        => '/etc/init.d/cpeerd',
+          'crepd'         => '/etc/init.d/crepd',
+          'cmanipulatord' => '/etc/init.d/castoro-manipulatord',
+        }
+        executable = targets[ target ] or raise ArgumentError, "Unknown target: #{target}"
         x = ProcessExecutor.new
         x.execute executable, subcommand
         stdout, stderr = x.gets
         status = x.wait
-        { :status => status, :stdout => stdout, :stderr => stderr }
+        { :target => target, :status => status, :stdout => stdout, :stderr => stderr }
       rescue => e
         { :error => { :code => e.class, :message => e.message, :backtrace => e.backtrace.slice(0,5) } }
       end
 
+      def do_ps args
+        target = args[ 'target' ] or raise ArgumentError, "target is not specified"
+        patterns = {
+          'cmond'         => '/usr/local/bin/cmond',
+          'cpeerd'        => '/usr/local/bin/cpeerd',
+          'crepd'         => '/usr/local/bin/crepd',
+          'cmanipulatord' => '/usr/local/bin/castoro-manipulator',
+        }
+        pattern = patterns[ target ] or raise ArgumentError, "Unknown target: #{target}"
+        a = []
+        IO.popen( '/bin/ps -ef' ) do |pipe|
+          while line = pipe.gets do
+            if line.match pattern
+              a << line.chomp
+            end
+          end
+        end
+        { :target => target, :stdout => a }
+      rescue => e
+        { :error => { :code => e.class, :message => e.message, :backtrace => e.backtrace.slice(0,5) } }
+      end
     end
 
   end
