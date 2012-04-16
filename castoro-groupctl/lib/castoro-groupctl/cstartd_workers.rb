@@ -21,6 +21,7 @@ require 'castoro-groupctl/worker'
 require 'castoro-groupctl/tcp_socket'
 require 'castoro-groupctl/channel'
 require 'castoro-groupctl/process_executor'
+require 'castoro-groupctl/configurations'
 require 'castoro-groupctl/log'
 
 module Castoro
@@ -43,7 +44,7 @@ module Castoro
 
     class CstartdTcpServer < Worker
       def initialize
-        port = cstartd_comm_tcpport = 30150
+        port = Configurations.instance.cstartd_comm_tcpport
         addr = '0.0.0.0'
         backlog = 5
         @server = TcpServer.new addr, port, backlog

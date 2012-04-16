@@ -18,7 +18,7 @@
 #
 
 require 'getoptlong'
-### require 'castoro-peer/configurations'
+require 'castoro-groupctl/configurations'
 
 module Castoro
   module Peer
@@ -49,8 +49,8 @@ module Castoro
             $DEBUG = true
           when '--foreground'
             $RUN_AS_DAEMON = false
-###          when '--configuration-file'
-###            Configurations.file = arg
+          when '--configuration-file'
+            Configurations.file = arg
           end
         end
       end
