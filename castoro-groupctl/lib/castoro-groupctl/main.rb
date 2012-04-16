@@ -19,6 +19,7 @@
 
 require 'singleton'
 require 'etc'
+require 'castoro-groupctl/custom_condition_variable'
 require 'castoro-groupctl/daemon'
 require 'castoro-groupctl/log'
 
