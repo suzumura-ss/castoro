@@ -18,6 +18,7 @@
 #
 
 require 'socket'
+require 'fcntl'
 require 'castoro-groupctl/log'
 
 module Castoro
@@ -50,6 +51,54 @@ module Castoro
 
       def close
         @listening_socket.close
+      end
+    end
+
+
+    class TcpClient
+      def timed_connect addr, port, timedout
+        socket = Socket.new Socket::AF_INET, Socket::SOCK_STREAM, 0
+        socket.setsockopt Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true
+        socket.setsockopt Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true
+        socket.do_not_reverse_lookup = true
+        sockaddr = Socket.sockaddr_in port, addr
+
+        begin
+          socket.connect_nonblock sockaddr
+        rescue Errno::EINPROGRESS
+          # EINPROGRESS is intentionally ignored.
+          # The connection cannot be completed immediately.
+          # You can use select(3C) to complete the connection
+          # by selecting the socket for writing.
+        end
+
+        IO.select nil, [socket], nil, timedout
+        errno = socket.getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR).unpack('i')[0]
+        unless errno == 0
+          # See /usr/include/sys/errno.h
+          raise StandardError, "Connection refused or else: errno=#{errno} #{addr}:#{port}"
+        end
+
+        s = TcpSocketDelegator.new socket
+
+        begin
+          # confirm if the connection is established by calling getpeername
+          # and find its counter side of port and ip address.
+          s.peername = socket.getpeername
+        rescue Errno::ENOTCONN => e
+          # The socket is not connected.
+          raise StandardError, "Connection timed out #{timedout}s: #{addr}:#{port}"
+        end
+
+        Log.debug "Connected to: #{s.addr}:#{s.port}" if $DEBUG
+
+        # make the socket blocking
+        flags = s.fcntl Fcntl::F_GETFL, 0
+        flags = flags & ( ~ Fcntl::O_NONBLOCK )  # reset O_NONBLOCK
+        s.fcntl Fcntl::F_SETFL, flags
+
+        s.setsockopt Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true
+        @socket = s
       end
     end
 
@@ -115,6 +164,10 @@ module Castoro
       def syswrite data
         Log.debug "TCP O : #{@addr}:#{@port} #{data}" if $DEBUG
         @socket.syswrite data
+      end
+
+      def puts data
+        syswrite "#{data}\n"
       end
 
       def tcp?
