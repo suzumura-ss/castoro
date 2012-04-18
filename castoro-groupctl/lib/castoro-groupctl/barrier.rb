@@ -18,7 +18,6 @@
 #
 
 require 'thread'
-require 'singleton'
 require 'castoro-groupctl/custom_condition_variable'
 
 module Castoro
@@ -34,18 +33,23 @@ module Castoro
         @cv = CustomConditionVariable.new
       end
 
+      def reset
+        @mutex.synchronize do
+          @clients = 1
+          @results.clear
+        end
+      end
+
+      def increment
+        @mutex.synchronize do
+          @clients = @clients + 1
+        end
+      end
+
       def clients= clients
         @mutex.synchronize do
           @clients = clients
         end
-      end
-
-      def wait result
-        _wait result, 0
-      end
-
-      def timedwait result, duration
-        _wait result, duration
       end
 
       def results
@@ -54,18 +58,10 @@ module Castoro
         end
       end
 
-      def flush
-        @mutex.synchronize do
-          @results.clear
-        end
-      end
-
-      private
-
-      def _wait result, duration
+      def wait args = nil  # :result, :timelimit
         @mutex.synchronize do
           @waiting = @waiting + 1
-          @results.push( result ) if @phase == 1
+          @results.push( args[ :result ] ) if args and args.has_key? :result
           my_phase = @phase  # Fixnum
           if @clients <= @waiting
             @waiting = 0
@@ -73,22 +69,22 @@ module Castoro
             @cv.broadcast
           end
           while ( @phase == my_phase ) do
-            if 0 == duration
-              @cv.wait @mutex
+            if args and args.has_key? :timelimit
+              t = :timelimit - Time.new
+              if 0 < t
+                x = @cv.timedwait @mutex, t
+                return :etimedout if x == :etimedout
+              else
+                return :etimedout
+              end
             else
-              x = @cv.timedwait @mutex, duration
-              return :etimedout if x == :etimedout
+              @cv.wait @mutex
             end
             sleep 0.01  # To avoid an out-of-control infinite loop
           end
         end
         nil
       end
-    end
-
-
-    class MasterSlaveBarrierSingleton < MasterSlaveBarrier
-      include Singleton
     end
 
   end
