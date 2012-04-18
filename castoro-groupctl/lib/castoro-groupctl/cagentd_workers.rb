@@ -53,7 +53,9 @@ module Castoro
         loop do
           return if socket.closed?
           s = TcpSocketDelegator.new socket
-          serve_impl s
+          r = serve_impl s 
+          return if r == :closed
+          sleep 0.01
         end
       rescue => e
         Log.err e
@@ -63,10 +65,11 @@ module Castoro
       def serve_impl socket
         channel = TcpServerChannel.new socket
         command, args = channel.receive_command
-        command.nil? and return 0  # end of file reached
+        command.nil? and return :closed  # end of file reached
         result = case command.upcase
                  when 'GETPROP'  ; do_getprop args
                  when 'SETPROP'  ; do_setprop args
+                 when 'STATUS'   ; do_status args
                  when 'QUIT'     ; socket.close ; return
                  when 'SHUTDOWN' ; CagentdMain.instance.shutdown_requested ; return
                  else
@@ -132,6 +135,47 @@ module Castoro
       def do_setprop args
         value = args[ 'value' ] or raise ArgumentError, "value is not specified: #{args.inspect}"
         do_get_set_prop args, value
+      end
+
+      def do_status args
+        target = args[ 'target' ] or raise ArgumentError, "taget is not specified: #{args.inspect}"
+        port = case target
+               when 'cmond'         ; Configurations.instance.cmond_maintenance_tcpport
+               when 'cpeerd'        ; Configurations.instance.cpeerd_maintenance_tcpport
+               when 'crepd'         ; Configurations.instance.crepd_maintenance_tcpport
+               when 'manipulatord'
+                 raise ArgumentError, "manipulatord has no control port."
+               else
+                 raise ArgumentError, "Unknown target: #{target}"
+               end
+
+        command = 'mode'
+        client = TcpClient.new
+        socket = client.timed_connect '127.0.0.1', port, 3
+        socket.puts command
+        value = socket.timed_gets 3
+        socket.close
+        mode = value.match( /mode: *([0-9]+)/ )[1].to_i
+
+        command = 'auto'
+        client = TcpClient.new
+        socket = client.timed_connect '127.0.0.1', port, 3
+        socket.puts command
+        value = socket.timed_gets 3
+        socket.close
+        x = value.match( /auto: *(auto)?(off)?/ )
+        auto = x[1] ? true : ( x[2] ? false : nil )
+
+        command = 'debug'
+        client = TcpClient.new
+        socket = client.timed_connect '127.0.0.1', port, 3
+        socket.puts command
+        value = socket.timed_gets 3
+        socket.close
+        x = value.match( /mode: *(on)?(off)?/ )
+        debug = x[1] ? true : ( x[2] ? false : nil )
+
+        { :target => target, :mode => mode, :auto => auto, :debug => debug }
       end
     end
 
