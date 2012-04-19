@@ -35,14 +35,8 @@ module Castoro
 
       def reset
         @mutex.synchronize do
-          @clients = 1
+          @clients = 0
           @results.clear
-        end
-      end
-
-      def increment
-        @mutex.synchronize do
-          @clients = @clients + 1
         end
       end
 
@@ -61,11 +55,13 @@ module Castoro
       def wait args = nil  # :result, :timelimit
         @mutex.synchronize do
           @waiting = @waiting + 1
+          # p [ :clients, @clients, :waiting, @waiting ]
           @results.push( args[ :result ] ) if args and args.has_key? :result
           my_phase = @phase  # Fixnum
           if @clients <= @waiting
             @waiting = 0
             @phase = 1 - @phase  # alter its value between 0 and 1
+            # p [ :broadcast ]
             @cv.broadcast
           end
           while ( @phase == my_phase ) do
