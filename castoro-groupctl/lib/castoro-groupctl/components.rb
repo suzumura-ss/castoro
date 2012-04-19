@@ -19,61 +19,79 @@
 
 require 'thread'
 require 'socket'
+require 'singleton'
 require 'castoro-groupctl/channel'
 require 'castoro-groupctl/barrier'
+require 'castoro-groupctl/tcp_socket'
 require 'castoro-groupctl/configurations'
 
 module Castoro
   module Peer
 
-    class XBarrier < MasterSlaveBarrierSingleton
+    class XBarrier < MasterSlaveBarrier
+      include Singleton
     end
 
     class Proxy
       def initialize hostname, target
         @hostname, @target  = hostname, target
-      end
-      
-      def xxx port, command, args, &block
-        Thread.new do
-          c = command.dup 
-          a = args.dup
-          yyy port, c, a, &block
-        end
+        @response = nil
       end
 
-      def yyy port, command, args, &block
-        # p [ command, args ]
-        XBarrier.instance.wait nil
-        socket = TCPSocket.new @hostname, port
-        socket.setsockopt Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true
-        channel = TcpClientChannel.new socket
-        channel.send_command command, args
-        x_command, response = channel.receive_response
-        socket.close
-        # p [ @hostname, @target, command, args, response ]
-        if block_given?
-          result = yield @hostname, @target, response
-        else
-          result = [ @hostname, @target, command, args, response ]
-        end
-        XBarrier.instance.wait result
-        response
-      rescue => e
-        # p e
-        XBarrier.instance.wait e
-        e
-      end
-
-      def ps
+      def issue_command_to_cstartd command, args, &block
         port = Configurations.instance.cstartd_comm_tcpport
-        xxx( port, 'PS', { :target => @target } ) do |h, t, r|  # hostname, target, response
+        issue_command port, command, args, &block
+      end
+
+      def issue_command_to_cagentd command, args, &block
+        port = Configurations.instance.cagentd_comm_tcpport
+        issue_command port, command, args, &block
+      end
+
+      def issue_command port, command, args, &block
+        Thread.new do
+          begin
+            # port is a Fixnum. thus, there is no need to duplicate it.
+            c = command.dup 
+            a = args.dup
+            @response = nil
+
+            XBarrier.instance.wait
+
+            timelimit = 5
+            client = TcpClient.new
+            socket = client.timed_connect @hostname, port, timelimit
+            channel = TcpClientChannel.new socket
+            channel.send_command command, args
+            x_command, @response = channel.receive_response
+            socket.close
+
+            if block_given?
+              result = yield @hostname, @target, @response
+            else
+              result = [ @hostname, @target, @response ]
+            end
+
+            XBarrier.instance.wait( :result => result )
+          rescue => e
+            XBarrier.instance.wait( :result => e )
+          end
+        end
+      end
+
+      attr_reader :ps_stdout, :ps_header
+
+      def do_ps
+        @ps_stdout = nil
+        issue_command_to_cstartd( 'PS', { :target => @target } ) do |h, t, r|  # hostname, target, response
           if r.nil?
             Failure.new h, t, nil
           elsif r[ 'error' ]
             e = r[ 'error' ]
             Failure.new h, t, "#{e['code']} #{e['message']} #{e['backtrace'].join(' ')}"
           elsif r[ 'stdout' ]
+            @ps_stdout = r[ 'stdout' ]
+            @ps_header = r[ 'header' ]
             Success.new h, t, r[ 'stdout' ]
           else
             Failure.new h, t, "Unknown error: #{r.inspect}"
@@ -202,24 +220,66 @@ module Castoro
     end
 
 
+    class ProxyPool
+      include Singleton
+
+      attr_reader :entries
+
+      def initialize
+        @entries = {}
+      end
+
+      def add_peer hostname
+        @entries[ hostname ] = {
+          :cmond        => CmondProxy.new( hostname ),
+          :cpeerd       => CpeerdProxy.new( hostname ),
+          :crepd        => CrepdProxy.new( hostname ),
+          :manipulatord => ManipulatordProxy.new( hostname ),
+        }
+      end
+
+      def get_peer hostname
+        PeerComponent.new hostname
+      end
+
+      def get_peer_group
+        PeerGroupComponent.new
+      end
+
+      def cxxxd
+      end
+
+      def peer
+      end
+
+    end
+
+
     class PeerComponent
       def initialize hostname
         @hostname = hostname
-        @leaves = []
-        @leaves << CmondProxy.new( @hostname )
-        @leaves << CpeerdProxy.new( @hostname )
-        @leaves << CrepdProxy.new( @hostname )
-        @leaves << ManipulatordProxy.new( @hostname )
+        @targets = ProxyPool.instance.entries[ hostname ]
       end
 
-      def size
-        @leaves.size
+      def number_of_targets
+        @targets.size
       end
 
-      def ps
-        @leaves.each do |leaf|
-          leaf.ps
+      def do_ps
+        @targets.each do |t, x|  # target type, proxy object
+          x.do_ps
         end
+      end
+
+      def print_ps
+        header = @targets.values[0].ps_header
+        printf "%-12s%-12s%s\n", 'HOSTNAME', 'DAEMON', header
+        @targets.map do |t, x|
+          x.ps_stdout.each do |y|
+            printf "%-12s%-12s%s\n", @hostname, t, y
+          end
+        end
+        puts ''
       end
 
       def start
@@ -236,49 +296,30 @@ module Castoro
     end
 
 
-    class CxxxdComponent
-      def initialize hostname
-        @hostname = hostname
-        @leaves = []
-        @leaves << CmondProxy.new( @hostname )
-        @leaves << CpeerdProxy.new( @hostname )
-        @leaves << CrepdProxy.new( @hostname )
-      end
-
-      def size
-        @leaves.size
-      end
-
-      def status
-        @leaves.each do |leaf|
-          leaf.status
-        end
-      end
-    end
-
-
     class PeerGroupComponent
-      def initialize hostnames
-        @peers = hostnames.map do |hostname|
-          PeerComponent.new hostname
+      def initialize
+        @peers = ProxyPool.instance.entries.keys.map do |h|  # hostname
+          PeerComponent.new h
         end
       end
 
-      def size
-        @peers.size
-      end
-
-      def total
-        count = 0
-        @peers.each do |peer|
-          count = count + peer.size
+      def number_of_targets
+        c = 0  # count
+        @peers.each do |x|
+          c = c + x.number_of_targets
         end
-        count
+        c
       end
 
-      def ps
-        @peers.each do |peer|
-          peer.ps
+      def do_ps
+        @peers.each do |x|
+          x.do_ps
+        end
+      end
+
+      def print_ps
+        @peers.each do |x|
+          x.print_ps
         end
       end
 
