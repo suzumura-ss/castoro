@@ -140,7 +140,7 @@ module Castoro
           #  IOError: closed stream
           Log.debug "TCP I : #{@addr}:#{@port} #{x}" if $DEBUG
 
-          a = x.split /\r?(\n)/
+          a = x.split( /\r?(\n)/ )
           if 0 < @buffer.size and @buffer[-1] != "\n" and not a[0].nil?
             @buffer[-1] = "#{@buffer[-1]}#{a.shift}"
           end
