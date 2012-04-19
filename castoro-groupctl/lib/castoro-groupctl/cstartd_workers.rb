@@ -166,15 +166,17 @@ module Castoro
           'manipulatord'  => '/usr/local/bin/castoro-manipulator',
         }
         pattern = patterns[ target ] or raise ArgumentError, "Unknown target: #{target}"
-        a = []
+        stdout = []
+        header = nil
         IO.popen( '/bin/ps -ef' ) do |pipe|
           while line = pipe.gets do
+            header = line.chomp if header.nil?
             if line.match pattern
-              a << line.chomp
+              stdout << line.chomp
             end
           end
         end
-        { :target => target, :stdout => a }
+        { :target => target, :stdout => stdout, :header => header }
       rescue => e
         { :error => { :code => e.class, :message => e.message, :backtrace => e.backtrace.slice(0,5) } }
       end
