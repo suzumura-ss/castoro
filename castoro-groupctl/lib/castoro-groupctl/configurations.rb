@@ -192,6 +192,8 @@ module Castoro
                 :crepd_maintenance_tcpport                  => [ :mandatory, :number ],
                 :cstartd_comm_tcpport                       => [ :mandatory, :number ],
                 :cagentd_comm_tcpport                       => [ :mandatory, :number ],
+                :cstartd_ps_command                         => [ :mandatory, :string, :path ],
+                :cstartd_ps_options                         => [ :mandatory, :string ],
                 )
         end
       end

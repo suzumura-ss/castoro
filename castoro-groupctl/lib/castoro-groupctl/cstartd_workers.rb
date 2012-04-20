@@ -160,15 +160,20 @@ module Castoro
       def do_ps args
         target = args[ 'target' ] or raise ArgumentError, "target is not specified"
         patterns = {
-          'cmond'         => '/usr/local/bin/cmond',
-          'cpeerd'        => '/usr/local/bin/cpeerd',
-          'crepd'         => '/usr/local/bin/crepd',
-          'manipulatord'  => '/usr/local/bin/castoro-manipulator',
+          'cmond'         => 'bin/cmond',
+          'cpeerd'        => 'bin/cpeerd',
+          'crepd'         => 'bin/crepd',
+          'manipulatord'  => 'bin/castoro-manipulator',
         }
         pattern = patterns[ target ] or raise ArgumentError, "Unknown target: #{target}"
         stdout = []
         header = nil
-        IO.popen( '/bin/ps -ef' ) do |pipe|
+        c = Configurations.instance.cstartd_ps_command
+        x = args[ 'options' ]
+        options = x.nil? ? Configurations.instance.cstartd_ps_options : x.join( ' ' )
+        command = "#{c} #{options}"
+        command.match( %r(\A[a-zA-Z0-9_ /-]+\Z) ) or raise ArgumentError, "Non-alphanumeric letter are given: #{command}"
+        IO.popen( command ) do |pipe|
           while line = pipe.gets do
             header = line.chomp if header.nil?
             if line.match pattern

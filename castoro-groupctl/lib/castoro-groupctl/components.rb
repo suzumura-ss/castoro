@@ -79,16 +79,17 @@ module Castoro
         end
       end
 
-      attr_reader :ps_stdout, :ps_header
+      attr_reader :ps_stdout, :ps_header, :ps_error
 
-      def do_ps
+      def do_ps options
         @ps_stdout = nil
-        issue_command_to_cstartd( 'PS', { :target => @target } ) do |h, t, r|  # hostname, target, response
+        issue_command_to_cstartd( 'PS', { :target => @target, :options => options } ) do |h, t, r|  # hostname, target, response
           if r.nil?
             Failure.new h, t, nil
           elsif r[ 'error' ]
             e = r[ 'error' ]
-            Failure.new h, t, "#{e['code']} #{e['message']} #{e['backtrace'].join(' ')}"
+            Failure.new h, t, "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}"
+            @ps_error  = "#{e['code']}: #{e['message']}"
           elsif r[ 'stdout' ]
             @ps_stdout = r[ 'stdout' ]
             @ps_header = r[ 'header' ]
@@ -265,21 +266,40 @@ module Castoro
         @targets.size
       end
 
-      def do_ps
+      def do_ps options
         @targets.each do |t, x|  # target type, proxy object
-          x.do_ps
+          x.do_ps options
         end
       end
 
       def print_ps
-        header = @targets.values[0].ps_header
-        printf "%-12s%-12s%s\n", 'HOSTNAME', 'DAEMON', header
+        f = "%-12s%-14s%s\n"  # format
+        h = @hostname
+        printf f, 'HOSTNAME', 'DAEMON', @targets.values[0].ps_header
         @targets.map do |t, x|
-          x.ps_stdout.each do |y|
-            printf "%-12s%-12s%s\n", @hostname, t, y
+          if x.ps_error
+            printf f, h, t, x.ps_error
+          else
+            if x.ps_stdout
+              if 0 < x.ps_stdout.size
+                x.ps_stdout.each do |y|
+                  printf f, h, t, y
+                end
+              else
+                printf f, h, t, '(grep pattern did not match)'
+              end
+            else
+              printf f, h, t, '(error occured)'
+            end
           end
         end
         puts ''
+      end
+
+      def print_ps_printf hostname, type, message
+        h = hostname || 'HOSTNAME'
+        t = type || 'DAEMON'
+        printf "%-12s%-14s%s\n", h, t, message
       end
 
       def start
@@ -311,9 +331,9 @@ module Castoro
         c
       end
 
-      def do_ps
+      def do_ps options
         @peers.each do |x|
-          x.do_ps
+          x.do_ps options
         end
       end
 

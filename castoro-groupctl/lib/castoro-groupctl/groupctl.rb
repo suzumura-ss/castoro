@@ -34,7 +34,7 @@ module Castoro
     
     class SubCommand
       def initialize
-        @args = []
+        @options = nil
         parse_arguments
       end
 
@@ -42,22 +42,24 @@ module Castoro
         while ( x = ARGV.shift )
           begin
             Socket.gethostbyname x  # determine if the parameter is a hostname
-            ARGV.unshift x          # hostname
-            break
+            ARGV.unshift x          # it is a hostname
+            break                   # quit here
           rescue SocketError => e
-            @args.push x            # not a hostname
+            # intentionally ignored. it is not a hostname
           end
+          x.match( /\A[a-zA-Z0-9_ -]*\Z/ ) or raise CommandLineArgumentError, "Non-alphanumeric letter are given: #{x}"
+          @options = [] if @options.nil?
+          @options.push x
         end
       end
     end
 
     class PsSubCommand < SubCommand
       def run
-        # p [ 'ps', @args ]
         XBarrier.instance.reset
         x = ProxyPool.instance.get_peer_group
         XBarrier.instance.clients = x.number_of_targets + 1
-        x.do_ps
+        x.do_ps @options
         XBarrier.instance.wait  # let slaves start
         XBarrier.instance.wait  # wait until slaves finish their tasks
         x.print_ps
