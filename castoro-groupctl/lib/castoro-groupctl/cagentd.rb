@@ -31,8 +31,7 @@ module Castoro
       end
 
       def setup
-        @effective_user = Configurations.instance.effective_user
-        super
+        super( :effective_user => Configurations.instance.effective_user )
         @w = CagentdWorkers.new
       end
 

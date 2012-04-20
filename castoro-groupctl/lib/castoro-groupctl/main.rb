@@ -34,23 +34,25 @@ module Castoro
 
       def initialize
         # super should be called in the beginning of subclass method
-
-        @effective_user = nil
       end
 
-      def effective_user= effective_user
-        @effective_user = effective_user
-      end
-
-      def setup
+      def setup args  # :effective_user
         # super should be called in the beginning of subclass method
 
         Log.output = nil if $RUN_AS_DAEMON
 
-        if @effective_user and Process.euid == 0
-          pwnam = Etc.getpwnam @effective_user
-          Process.egid = pwnam.gid
-          Process.euid = pwnam.uid
+        effective_user = args[ :effective_user ]
+        if effective_user
+          pwnam = Etc.getpwnam effective_user
+          case Process.euid
+          when 0
+            Process.egid = pwnam.gid
+            Process.euid = pwnam.uid
+          when pwnam.uid
+            # OK.
+          else
+            raise StandardError, "You are not the same user as #{effective_user}"
+          end
         end
 
         Daemon.daemonize if $RUN_AS_DAEMON

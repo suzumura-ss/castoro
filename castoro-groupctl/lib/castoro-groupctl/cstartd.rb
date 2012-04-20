@@ -31,7 +31,7 @@ module Castoro
       end
 
       def setup
-        super
+        super( :effective_user => 'root' )
         @w = CstartdWorkers.new
       end
 
