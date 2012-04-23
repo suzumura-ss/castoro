@@ -1,0 +1,64 @@
+#
+#   Copyright 2010 Ricoh Company, Ltd.
+#
+#   This file is part of Castoro.
+#
+#   Castoro is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU Lesser General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   Castoro is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU Lesser General Public License for more details.
+#
+#   You should have received a copy of the GNU Lesser General Public License
+#   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+require 'rubygems'
+require 'rake'
+require 'rake/clean'
+require 'rake/gempackagetask'
+require 'rake/rdoctask'
+
+spec = Gem::Specification.new do |s|
+  s.name = 'castoro-groupctl'
+  s.version = '0.0.1.pre1'
+  s.has_rdoc = true
+  s.extra_rdoc_files = ['README.textile']
+  s.summary = "Remote control subsystem for peer groups of Castoro."
+  s.description = s.summary
+  s.executables = Dir.glob("bin/**/*").map { |f| File.basename(f) }
+  f = %w(History.txt LICENSE README.textile Rakefile)
+  f = f + Dir.glob("{bin,ext,lib,spec,etc}/**/*").select{ |x| File.file? x }
+  f = f.select{ |x| not x.match( %r{\A.*/[.#]|~\Z} ) }
+  f = f.select{ |x| not x.match( %r{\A.*/(..?(\..*)?|test[^/]*)\Z} ) }
+  s.files = f
+  s.files.each { |x| puts x }
+  s.require_path = "lib"
+  s.bindir = "bin"
+  s.authors = ['Castoro project']
+  s.add_development_dependency('rspec', '>=2.0.0')
+end
+
+Rake::GemPackageTask.new(spec) do |p|
+  p.gem_spec = spec
+  p.need_tar = true
+  p.need_zip = true
+end
+
+Rake::RDocTask.new do |rdoc|
+  files =['README.textile', 'LICENSE', 'lib/**/*.rb']
+  rdoc.rdoc_files.add(files)
+  rdoc.main = "README.textile" # page to start on
+  rdoc.title = "castor-groupctl Docs"
+  rdoc.rdoc_dir = 'doc/rdoc' # rdoc output folder
+  rdoc.options << '--line-numbers'
+end
+
+Dir['tasks/**/*.rake'].each { |t| load t }
+
+task :default => [:spec]
+

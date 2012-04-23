@@ -1,0 +1,3 @@
+h1. castoro-groupctl
+
+castoro-groupctl is a remote control subsystem for peer groups of Castoro.
