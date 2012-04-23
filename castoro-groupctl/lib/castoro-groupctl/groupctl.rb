@@ -73,7 +73,7 @@ module Castoro
       include Singleton
 
       def initialize
-        @name = $0.sub( %r{.*/}, '' )  # name of this command
+        @program_name = $0.sub( %r{.*/}, '' )  # name of this command
       end
 
       def parse_command_line_options
@@ -107,7 +107,7 @@ module Castoro
       end
 
       def usage
-        puts "usage: #{@name} sub-command [options...] [parameters...] [hostnames..]"
+        puts "usage: #{@program_name} sub-command [options...] [parameters...] [hostnames..]"
       end
 
       def run
@@ -119,7 +119,7 @@ module Castoro
         command.run
 
       rescue CommandLineArgumentError => e
-        STDERR.puts "#{@name}: #{e.message}"
+        STDERR.puts "#{@program_name}: #{e.message}"
         usage
         Process.exit 1
       end
