@@ -220,6 +220,36 @@ module Castoro
         end
       end
 
+      def ascend_mode mode
+        if @status_mode.nil? or @status_mode < mode
+          do_mode mode
+        else
+          Thread.new do
+            begin
+              XBarrier.instance.wait
+              @mode_error = nil
+              @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( mode )}"
+              XBarrier.instance.wait( :result => nil )
+            end
+          end
+        end
+      end
+
+      def descend_mode mode
+        if @status_mode.nil? or mode < @status_mode
+          do_mode mode
+        else
+          Thread.new do
+            begin
+              XBarrier.instance.wait
+              @mode_error = nil
+              @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( mode )}"
+              XBarrier.instance.wait( :result => nil )
+            end
+          end
+        end
+      end
+
       attr_reader :auto_error, :auto_message
 
       def do_auto auto
@@ -295,6 +325,21 @@ module Castoro
             XBarrier.instance.wait( :result => nil )
           end
         end
+      end
+
+      def ascend_mode mode
+        Thread.new do
+          begin
+            XBarrier.instance.wait
+            @mode_error = nil
+            @mode_message = nil
+            XBarrier.instance.wait( :result => nil )
+          end
+        end
+      end
+
+      def descend_mode mode
+        ascend_mode mode
       end
 
       def do_auto auto
@@ -404,6 +449,15 @@ module Castoro
         puts ''
       end
 
+      def ps_running?
+        @targets.each do |t, x|  # target type, proxy object
+          r = x.ps_running
+          r.nil? and return nil
+          r or return false
+        end
+        true
+      end
+
       def print_ps_printf hostname, type, message
         h = hostname || 'HOSTNAME'
         t = type || 'DAEMON'
@@ -426,8 +480,8 @@ module Castoro
             printf f, h, t, r, x.status_error, nil, nil
           else
             m = x.status_mode ? ServerStatus.status_code_to_s( x.status_mode ) : ''
-            a = x.status_auto ? 'auto' : 'off'
-            d = x.status_debug ? 'on' : 'off'
+            a = x.status_auto.nil? ? '' : ( x.status_auto ? 'auto' : 'off' )
+            d = x.status_debug.nil? ? '' : ( x.status_debug ? 'on' : 'off' )
             printf f, h, t, r, m, a, d
           end
         end
@@ -494,6 +548,34 @@ module Castoro
         puts ''
       end
 
+      def ascend_mode mode
+        @targets.each do |t, x|
+          x.ascend_mode mode
+        end
+      end
+
+      def descend_mode mode
+        @targets.each do |t, x|
+          x.ascend_mode mode
+        end
+      end
+
+      def mode
+        r = nil
+        @targets.each do |t, x|
+          if x.is_a? CxxxdProxy
+            m = x.status_mode
+            m.nil? and return nil
+            if r.nil?
+              r = m
+            else
+              r == m or return nil
+            end
+          end
+        end
+        r
+      end
+
       def do_auto auto
         @targets.each do |t, x|
           x.do_auto auto
@@ -543,6 +625,15 @@ module Castoro
         end
       end
 
+      def ps_running?
+        @peers.each do |x|
+          r = x.ps_running?
+          r.nil? and return nil
+          r or return false
+        end
+        true
+      end
+
       def do_status options
         @peers.each do |x|
           x.do_status options
@@ -589,6 +680,32 @@ module Castoro
         @peers.each do |x|
           x.print_mode
         end
+      end
+
+      def ascend_mode mode
+        @peers.each do |x|
+          x.ascend_mode mode
+        end
+      end
+
+      def descend_mode mode
+        @peers.each do |x|
+          x.descend_mode mode
+        end
+      end
+
+      def mode
+        r = nil
+        @peers.each do |x|
+          m = x.mode
+          m.nil? and return nil
+          if r.nil?
+            r = m
+          else
+            r == m or return nil
+          end
+        end
+        r
       end
 
       def do_auto auto

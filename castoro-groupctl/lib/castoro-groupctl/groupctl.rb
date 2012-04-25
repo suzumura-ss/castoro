@@ -106,43 +106,25 @@ module Castoro
 
         sleep 0.01
 
-        puts "[ #{Time.new.to_s} Starting daemons ]"
-        XBarrier.instance.reset
-        @x.do_start
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
-        @x.print_start
+        unless @x.ps_running?
+          puts "[ #{Time.new.to_s} Starting daemons ]"
+          XBarrier.instance.reset
+          @x.do_start
+          XBarrier.instance.wait  # let slaves start
+          XBarrier.instance.wait  # wait until slaves finish their tasks
+          @x.print_start
+          sleep 2
 
-        sleep 2
-
-        puts "[ #{Time.new.to_s} Daemon processes ]"
-        XBarrier.instance.reset
-        @x = ProxyPool.instance.get_peer_group
-        XBarrier.instance.clients = @x.number_of_targets + 1
-        @x.do_ps nil
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
-        @x.print_ps
-
-        sleep 2
-
-        puts "[ #{Time.new.to_s} Status ]"
-        XBarrier.instance.reset
-        @x.do_status nil
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
-        @x.print_status
-
-        sleep 0.01
-
-        puts "[ #{Time.new.to_s} Turning the autopilot of daemon processes off ]"
-        XBarrier.instance.reset
-        @x.do_auto false
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
-        @x.print_auto
-
-        sleep 2
+          puts "[ #{Time.new.to_s} Daemon processes ]"
+          XBarrier.instance.reset
+          @x = ProxyPool.instance.get_peer_group
+          XBarrier.instance.clients = @x.number_of_targets + 1
+          @x.do_ps nil
+          XBarrier.instance.wait  # let slaves start
+          XBarrier.instance.wait  # wait until slaves finish their tasks
+          @x.print_ps
+          sleep 2
+        end
 
         puts "[ #{Time.new.to_s} Status ]"
         XBarrier.instance.reset
@@ -151,41 +133,59 @@ module Castoro
         XBarrier.instance.wait  # wait until slaves finish their tasks
         @x.print_status
 
-        sleep 2
+        unless @x.mode == 30
+          puts "[ #{Time.new.to_s} Turning the autopilot of daemon processes off ]"
+          XBarrier.instance.reset
+          @x.do_auto false
+          XBarrier.instance.wait  # let slaves start
+          XBarrier.instance.wait  # wait until slaves finish their tasks
+          @x.print_auto
 
-        puts "[ #{Time.new.to_s} Rising up the mode to 30 online ]"
-        XBarrier.instance.reset
-        @x.do_mode 30
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
-        @x.print_mode
+          sleep 2
 
-        sleep 2
+          puts "[ #{Time.new.to_s} Status ]"
+          XBarrier.instance.reset
+          @x.do_status nil
+          XBarrier.instance.wait  # let slaves start
+          XBarrier.instance.wait  # wait until slaves finish their tasks
+          @x.print_status
 
-        puts "[ #{Time.new.to_s} Status ]"
-        XBarrier.instance.reset
-        @x.do_status nil
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
-        @x.print_status
+          sleep 2
 
-        sleep 2
+          puts "[ #{Time.new.to_s} Ascending the mode to 30 online ]"
+          XBarrier.instance.reset
+          @x.ascend_mode 30
+          XBarrier.instance.wait  # let slaves start
+          XBarrier.instance.wait  # wait until slaves finish their tasks
+          @x.print_mode
 
-        puts "[ #{Time.new.to_s} Turning the autopilot of daemon processes auto ]"
-        XBarrier.instance.reset
-        @x.do_auto true
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
-        @x.print_auto
+          sleep 2
 
-        sleep 2
+          puts "[ #{Time.new.to_s} Status ]"
+          XBarrier.instance.reset
+          @x.do_status nil
+          XBarrier.instance.wait  # let slaves start
+          XBarrier.instance.wait  # wait until slaves finish their tasks
+          @x.print_status
 
-        puts "[ #{Time.new.to_s} Status ]"
-        XBarrier.instance.reset
-        @x.do_status nil
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
-        @x.print_status
+          sleep 2
+
+          puts "[ #{Time.new.to_s} Turning the autopilot of daemon processes auto ]"
+          XBarrier.instance.reset
+          @x.do_auto true
+          XBarrier.instance.wait  # let slaves start
+          XBarrier.instance.wait  # wait until slaves finish their tasks
+          @x.print_auto
+
+          sleep 2
+
+          puts "[ #{Time.new.to_s} Status ]"
+          XBarrier.instance.reset
+          @x.do_status nil
+          XBarrier.instance.wait  # let slaves start
+          XBarrier.instance.wait  # wait until slaves finish their tasks
+          @x.print_status
+        end
       end
     end
 
