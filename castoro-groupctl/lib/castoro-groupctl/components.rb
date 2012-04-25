@@ -105,7 +105,6 @@ module Castoro
 
       attr_reader :status_error, :status_mode, :status_auto, :status_debug
 
-
       def do_status options
         @status_mode = nil
         @status_auto = nil
@@ -128,72 +127,72 @@ module Castoro
         end
       end
 
-      def start
-        xxx( 'START', { :target => @target } ) do |h, t, r|  # hostname, target, response
+      attr_reader :start_error, :start_stdout, :start_message
+
+      def do_start
+        @start_error = nil
+        @start_message = nil
+        issue_command_to_cstartd( 'START', { :target => @target } ) do |h, t, r|  # hostname, target, response
           if r.nil?
             Failure.new h, t, nil
           elsif r[ 'error' ]
             e = r[ 'error' ]
             Failure.new h, t, "#{e['code']} #{e['message']} #{e['backtrace'].join(' ')}"
+            @start_error = "#{e['code']}: #{e['message']}"
           elsif r[ 'status' ] and r[ 'status' ] != 0
             Failure.new h, t, "status=#{r['status']} #{r['message']}"
+            @start_error = "status=#{r['status']} #{r['message']}"
           elsif r[ 'status' ] == 0
             if r[ 'stdout' ].find { |x| x.match( /Starting.*NG/ ) } and r[ 'stderr' ].find { |x| x.match( /Errno::EADDRINUSE/ ) }
               Success.new h, t, "Already started"
+              @start_message = "Already started"
             else
               Success.new h, t, "status=#{r['status']} #{r['message']}"
+              @start_message = "status=#{r['status']} #{r['message']}"
             end
           else
             Failure.new h, t, "Unknown error: #{r.inspect}"
+            @start_error = "Unknown error: #{r.inspect}"
           end
         end
       end
 
-      def stop
-        port = Configurations.instance.cstartd_comm_tcpport
-        xxx( port, 'STOP', { :target => @target } ) do |h, t, r|  # hostname, target, response
+      attr_reader :stop_error, :stop_message
+
+      def do_stop
+        @stop_error = nil
+        @stop_message = nil
+        issue_command_to_cstartd( 'STOP', { :target => @target } ) do |h, t, r|  # hostname, target, response
           if r.nil?
             Failure.new h, t, nil
           elsif r[ 'error' ]
             e = r[ 'error' ]
             Failure.new h, t, "#{e['code']} #{e['message']} #{e['backtrace'].join(' ')}"
+            @stop_error = "#{e['code']}: #{e['message']}"
           elsif r[ 'status' ] and r[ 'status' ] != 0
             if t == :manipulatord and r[ 'status' ] == 1 and r[ 'stderr' ].find { |x| x.match( /PID file not found/ ) }
               Success.new h, t, "Already stopped"
+              @stop_message = "Already stopped"
             else
               Failure.new h, t, "status=#{r['status']} #{r['message']}"
+              @stop_error = "status=#{r['status']} #{r['message']}"
             end
           elsif r[ 'stdout' ] and r[ 'stdout' ].find { |x| x.match( /Errno::ECONNREFUSED/ ) }
             Success.new h, t, "Already stopped"
+            @stop_message = "Already stopped"
           elsif r[ 'status' ] == 0
             Success.new h, t, "status=#{r['status']} #{r['message']}"
+            @stop_message = "status=#{r['status']} #{r['message']}"
           else
             Failure.new h, t, "Unknown error: #{r.inspect}"
+            @stop_error = "Unknown error: #{r.inspect}"
           end
         end
       end
 
       def shutdown
-        port = Configurations.instance.cstartd_comm_tcpport
-        xxx( port, 'SHUTDOWN', nil )
+        issue_command_to_cstartd( 'SHUTDOWN', nil )
       end
-
-      def status
-        port = Configurations.instance.cagentd_comm_tcpport
-        xxx( port, 'STATUS', { :target => @target } ) do |h, t, r|  # hostname, target, response
-          if r.nil?
-            Failure.new h, t, nil
-          elsif r[ 'error' ]
-            e = r[ 'error' ]
-            Failure.new h, t, "#{e['code']} #{e['message']} #{e['backtrace'].join(' ')}"
-          elsif r[ 'mode' ]
-            Success.new h, t, r
-          else
-            Failure.new h, t, "Unknown error: #{r.inspect}"
-          end
-        end
-      end
-
     end
 
     class ResultStatus
@@ -367,17 +366,46 @@ module Castoro
         puts ''
       end
 
-      def start
-        @leaves.each do |leaf|
-          leaf.start
+      def do_start
+        @targets.each do |t, x|
+          x.do_start
         end
       end
 
-      def stop
-        @leaves.each do |leaf|
-          leaf.stop
+      def print_start
+        f = "%-14s%-14s%s\n"  # format
+        h = @hostname
+        printf f, 'HOSTNAME', 'DAEMON', 'RESULTS'
+        @targets.map do |t, x|
+          if x.start_error
+            printf f, h, t, x.start_error
+          else
+            printf f, h, t, x.start_message
+          end
+        end
+        puts ''
+      end
+
+      def do_stop
+        @targets.each do |t, x|
+          x.do_stop
         end
       end
+
+      def print_stop
+        f = "%-14s%-14s%s\n"  # format
+        h = @hostname
+        printf f, 'HOSTNAME', 'DAEMON', 'RESULTS'
+        @targets.map do |t, x|
+          if x.stop_error
+            printf f, h, t, x.stop_error
+          else
+            printf f, h, t, x.stop_message
+          end
+        end
+        puts ''
+      end
+
     end
 
 
@@ -420,42 +448,27 @@ module Castoro
         end
       end
 
-      def start
-        @peers.each do |peer|
-          peer.start
+      def do_start
+        @peers.each do |x|
+          x.do_start
         end
       end
 
-      def stop
-        @peers.each do |peer|
-          peer.stop
-        end
-      end
-    end
-
-
-    class CxxxdGroupComponent
-      def initialize hostnames
-        @peers = hostnames.map do |hostname|
-          CxxxdComponent.new hostname
+      def print_start
+        @peers.each do |x|
+          x.print_start
         end
       end
 
-      def size
-        @peers.size
-      end
-
-      def total
-        count = 0
-        @peers.each do |peer|
-          count = count + peer.size
+      def do_stop
+        @peers.each do |x|
+          x.do_stop
         end
-        count
       end
 
-      def status
-        @peers.each do |peer|
-          peer.status
+      def print_stop
+        @peers.each do |x|
+          x.print_stop
         end
       end
     end

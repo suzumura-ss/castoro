@@ -28,10 +28,10 @@ module Castoro
         @program_name = $0.sub(/.*\//, '')
         super(
               [ '--help',                '-h', NO_ARGUMENT ],
-              [ '--version',             '-V', NO_ARGUMENT ],
-              [ '--verbose',             '-v', NO_ARGUMENT ],
+#              [ '--version',             '-V', NO_ARGUMENT ],
+#              [ '--verbose',             '-v', NO_ARGUMENT ],
               [ '--debug',               '-d', NO_ARGUMENT ],
-              [ '--foreground',          '-f', NO_ARGUMENT ],
+#              [ '--foreground',          '-f', NO_ARGUMENT ],
               [ '--configuration-file',  '-c', REQUIRED_ARGUMENT ],
               )
 
@@ -40,15 +40,15 @@ module Castoro
           when '--help'
             usage
             exit 0
-          when '--version'
-            puts "#{@program_name} - Version #{PROGRAM_VERSION}"
-            exit 0
-          when '--verbose'
-            $VERBOSE = true
+#          when '--version'
+#            puts "#{@program_name} - Version #{PROGRAM_VERSION}"
+#            exit 0
+#          when '--verbose'
+#            $VERBOSE = true
           when '--debug'
             $DEBUG = true
-          when '--foreground'
-            $RUN_AS_DAEMON = false
+#          when '--foreground'
+#            $RUN_AS_DAEMON = false
           when '--configuration-file'
             Configurations.file = arg
           end
@@ -56,16 +56,16 @@ module Castoro
       end
 
       def usage
-        puts "#{@program_name} - Version #{PROGRAM_VERSION}"
+        puts "#{@program_name}"
         puts ""
-        puts " Usage: #{@program_name} [options]"
+        puts " Usage: #{@program_name} [options] sub-command [peer...]"
         puts ""
         puts "  options:"
         puts "   -h, --help"
-        puts "   -V, --version"
-        puts "   -v, --verbose"
+#        puts "   -V, --version"
+#        puts "   -v, --verbose"
         puts "   -d, --debug"
-        puts "   -f, --foreground"
+#        puts "   -f, --foreground"
         puts "   -c configuration_file, --configuration-file=configuration_file"
         puts ""
       end

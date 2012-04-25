@@ -27,7 +27,9 @@ end
 require 'thread'
 require 'socket'
 require 'singleton'
+require 'getoptlong'
 require 'castoro-groupctl/components'
+require 'castoro-groupctl/command_line_options'
 
 module Castoro
   module Peer
@@ -87,6 +89,51 @@ module Castoro
       end
     end
 
+
+    class StartAllSubCommand < SubCommand
+      def probe
+        XBarrier.instance.reset
+        @x = ProxyPool.instance.get_peer_group
+        XBarrier.instance.clients = @x.number_of_targets + 1
+        @x.do_start
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+      end
+
+      def run
+        ps = PsSubCommand.new
+        ps.run
+        probe
+        @x.print_start
+        sleep 1
+        ps = PsSubCommand.new
+        ps.run
+      end
+    end
+
+
+    class StopAllSubCommand < SubCommand
+      def probe
+        XBarrier.instance.reset
+        @x = ProxyPool.instance.get_peer_group
+        XBarrier.instance.clients = @x.number_of_targets + 1
+        @x.do_stop
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+      end
+
+      def run
+        ps = PsSubCommand.new
+        ps.run
+        probe
+        @x.print_stop
+        sleep 1
+        ps = PsSubCommand.new
+        ps.run
+      end
+    end
+
+
     class CommandLineArgumentError < ArgumentError
     end
     
@@ -98,14 +145,34 @@ module Castoro
       end
 
       def parse_command_line_options
+        x = GetoptLong.new(
+              [ '--help',                '-h', GetoptLong::NO_ARGUMENT ],
+              [ '--debug',               '-d', GetoptLong::NO_ARGUMENT ],
+              [ '--configuration-file',  '-c', GetoptLong::REQUIRED_ARGUMENT ],
+              )
+
+        x.each do |opt, arg|
+          case opt
+          when '--help'
+            usage
+            exit 0
+          when '--debug'
+            $DEBUG = true
+          when '--configuration-file'
+            Configurations.file = arg
+          end
+        end
       end
 
       def parse_sub_command
         x = ARGV.shift
         x.nil? and raise CommandLineArgumentError, "No sub-command is given."
         case x
-        when 'ps' ; PsSubCommand.new
-        when 'status' ; StatusSubCommand.new
+        when 'ps'       ; PsSubCommand.new
+        when 'status'   ; StatusSubCommand.new
+        when 'startall' ; StartAllSubCommand.new
+        when 'stopall'  ; StopAllSubCommand.new
+#        when ''  ; SubCommand.new
         else
           raise CommandLineArgumentError, "Unknown sub-command: #{x}"
         end
@@ -129,10 +196,24 @@ module Castoro
       end
 
       def usage
-        puts "usage: #{@program_name} sub-command [options...] [parameters...] [hostnames..]"
+        puts "usage: #{@program_name} [global options...] sub-command [options...] [parameters...] [hostnames..]"
+        puts ""
+        puts "  global options:"
+        puts "   -h, --help"
+        puts "   -d, --debug"
+        puts "   -c configuration_file, --configuration-file=configuration_file"
+        puts ""
+        puts "  sub commands:"
+        puts "   ps         lists the deamon processes in a 'ps -ef' format"
+        puts "   status     shows the status of the deamon processes"
+        puts "   startall   starts all deamon processes"
+        puts "   stopall    stop all the daemon processes"
+        puts ""
+
       end
 
       def run
+        parse_command_line_options
         command = parse_sub_command
         hostnames = parse_hostnames
         hostnames.each do |h|  # hostname
@@ -142,6 +223,7 @@ module Castoro
 
       rescue CommandLineArgumentError => e
         STDERR.puts "#{@program_name}: #{e.message}"
+        puts ""
         usage
         Process.exit 1
       end
