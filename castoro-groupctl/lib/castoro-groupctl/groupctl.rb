@@ -55,14 +55,35 @@ module Castoro
     end
 
     class PsSubCommand < SubCommand
-      def run
+      def probe
         XBarrier.instance.reset
-        x = ProxyPool.instance.get_peer_group
-        XBarrier.instance.clients = x.number_of_targets + 1
-        x.do_ps @options
+        @x = ProxyPool.instance.get_peer_group
+        XBarrier.instance.clients = @x.number_of_targets + 1
+        @x.do_ps @options
         XBarrier.instance.wait  # let slaves start
         XBarrier.instance.wait  # wait until slaves finish their tasks
-        x.print_ps
+      end
+
+      def run
+        probe
+        @x.print_ps
+      end
+    end
+
+    class StatusSubCommand < SubCommand
+      def probe
+        XBarrier.instance.reset
+        @x = ProxyPool.instance.get_peer_group
+        XBarrier.instance.clients = @x.number_of_targets + 1
+        @x.do_status @options
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+      end
+
+      def run
+        PsSubCommand.new.probe
+        probe
+        @x.print_status
       end
     end
 
@@ -84,6 +105,7 @@ module Castoro
         x.nil? and raise CommandLineArgumentError, "No sub-command is given."
         case x
         when 'ps' ; PsSubCommand.new
+        when 'status' ; StatusSubCommand.new
         else
           raise CommandLineArgumentError, "Unknown sub-command: #{x}"
         end

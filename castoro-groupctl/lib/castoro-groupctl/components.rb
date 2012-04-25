@@ -24,6 +24,7 @@ require 'castoro-groupctl/channel'
 require 'castoro-groupctl/barrier'
 require 'castoro-groupctl/tcp_socket'
 require 'castoro-groupctl/configurations'
+require 'castoro-groupctl/server_status'
 
 module Castoro
   module Peer
@@ -79,10 +80,11 @@ module Castoro
         end
       end
 
-      attr_reader :ps_stdout, :ps_header, :ps_error
+      attr_reader :ps_error, :ps_stdout, :ps_header, :ps_running
 
       def do_ps options
         @ps_stdout = nil
+        @ps_running = nil
         issue_command_to_cstartd( 'PS', { :target => @target, :options => options } ) do |h, t, r|  # hostname, target, response
           if r.nil?
             Failure.new h, t, nil
@@ -93,7 +95,33 @@ module Castoro
           elsif r[ 'stdout' ]
             @ps_stdout = r[ 'stdout' ]
             @ps_header = r[ 'header' ]
+            @ps_running = ( @ps_stdout.size == 1 )
             Success.new h, t, r[ 'stdout' ]
+          else
+            Failure.new h, t, "Unknown error: #{r.inspect}"
+          end
+        end
+      end
+
+      attr_reader :status_error, :status_mode, :status_auto, :status_debug
+
+
+      def do_status options
+        @status_mode = nil
+        @status_auto = nil
+        @status_debug = nil
+        issue_command_to_cagentd( 'STATUS', { :target => @target, :options => options } ) do |h, t, r|  # hostname, target, response
+          if r.nil?
+            Failure.new h, t, nil
+          elsif r[ 'error' ]
+            e = r[ 'error' ]
+            Failure.new h, t, "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}"
+            @status_error  = "#{e['code']}: #{e['message']}"
+          elsif r[ 'mode' ]
+            @status_mode = r[ 'mode' ]
+            @status_auto = r[ 'auto' ]
+            @status_debug = r[ 'debug' ]
+            Success.new h, t, r[ 'mode' ]  # Todo: maybe, Success and Failure are not needed any longer
           else
             Failure.new h, t, "Unknown error: #{r.inspect}"
           end
@@ -191,6 +219,19 @@ module Castoro
     class ManipulatordProxy < Proxy
       def initialize hostname
         super hostname, :manipulatord
+      end
+
+      def do_status options
+        # ManipulatordProxy does not currently support a STATUS command
+        Thread.new do
+          begin
+            XBarrier.instance.wait
+            @status_mode = nil
+            @status_auto = nil
+            @status_debug = nil
+            XBarrier.instance.wait( :result => nil )
+          end
+        end
       end
     end
 
@@ -302,6 +343,28 @@ module Castoro
         printf "%-12s%-14s%s\n", h, t, message
       end
 
+      def do_status options
+        @targets.each do |t, x|  # target type, proxy object
+          x.do_status options
+        end
+      end
+
+      def print_status
+        f = "%-12s%-14s%-14s%-14s%-14s%-14s\n"  # format
+        h = @hostname
+        printf f, 'HOSTNAME', 'DAEMON', 'ACTIVITY', 'MODE', 'AUTOPILOT', 'DEBUG'
+        @targets.map do |t, x|
+          a = x.ps_error ? "(#{x.ps_error})" : (x.ps_running.nil? ? 'unknown' : (x.ps_running ? 'running' : 'stopped'))
+          if x.status_error
+            printf f, h, t, a, x.status_error, nil, nil
+          else
+            m = x.status_mode ? ServerStatus.status_code_to_s( x.status_mode ) : ''
+            printf f, h, t, a, m, x.status_auto, x.status_debug
+          end
+        end
+        puts ''
+      end
+
       def start
         @leaves.each do |leaf|
           leaf.start
@@ -340,6 +403,18 @@ module Castoro
       def print_ps
         @peers.each do |x|
           x.print_ps
+        end
+      end
+
+      def do_status options
+        @peers.each do |x|
+          x.do_status options
+        end
+      end
+
+      def print_status
+        @peers.each do |x|
+          x.print_status
         end
       end
 
