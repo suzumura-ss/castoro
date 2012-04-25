@@ -314,7 +314,7 @@ module Castoro
       end
 
       def print_ps
-        f = "%-12s%-14s%s\n"  # format
+        f = "%-14s%-14s%s\n"  # format
         h = @hostname
         printf f, 'HOSTNAME', 'DAEMON', @targets.values[0].ps_header
         @targets.map do |t, x|
@@ -327,7 +327,7 @@ module Castoro
                   printf f, h, t, y
                 end
               else
-                printf f, h, t, '(grep pattern did not match)'
+                printf f, h, t, ''  # grep pattern did not match
               end
             else
               printf f, h, t, '(error occured)'
@@ -340,7 +340,7 @@ module Castoro
       def print_ps_printf hostname, type, message
         h = hostname || 'HOSTNAME'
         t = type || 'DAEMON'
-        printf "%-12s%-14s%s\n", h, t, message
+        printf "%-14s%-14s%s\n", h, t, message
       end
 
       def do_status options
@@ -350,16 +350,18 @@ module Castoro
       end
 
       def print_status
-        f = "%-12s%-14s%-14s%-14s%-14s%-14s\n"  # format
+        f = "%-14s%-14s%-14s%-14s%-14s%-14s\n"  # format
         h = @hostname
         printf f, 'HOSTNAME', 'DAEMON', 'ACTIVITY', 'MODE', 'AUTOPILOT', 'DEBUG'
         @targets.map do |t, x|
-          a = x.ps_error ? "(#{x.ps_error})" : (x.ps_running.nil? ? 'unknown' : (x.ps_running ? 'running' : 'stopped'))
+          r = x.ps_error ? "(#{x.ps_error})" : (x.ps_running.nil? ? 'unknown' : (x.ps_running ? 'running' : 'stopped'))
           if x.status_error
-            printf f, h, t, a, x.status_error, nil, nil
+            printf f, h, t, r, x.status_error, nil, nil
           else
             m = x.status_mode ? ServerStatus.status_code_to_s( x.status_mode ) : ''
-            printf f, h, t, a, m, x.status_auto, x.status_debug
+            a = x.status_auto ? 'auto' : 'off'
+            d = x.status_debug ? 'on' : 'off'
+            printf f, h, t, a, m, a, d
           end
         end
         puts ''
