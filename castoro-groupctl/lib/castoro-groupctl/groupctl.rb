@@ -91,23 +91,101 @@ module Castoro
 
 
     class StartAllSubCommand < SubCommand
-      def probe
+      def run
+        @x = ProxyPool.instance.get_peer_group
+        XBarrier.instance.clients = @x.number_of_targets + 1
+
+        puts "[ #{Time.new.to_s} Daemon processes ]"
         XBarrier.instance.reset
         @x = ProxyPool.instance.get_peer_group
         XBarrier.instance.clients = @x.number_of_targets + 1
+        @x.do_ps nil
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_ps
+
+        sleep 0.01
+
+        puts "[ #{Time.new.to_s} Starting daemons ]"
+        XBarrier.instance.reset
         @x.do_start
         XBarrier.instance.wait  # let slaves start
         XBarrier.instance.wait  # wait until slaves finish their tasks
-      end
-
-      def run
-        ps = PsSubCommand.new
-        ps.run
-        probe
         @x.print_start
-        sleep 1
-        ps = PsSubCommand.new
-        ps.run
+
+        sleep 2
+
+        puts "[ #{Time.new.to_s} Daemon processes ]"
+        XBarrier.instance.reset
+        @x = ProxyPool.instance.get_peer_group
+        XBarrier.instance.clients = @x.number_of_targets + 1
+        @x.do_ps nil
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_ps
+
+        sleep 2
+
+        puts "[ #{Time.new.to_s} Status ]"
+        XBarrier.instance.reset
+        @x.do_status nil
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_status
+
+        sleep 0.01
+
+        puts "[ #{Time.new.to_s} Turning the autopilot of daemon processes off ]"
+        XBarrier.instance.reset
+        @x.do_auto false
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_auto
+
+        sleep 2
+
+        puts "[ #{Time.new.to_s} Status ]"
+        XBarrier.instance.reset
+        @x.do_status nil
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_status
+
+        sleep 2
+
+        puts "[ #{Time.new.to_s} Rising up the mode to 30 online ]"
+        XBarrier.instance.reset
+        @x.do_mode 30
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_mode
+
+        sleep 2
+
+        puts "[ #{Time.new.to_s} Status ]"
+        XBarrier.instance.reset
+        @x.do_status nil
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_status
+
+        sleep 2
+
+        puts "[ #{Time.new.to_s} Turning the autopilot of daemon processes auto ]"
+        XBarrier.instance.reset
+        @x.do_auto true
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_auto
+
+        sleep 2
+
+        puts "[ #{Time.new.to_s} Status ]"
+        XBarrier.instance.reset
+        @x.do_status nil
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_status
       end
     end
 
@@ -172,6 +250,9 @@ module Castoro
         when 'status'   ; StatusSubCommand.new
         when 'startall' ; StartAllSubCommand.new
         when 'stopall'  ; StopAllSubCommand.new
+        when 'stop'     ; StopSubCommand.new
+#        when 'mode'     ; ModeSubCommand.new
+#        when 'auto'     ; AutoSubCommand.new
 #        when ''  ; SubCommand.new
         else
           raise CommandLineArgumentError, "Unknown sub-command: #{x}"
@@ -206,8 +287,9 @@ module Castoro
         puts "  sub commands:"
         puts "   ps         lists the deamon processes in a 'ps -ef' format"
         puts "   status     shows the status of the deamon processes"
-        puts "   startall   starts all deamon processes"
-        puts "   stopall    stop all the daemon processes"
+        puts "   startall   starts deamon processes on every host of the group"
+        puts "   stop       stops daemon processes on the only tartget host"
+        puts "   stopall    stops daemon processes on every host of the group"
         puts ""
 
       end

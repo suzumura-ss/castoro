@@ -35,7 +35,6 @@ module Castoro
 
       def reset
         @mutex.synchronize do
-          @clients = 0
           @results.clear
         end
       end

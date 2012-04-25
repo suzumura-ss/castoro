@@ -70,6 +70,8 @@ module Castoro
                  when 'GETPROP'  ; do_getprop args
                  when 'SETPROP'  ; do_setprop args
                  when 'STATUS'   ; do_status args
+                 when 'MODE'     ; do_mode args
+                 when 'AUTO'     ; do_auto args
                  when 'QUIT'     ; socket.close ; return
                  when 'SHUTDOWN' ; CagentdMain.instance.shutdown_requested ; return
                  else
@@ -176,6 +178,76 @@ module Castoro
         debug = x[1] ? true : ( x[2] ? false : nil )
 
         { :target => target, :mode => mode, :auto => auto, :debug => debug }
+      end
+
+      def do_mode args
+        target = args[ 'target' ] or raise ArgumentError, "taget is not specified: #{args.inspect}"
+        port = case target
+               when 'cmond'         ; Configurations.instance.cmond_maintenance_tcpport
+               when 'cpeerd'        ; Configurations.instance.cpeerd_maintenance_tcpport
+               when 'crepd'         ; Configurations.instance.crepd_maintenance_tcpport
+               when 'manipulatord'
+                 raise ArgumentError, "manipulatord has no control port."
+               else
+                 raise ArgumentError, "Unknown target: #{target}"
+               end
+
+        mode = args[ 'mode' ] or raise ArgumentError, "mode is not specified: #{args.inspect}"
+        x = mode.to_s
+
+        command = "mode"
+        client = TcpClient.new
+        socket = client.timed_connect '127.0.0.1', port, 3
+        socket.puts command
+        value = socket.timed_gets 3
+        socket.close
+        mode_previous = value.match( /mode: *([0-9]+)/ )[1].to_i
+
+        command = "mode #{x}"
+        client = TcpClient.new
+        socket = client.timed_connect '127.0.0.1', port, 3
+        socket.puts command
+        value = socket.timed_gets 3
+        socket.close
+        mode = value.match( /mode: *([0-9]+)/ )[1].to_i
+
+        { :target => target, :mode_previous => mode_previous, :mode => mode }
+      end
+
+      def do_auto args
+        target = args[ 'target' ] or raise ArgumentError, "taget is not specified: #{args.inspect}"
+        port = case target
+               when 'cmond'         ; Configurations.instance.cmond_maintenance_tcpport
+               when 'cpeerd'        ; Configurations.instance.cpeerd_maintenance_tcpport
+               when 'crepd'         ; Configurations.instance.crepd_maintenance_tcpport
+               when 'manipulatord'
+                 raise ArgumentError, "manipulatord has no control port."
+               else
+                 raise ArgumentError, "Unknown target: #{target}"
+               end
+
+        args.has_key? 'auto' or raise ArgumentError, "auto is not specified: #{args.inspect}"
+        auto = args[ 'auto' ] ? 'auto' : 'off'
+
+        command = "auto"
+        client = TcpClient.new
+        socket = client.timed_connect '127.0.0.1', port, 3
+        socket.puts command
+        value = socket.timed_gets 3
+        socket.close
+        x = value.match( /auto: *(auto)?(off)?/ )
+        auto_previous = x[1] ? true : ( x[2] ? false : nil )
+
+        command = "auto #{auto}"
+        client = TcpClient.new
+        socket = client.timed_connect '127.0.0.1', port, 3
+        socket.puts command
+        value = socket.timed_gets 3
+        socket.close
+        x = value.match( /auto: *(auto)?(off)?/ )
+        auto = x[1] ? true : ( x[2] ? false : nil )
+
+        { :target => target, :auto_previous => auto_previous, :auto => auto }
       end
     end
 

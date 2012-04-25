@@ -88,11 +88,11 @@ module Castoro
         issue_command_to_cstartd( 'PS', { :target => @target, :options => options } ) do |h, t, r|  # hostname, target, response
           if r.nil?
             Failure.new h, t, nil
-          elsif r[ 'error' ]
+          elsif r.has_key? 'error'
             e = r[ 'error' ]
             Failure.new h, t, "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}"
             @ps_error  = "#{e['code']}: #{e['message']}"
-          elsif r[ 'stdout' ]
+          elsif r.has_key? 'stdout'
             @ps_stdout = r[ 'stdout' ]
             @ps_header = r[ 'header' ]
             @ps_running = ( @ps_stdout.size == 1 )
@@ -112,11 +112,11 @@ module Castoro
         issue_command_to_cagentd( 'STATUS', { :target => @target, :options => options } ) do |h, t, r|  # hostname, target, response
           if r.nil?
             Failure.new h, t, nil
-          elsif r[ 'error' ]
+          elsif r.has_key? 'error'
             e = r[ 'error' ]
             Failure.new h, t, "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}"
             @status_error  = "#{e['code']}: #{e['message']}"
-          elsif r[ 'mode' ]
+          elsif r.has_key? 'mode'
             @status_mode = r[ 'mode' ]
             @status_auto = r[ 'auto' ]
             @status_debug = r[ 'debug' ]
@@ -135,14 +135,15 @@ module Castoro
         issue_command_to_cstartd( 'START', { :target => @target } ) do |h, t, r|  # hostname, target, response
           if r.nil?
             Failure.new h, t, nil
-          elsif r[ 'error' ]
+            @start_error = "nil"
+          elsif r.has_key? 'error'
             e = r[ 'error' ]
             Failure.new h, t, "#{e['code']} #{e['message']} #{e['backtrace'].join(' ')}"
             @start_error = "#{e['code']}: #{e['message']}"
-          elsif r[ 'status' ] and r[ 'status' ] != 0
+          elsif r.has_key? 'status' and r[ 'status' ] != 0
             Failure.new h, t, "status=#{r['status']} #{r['message']}"
             @start_error = "status=#{r['status']} #{r['message']}"
-          elsif r[ 'status' ] == 0
+          elsif r.has_key? 'status' and r[ 'status' ] == 0
             if r[ 'stdout' ].find { |x| x.match( /Starting.*NG/ ) } and r[ 'stderr' ].find { |x| x.match( /Errno::EADDRINUSE/ ) }
               Success.new h, t, "Already started"
               @start_message = "Already started"
@@ -165,11 +166,11 @@ module Castoro
         issue_command_to_cstartd( 'STOP', { :target => @target } ) do |h, t, r|  # hostname, target, response
           if r.nil?
             Failure.new h, t, nil
-          elsif r[ 'error' ]
+          elsif r.has_key? 'error'
             e = r[ 'error' ]
             Failure.new h, t, "#{e['code']} #{e['message']} #{e['backtrace'].join(' ')}"
             @stop_error = "#{e['code']}: #{e['message']}"
-          elsif r[ 'status' ] and r[ 'status' ] != 0
+          elsif r.has_key? 'status' and r[ 'status' ] != 0
             if t == :manipulatord and r[ 'status' ] == 1 and r[ 'stderr' ].find { |x| x.match( /PID file not found/ ) }
               Success.new h, t, "Already stopped"
               @stop_message = "Already stopped"
@@ -177,10 +178,10 @@ module Castoro
               Failure.new h, t, "status=#{r['status']} #{r['message']}"
               @stop_error = "status=#{r['status']} #{r['message']}"
             end
-          elsif r[ 'stdout' ] and r[ 'stdout' ].find { |x| x.match( /Errno::ECONNREFUSED/ ) }
+          elsif r.has_key? 'stdout' and r[ 'stdout' ].find { |x| x.match( /Errno::ECONNREFUSED/ ) }
             Success.new h, t, "Already stopped"
             @stop_message = "Already stopped"
-          elsif r[ 'status' ] == 0
+          elsif r.has_key? 'status' and r[ 'status' ] == 0
             Success.new h, t, "status=#{r['status']} #{r['message']}"
             @stop_message = "status=#{r['status']} #{r['message']}"
           else
@@ -193,6 +194,57 @@ module Castoro
       def shutdown
         issue_command_to_cstartd( 'SHUTDOWN', nil )
       end
+
+      attr_reader :mode_error, :mode_message
+
+      def do_mode mode
+        @mode_error = nil
+        @mode_message = nil
+        issue_command_to_cagentd( 'MODE', { :target => @target, :mode => mode } ) do |h, t, r|  # hostname, target, response
+          if r.nil?
+            Failure.new h, t, nil
+          elsif r.has_key? 'error'
+            e = r[ 'error' ]
+            Failure.new h, t, "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}"
+            @mode_error = "#{e['code']}: #{e['message']}"
+          elsif r.has_key? 'mode'
+            @status_mode = r[ 'mode' ]
+            f = r[ 'mode_previous' ] ? ServerStatus.status_code_to_s( r[ 'mode_previous' ] ) : 'unknown'
+            t = r[ 'mode' ] ? ServerStatus.status_code_to_s( r[ 'mode' ] ) : 'unknown'
+            @mode_message = "Mode has changed from #{f} to #{t}"
+            Success.new h, t, r[ 'mode' ]  # Todo: maybe, Success and Failure are not needed any longer
+          else
+            Failure.new h, t, "Unknown error: #{r.inspect}"
+            @mode_error = "Unknown error: #{r.inspect}"
+          end
+        end
+      end
+
+      attr_reader :auto_error, :auto_message
+
+      def do_auto auto
+        @auto_error = nil
+        @auto_message = nil
+        issue_command_to_cagentd( 'AUTO', { :target => @target, :auto => auto } ) do |h, t, r|  # hostname, target, response
+          if r.nil?
+            Failure.new h, t, nil
+          elsif r.has_key? 'error'
+            e = r[ 'error' ]
+            Failure.new h, t, "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}"
+            @auto_error = "#{e['code']}: #{e['message']}"
+          elsif r.has_key? 'auto'
+            @status_auto = r[ 'auto' ]
+            f = r[ 'auto_previous' ].nil? ? 'unknown' : ( r[ 'auto_previous' ] ? 'auto' : 'off' )
+            t = r[ 'auto' ].nil? ? 'unknown' : ( r[ 'auto' ] ? 'auto' : 'off' )
+            @auto_message = "Autopilot has changed from #{f} to #{t}"
+            Success.new h, t, r[ 'auto' ]  # Todo: maybe, Success and Failure are not needed any longer
+          else
+            Failure.new h, t, "Unknown error: #{r.inspect}"
+            @auto_error = "Unknown error: #{r.inspect}"
+          end
+        end
+      end
+
     end
 
     class ResultStatus
@@ -232,11 +284,34 @@ module Castoro
           end
         end
       end
+
+      def do_mode mode
+        # ManipulatordProxy does not currently support a MODE command
+        Thread.new do
+          begin
+            XBarrier.instance.wait
+            @mode_error = nil
+            @mode_message = nil
+            XBarrier.instance.wait( :result => nil )
+          end
+        end
+      end
+
+      def do_auto auto
+        # ManipulatordProxy does not currently support a AUTO command
+        Thread.new do
+          begin
+            XBarrier.instance.wait
+            @auto_error = nil
+            @auto_message = nil
+            XBarrier.instance.wait( :result => nil )
+          end
+        end
+      end
     end
 
 
     class CxxxdProxy < Proxy
-
     end
 
 
@@ -286,13 +361,6 @@ module Castoro
       def get_peer_group
         PeerGroupComponent.new
       end
-
-      def cxxxd
-      end
-
-      def peer
-      end
-
     end
 
 
@@ -360,7 +428,7 @@ module Castoro
             m = x.status_mode ? ServerStatus.status_code_to_s( x.status_mode ) : ''
             a = x.status_auto ? 'auto' : 'off'
             d = x.status_debug ? 'on' : 'off'
-            printf f, h, t, a, m, a, d
+            printf f, h, t, r, m, a, d
           end
         end
         puts ''
@@ -406,6 +474,45 @@ module Castoro
         puts ''
       end
 
+      def do_mode mode
+        @targets.each do |t, x|
+          x.do_mode mode
+        end
+      end
+
+      def print_mode
+        f = "%-14s%-14s%s\n"  # format
+        h = @hostname
+        printf f, 'HOSTNAME', 'DAEMON', 'RESULTS'
+        @targets.map do |t, x|
+          if x.mode_error
+            printf f, h, t, x.mode_error
+          else
+            printf f, h, t, x.mode_message
+          end
+        end
+        puts ''
+      end
+
+      def do_auto auto
+        @targets.each do |t, x|
+          x.do_auto auto
+        end
+      end
+
+      def print_auto
+        f = "%-14s%-14s%s\n"  # format
+        h = @hostname
+        printf f, 'HOSTNAME', 'DAEMON', 'RESULTS'
+        @targets.map do |t, x|
+          if x.auto_error
+            printf f, h, t, x.auto_error
+          else
+            printf f, h, t, x.auto_message
+          end
+        end
+        puts ''
+      end
     end
 
 
@@ -469,6 +576,30 @@ module Castoro
       def print_stop
         @peers.each do |x|
           x.print_stop
+        end
+      end
+
+      def do_mode mode
+        @peers.each do |x|
+          x.do_mode mode
+        end
+      end
+
+      def print_mode
+        @peers.each do |x|
+          x.print_mode
+        end
+      end
+
+      def do_auto auto
+        @peers.each do |x|
+          x.do_auto auto
+        end
+      end
+
+      def print_auto
+        @peers.each do |x|
+          x.print_auto
         end
       end
     end
