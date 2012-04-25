@@ -56,7 +56,7 @@ module Castoro
         @mutex.synchronize {
           f = file || @file
           f = "#{Dir.getwd}/#{f}" unless f.match(/\A\//)
-          Log.notice( "Loading configration file: #{f}" )
+          # Log.notice( "Loading configration file: #{f}" )
           # print "#{caller.join("\n")}\n"
           @entries = @config_file.load( f )  # exceptions might be raised
           @file = f
