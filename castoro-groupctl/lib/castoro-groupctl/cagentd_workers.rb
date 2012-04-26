@@ -86,7 +86,6 @@ module Castoro
       def do_shutdown
         # something goes wrong with Ruby 1.9.2 running on CentOS 6.2
         # so, do it here
-        sleep 0.1
         Process.exit 0
 
         # something goes wrong with Ruby 1.9.2 running on CentOS 6.2
