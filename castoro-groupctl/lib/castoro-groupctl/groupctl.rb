@@ -290,6 +290,7 @@ module Castoro
         @y.do_stop
         XBarrier.instance.wait  # let slaves start
         XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_stop
         sleep 2
 
         do_ps_and_print
