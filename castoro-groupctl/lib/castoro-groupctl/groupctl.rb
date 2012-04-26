@@ -393,7 +393,8 @@ module Castoro
       end
 
       def usage
-        puts "usage: #{@program_name} [global options...] sub-command [options...] [parameters...] [hostnames..]"
+        x = @program_name
+        puts "usage: #{x} [global options...] sub-command [options...] [parameters...] [hostnames..]"
         puts ""
         puts "  global options:"
         puts "   -h, --help"
@@ -402,12 +403,30 @@ module Castoro
         puts ""
         puts "  sub commands:"
         puts "   ps         lists the deamon processes in a 'ps -ef' format"
-        puts "   status     shows the status of the deamon processes"
-        puts "   startall   starts deamon processes on every host of the group"
-        puts "   stop       stops daemon processes on the only tartget host"
-        puts "   stopall    stops daemon processes on every host of the group"
+        puts "   status     shows the status of the deamon processes on the every host"
+        puts "   startall   starts deamon processes on every host of the peer group"
+        puts "   stopall    stops  daemon processes on every host of the peer group"
+        puts "   start      starts daemon processes on the only target peer host"
+        puts "   stop       stops  daemon processes on the only target peer host"
         puts ""
-
+        puts " examples:"
+        puts "   #{x} status peer01 peer02 peer03"
+        puts "        the status of peer01, peer02, and peer03 will be shown."
+        puts ""
+        puts "   #{x} stop peer01 peer02 peer03"
+        puts "        peer01 will be stopped."
+        puts "        peer02 and peer03 will be offline."
+        puts ""
+        puts "   #{x} start peer01 peer02 peer03"
+        puts "        peer01 will be started, then"
+        puts "        peer01, peer02 and peer03 will be online."
+        puts ""
+        puts "   #{x} stopall peer01 peer02 peer03"
+        puts "        peer01 peer02 peer03 will be stopped."
+        puts ""
+        puts "   #{x} startall peer01 peer02 peer03"
+        puts "        peer01 peer02 peer03 will be started, then be online."
+        puts ""
       end
 
       def run
