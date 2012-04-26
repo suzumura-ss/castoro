@@ -644,7 +644,7 @@ module Castoro
       def ps_running?
         r = nil
         @peers.each do |x|
-          x = x.ps_running
+          x = x.ps_running?
           x.nil? and return nil
           if r.nil?
             r = x
