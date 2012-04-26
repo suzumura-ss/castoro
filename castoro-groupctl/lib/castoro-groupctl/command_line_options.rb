@@ -31,7 +31,7 @@ module Castoro
 #              [ '--version',             '-V', NO_ARGUMENT ],
 #              [ '--verbose',             '-v', NO_ARGUMENT ],
               [ '--debug',               '-d', NO_ARGUMENT ],
-#              [ '--foreground',          '-f', NO_ARGUMENT ],
+              [ '--foreground',          '-f', NO_ARGUMENT ],
               [ '--configuration-file',  '-c', REQUIRED_ARGUMENT ],
               )
 
@@ -47,8 +47,8 @@ module Castoro
 #            $VERBOSE = true
           when '--debug'
             $DEBUG = true
-#          when '--foreground'
-#            $RUN_AS_DAEMON = false
+          when '--foreground'
+            $RUN_AS_DAEMON = false
           when '--configuration-file'
             Configurations.file = arg
           end
@@ -65,7 +65,7 @@ module Castoro
 #        puts "   -V, --version"
 #        puts "   -v, --verbose"
         puts "   -d, --debug"
-#        puts "   -f, --foreground"
+        puts "   -f, --foreground"
         puts "   -c configuration_file, --configuration-file=configuration_file"
         puts ""
       end
