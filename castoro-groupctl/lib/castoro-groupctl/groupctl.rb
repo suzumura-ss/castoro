@@ -54,26 +54,45 @@ module Castoro
           @options.push x
         end
       end
-    end
 
-    class PsSubCommand < SubCommand
-      def probe
+      def do_start_daemons
+        puts "[ #{Time.new.to_s}  Starting daemons ]"
         XBarrier.instance.reset
         @x = ProxyPool.instance.get_peer_group
         XBarrier.instance.clients = @x.number_of_targets + 1
-        @x.do_ps @options
+        @x.do_start
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_start
+      end
+
+      def do_stop_deamons
+        puts "[ #{Time.new.to_s}  Stopping daemons ]"
+        XBarrier.instance.reset
+        @x = ProxyPool.instance.get_peer_group
+        XBarrier.instance.clients = @x.number_of_targets + 1
+        @x.do_stop
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_stop
+      end
+
+      def do_ps
+        XBarrier.instance.reset
+        @x = ProxyPool.instance.get_peer_group
+        XBarrier.instance.clients = @x.number_of_targets + 1
+        @x.do_ps nil
         XBarrier.instance.wait  # let slaves start
         XBarrier.instance.wait  # wait until slaves finish their tasks
       end
 
-      def run
-        probe
+      def do_ps_and_print
+        puts "[ #{Time.new.to_s}  Daemon processes ]"
+        do_ps
         @x.print_ps
       end
-    end
 
-    class StatusSubCommand < SubCommand
-      def probe
+      def do_status
         XBarrier.instance.reset
         @x = ProxyPool.instance.get_peer_group
         XBarrier.instance.clients = @x.number_of_targets + 1
@@ -82,132 +101,229 @@ module Castoro
         XBarrier.instance.wait  # wait until slaves finish their tasks
       end
 
-      def run
-        PsSubCommand.new.probe
-        probe
+      def do_status_and_print
+        puts "[ #{Time.new.to_s}  Status ]"
+        do_status
         @x.print_status
+      end
+
+      def turn_autopilot_off
+        puts "[ #{Time.new.to_s}  Turning the autopilot off ]"
+        XBarrier.instance.reset
+        @x = ProxyPool.instance.get_peer_group
+        XBarrier.instance.clients = @x.number_of_targets + 1
+        @x.do_auto false
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_auto
+      end
+
+      def turn_autopilot_on
+        puts "[ #{Time.new.to_s}  Turning the autopilot auto ]"
+        XBarrier.instance.reset
+        @x.do_auto true
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_auto
+      end
+
+      def ascend_the_mode_to mode
+        m = ServerStatus.status_code_to_s( mode )
+        puts "[ #{Time.new.to_s}  Ascending the mode to #{m} ]"
+        XBarrier.instance.reset
+        @x = ProxyPool.instance.get_peer_group
+        XBarrier.instance.clients = @x.number_of_targets + 1
+        @x.ascend_mode mode
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_mode
+      end
+
+      def descend_the_mode_to mode
+        m = ServerStatus.status_code_to_s( mode )
+        puts "[ #{Time.new.to_s}  Descending the mode to #{m} ]"
+        XBarrier.instance.reset
+        @x.descend_mode mode
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        @x.print_mode
+      end
+
+      def descend_the_mode_to_readonly
+        turn_autopilot_off     ; sleep 2
+        do_status_and_print    ; sleep 2
+
+        m = @x.mode
+        if m.nil? or 30 <= @x.mode
+          descend_the_mode_to 25 ; sleep 2  # 25 fin_rep
+          do_status_and_print    ; sleep 2
+        end
+
+        m = @x.mode
+        if m.nil? or 25 <= @x.mode
+          descend_the_mode_to 23 ; sleep 2  # 23 rep
+          do_status_and_print    ; sleep 2
+        end
+
+        m = @x.mode
+        if m.nil? or 23 <= @x.mode
+          descend_the_mode_to 20 ; sleep 2  # 20 readonly
+          do_status_and_print    ; sleep 2
+        end
+      end
+
+      def descend_the_mode_to_offline
+        descend_the_mode_to_readonly
+
+        m = @x.mode
+        if m.nil? or 20 <= @x.mode
+          descend_the_mode_to 10 ; sleep 2  # 10 offline
+          do_status_and_print    ; sleep 2
+        end
+      end
+    end
+
+
+    class PsSubCommand < SubCommand
+      def run
+        do_ps_and_print
+      end
+    end
+
+
+    class StatusSubCommand < SubCommand
+      def run
+        do_ps  # obtain the information on the existance of the processes
+        do_status_and_print
       end
     end
 
 
     class StartAllSubCommand < SubCommand
       def run
-        @x = ProxyPool.instance.get_peer_group
-        XBarrier.instance.clients = @x.number_of_targets + 1
-
-        puts "[ #{Time.new.to_s} Daemon processes ]"
-        XBarrier.instance.reset
-        @x = ProxyPool.instance.get_peer_group
-        XBarrier.instance.clients = @x.number_of_targets + 1
-        @x.do_ps nil
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
-        @x.print_ps
-
-        sleep 0.01
+        do_ps_and_print
 
         unless @x.ps_running?
-          puts "[ #{Time.new.to_s} Starting daemons ]"
-          XBarrier.instance.reset
-          @x.do_start
-          XBarrier.instance.wait  # let slaves start
-          XBarrier.instance.wait  # wait until slaves finish their tasks
-          @x.print_start
-          sleep 2
-
-          puts "[ #{Time.new.to_s} Daemon processes ]"
-          XBarrier.instance.reset
-          @x = ProxyPool.instance.get_peer_group
-          XBarrier.instance.clients = @x.number_of_targets + 1
-          @x.do_ps nil
-          XBarrier.instance.wait  # let slaves start
-          XBarrier.instance.wait  # wait until slaves finish their tasks
-          @x.print_ps
-          sleep 2
+          do_start_daemons       ; sleep 2
+          do_ps_and_print        ; sleep 2
         end
-
-        puts "[ #{Time.new.to_s} Status ]"
-        XBarrier.instance.reset
-        @x.do_status nil
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
-        @x.print_status
 
         unless @x.mode == 30
-          puts "[ #{Time.new.to_s} Turning the autopilot of daemon processes off ]"
-          XBarrier.instance.reset
-          @x.do_auto false
-          XBarrier.instance.wait  # let slaves start
-          XBarrier.instance.wait  # wait until slaves finish their tasks
-          @x.print_auto
-
-          sleep 2
-
-          puts "[ #{Time.new.to_s} Status ]"
-          XBarrier.instance.reset
-          @x.do_status nil
-          XBarrier.instance.wait  # let slaves start
-          XBarrier.instance.wait  # wait until slaves finish their tasks
-          @x.print_status
-
-          sleep 2
-
-          puts "[ #{Time.new.to_s} Ascending the mode to 30 online ]"
-          XBarrier.instance.reset
-          @x.ascend_mode 30
-          XBarrier.instance.wait  # let slaves start
-          XBarrier.instance.wait  # wait until slaves finish their tasks
-          @x.print_mode
-
-          sleep 2
-
-          puts "[ #{Time.new.to_s} Status ]"
-          XBarrier.instance.reset
-          @x.do_status nil
-          XBarrier.instance.wait  # let slaves start
-          XBarrier.instance.wait  # wait until slaves finish their tasks
-          @x.print_status
-
-          sleep 2
-
-          puts "[ #{Time.new.to_s} Turning the autopilot of daemon processes auto ]"
-          XBarrier.instance.reset
-          @x.do_auto true
-          XBarrier.instance.wait  # let slaves start
-          XBarrier.instance.wait  # wait until slaves finish their tasks
-          @x.print_auto
-
-          sleep 2
-
-          puts "[ #{Time.new.to_s} Status ]"
-          XBarrier.instance.reset
-          @x.do_status nil
-          XBarrier.instance.wait  # let slaves start
-          XBarrier.instance.wait  # wait until slaves finish their tasks
-          @x.print_status
+          turn_autopilot_off     ; sleep 2
+          do_status_and_print    ; sleep 2
+          ascend_the_mode_to 30  ; sleep 2
+          do_status_and_print    ; sleep 2
+          turn_autopilot_on      ; sleep 2
         end
+
+        do_ps_and_print
+        do_status_and_print
       end
     end
 
 
-    class StopAllSubCommand < SubCommand
-      def probe
+    class StartSubCommand < SubCommand
+      def run
+        do_ps_and_print
+
+        puts "[ #{Time.new.to_s}  Stopping the daemon ]"
         XBarrier.instance.reset
+        @y = ProxyPool.instance.get_the_first_peer
+        XBarrier.instance.clients = @y.number_of_targets + 1
+        unless @y.ps_running?
+          @y.do_start
+          XBarrier.instance.wait  # let slaves start
+          XBarrier.instance.wait  # wait until slaves finish their tasks
+          sleep 2
+          do_ps_and_print
+        end
+
         @x = ProxyPool.instance.get_peer_group
-        XBarrier.instance.clients = @x.number_of_targets + 1
-        @x.do_stop
+        unless @x.mode == 30
+          turn_autopilot_off     ; sleep 2
+          do_status_and_print    ; sleep 2
+          ascend_the_mode_to 30  ; sleep 2
+          do_status_and_print    ; sleep 2
+          turn_autopilot_on      ; sleep 2
+        end
+
+        do_ps_and_print
+        do_status_and_print
+      end
+    end
+
+
+    class StopSubCommand < SubCommand
+      def run
+        do_ps_and_print
+        do_status_and_print
+
+        @y = ProxyPool.instance.get_the_first_peer
+        if false == @y.ps_running?
+          puts "The deamons on the peer have already stopped."
+          return
+        end
+
+        descend_the_mode_to_readonly
+
+        mode = 10
+        m = ServerStatus.status_code_to_s( mode )
+        puts "[ #{Time.new.to_s}  Descending the mode to #{m} ]"
+        XBarrier.instance.reset
+        @y = ProxyPool.instance.get_the_first_peer
+        XBarrier.instance.clients = @y.number_of_targets + 1
+        @y.descend_mode 10  # 10 offline
         XBarrier.instance.wait  # let slaves start
         XBarrier.instance.wait  # wait until slaves finish their tasks
-      end
+        @y.print_mode
+        sleep 2
 
+        do_status_and_print
+
+        puts "[ #{Time.new.to_s}  Stopping the daemon ]"
+        XBarrier.instance.reset
+        @y = ProxyPool.instance.get_the_first_peer
+        XBarrier.instance.clients = @y.number_of_targets + 1
+        @y.do_stop
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
+        sleep 2
+
+        do_ps_and_print
+
+        XBarrier.instance.reset
+        @z = ProxyPool.instance.get_the_rest_of_peers
+        XBarrier.instance.clients = @z.number_of_targets + 1
+        if 0 < @z.number_of_targets
+          puts "[ #{Time.new.to_s}  Turning the autopilot auto ]"
+          @z.do_auto true
+          XBarrier.instance.wait  # let slaves start
+          XBarrier.instance.wait  # wait until slaves finish their tasks
+          @x.print_auto
+          sleep 2
+        end
+
+        do_ps_and_print
+        do_status_and_print
+      end
+    end
+
+    class StopAllSubCommand < SubCommand
       def run
-        ps = PsSubCommand.new
-        ps.run
-        probe
-        @x.print_stop
-        sleep 1
-        ps = PsSubCommand.new
-        ps.run
+        do_ps_and_print
+        do_status_and_print
+
+        if false == @x.ps_running?
+          puts "All deamons on every peer have already stopped."
+          return
+        end
+
+        descend_the_mode_to_offline
+        do_stop_deamons
+        sleep 2
+
+        do_ps_and_print
+        do_status_and_print
       end
     end
 

@@ -228,7 +228,7 @@ module Castoro
             begin
               XBarrier.instance.wait
               @mode_error = nil
-              @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( mode )}"
+              @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status_mode )}"
               XBarrier.instance.wait( :result => nil )
             end
           end
@@ -243,7 +243,7 @@ module Castoro
             begin
               XBarrier.instance.wait
               @mode_error = nil
-              @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( mode )}"
+              @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status_mode )}"
               XBarrier.instance.wait( :result => nil )
             end
           end
@@ -315,7 +315,7 @@ module Castoro
         end
       end
 
-      def do_mode mode
+      def dummy_mode mode
         # ManipulatordProxy does not currently support a MODE command
         Thread.new do
           begin
@@ -327,19 +327,16 @@ module Castoro
         end
       end
 
+      def do_mode mode
+        dummy_mode mode
+      end
+
       def ascend_mode mode
-        Thread.new do
-          begin
-            XBarrier.instance.wait
-            @mode_error = nil
-            @mode_message = nil
-            XBarrier.instance.wait( :result => nil )
-          end
-        end
+        dummy_mode mode
       end
 
       def descend_mode mode
-        ascend_mode mode
+        dummy_mode mode
       end
 
       def do_auto auto
@@ -403,8 +400,18 @@ module Castoro
         PeerComponent.new hostname
       end
 
+      def get_the_first_peer
+        get_peer @entries.keys[0]
+      end
+
+      def get_the_rest_of_peers
+        h = @entries.keys  # hostnames
+        h.shift
+        PeerGroupComponent.new h
+      end
+
       def get_peer_group
-        PeerGroupComponent.new
+        PeerGroupComponent.new @entries.keys
       end
     end
 
@@ -477,7 +484,11 @@ module Castoro
         @targets.map do |t, x|
           r = x.ps_error ? "(#{x.ps_error})" : (x.ps_running.nil? ? 'unknown' : (x.ps_running ? 'running' : 'stopped'))
           if x.status_error
-            printf f, h, t, r, x.status_error, nil, nil
+            if x.status_error.match( /Connection refused/ )
+              printf f, h, t, r, nil, nil, nil
+            else
+              printf f, h, t, r, x.status_error, nil, nil
+            end
           else
             m = x.status_mode ? ServerStatus.status_code_to_s( x.status_mode ) : ''
             a = x.status_auto.nil? ? '' : ( x.status_auto ? 'auto' : 'off' )
@@ -556,7 +567,7 @@ module Castoro
 
       def descend_mode mode
         @targets.each do |t, x|
-          x.ascend_mode mode
+          x.descend_mode mode
         end
       end
 
@@ -599,8 +610,8 @@ module Castoro
 
 
     class PeerGroupComponent
-      def initialize
-        @peers = ProxyPool.instance.entries.keys.map do |h|  # hostname
+      def initialize hostnames
+        @peers = hostnames.map do |h|  # hostname
           PeerComponent.new h
         end
       end
