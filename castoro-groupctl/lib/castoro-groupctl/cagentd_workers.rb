@@ -37,6 +37,11 @@ module Castoro
 
       def stop
         @server.stop
+
+        # something goes wrong with Ruby 1.9.2 running on CentOS 6.2
+        # so, exit here.
+        sleep 1
+        Process.exit 0
       end
     end
 
