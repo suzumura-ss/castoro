@@ -34,6 +34,8 @@ require 'castoro-groupctl/command_line_options'
 module Castoro
   module Peer
     
+    PROGRAM_VERSION = "0.0.1.pre1 - 2012-04-26"
+
     class SubCommand
       def initialize
         @options = nil
@@ -342,6 +344,7 @@ module Castoro
         x = GetoptLong.new(
               [ '--help',                '-h', GetoptLong::NO_ARGUMENT ],
               [ '--debug',               '-d', GetoptLong::NO_ARGUMENT ],
+              [ '--version',             '-V', GetoptLong::NO_ARGUMENT ],
               [ '--configuration-file',  '-c', GetoptLong::REQUIRED_ARGUMENT ],
               )
 
@@ -349,9 +352,12 @@ module Castoro
           case opt
           when '--help'
             usage
-            exit 0
+            Process.exit 0
           when '--debug'
             $DEBUG = true
+          when '--version'
+            puts "#{@program_name} - Version #{PROGRAM_VERSION}"
+            Process.exit 0
           when '--configuration-file'
             Configurations.file = arg
           end
@@ -366,10 +372,8 @@ module Castoro
         when 'status'   ; StatusSubCommand.new
         when 'startall' ; StartAllSubCommand.new
         when 'stopall'  ; StopAllSubCommand.new
+        when 'start'    ; StartSubCommand.new
         when 'stop'     ; StopSubCommand.new
-#        when 'mode'     ; ModeSubCommand.new
-#        when 'auto'     ; AutoSubCommand.new
-#        when ''  ; SubCommand.new
         else
           raise CommandLineArgumentError, "Unknown sub-command: #{x}"
         end
@@ -399,6 +403,7 @@ module Castoro
         puts "  global options:"
         puts "   -h, --help"
         puts "   -d, --debug"
+        puts "   -V, --version"
         puts "   -c configuration_file, --configuration-file=configuration_file"
         puts ""
         puts "  sub commands:"
