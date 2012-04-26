@@ -76,7 +76,12 @@ module Castoro
           Thread.new( pid ) do |x|  # x should be assigned with a value of pid through by-value rather than by-reference
             x_pid, x_status = Process.waitpid2 x
             Log.debug "Child process #{x_pid} exited with #{x_status.exitstatus}" if $DEBUG
-            CstartdMain.instance.shutdown_requested if x_status.exitstatus == 99
+
+            # something goes wrong with Ruby 1.9.2 running on CentOS 6.2
+            # so, do it in another thread
+            Thread.new do
+              CstartdMain.instance.shutdown_requested if x_status.exitstatus == 99
+            end
           end
         else
           # Child process

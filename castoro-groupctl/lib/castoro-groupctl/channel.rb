@@ -32,6 +32,9 @@ module Castoro
       end
 
       def parse body, direction_code, exception
+        if body.nil? or body == ''
+          return [ nil, nil ]
+        end
         version, direction, command, args = JSON.parse body
         @command = command  # @command will be used in a response whatever exception occurs
         command.nil? and raise exception, "Command part is nil: #{body}"

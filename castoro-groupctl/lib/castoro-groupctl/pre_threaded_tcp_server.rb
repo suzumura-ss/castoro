@@ -111,9 +111,12 @@ module Castoro
       end
 
       def stop
-        Thread.kill @thread_acceptor
         @server_socket.close unless @server_socket.closed?
-        @thread_workers.each { |t| Thread.kill t }
+        sleep 0.1
+        Thread.kill @thread_acceptor if @thread_acceptor.alive?
+        @number_of_threads.times { @queue.enq nil }
+        # sleep 0.1
+        # @thread_workers.each { |t| Thread.kill t if t.alive? }
       end
 
       def graceful_stop

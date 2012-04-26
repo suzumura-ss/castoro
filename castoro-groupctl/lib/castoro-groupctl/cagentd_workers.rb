@@ -72,8 +72,8 @@ module Castoro
                  when 'STATUS'   ; do_status args
                  when 'MODE'     ; do_mode args
                  when 'AUTO'     ; do_auto args
-                 when 'QUIT'     ; socket.close ; return
-                 when 'SHUTDOWN' ; CagentdMain.instance.shutdown_requested ; return
+                 when 'QUIT'     ; socket.close ; return :closed
+                 when 'SHUTDOWN' ; do_shutdown ; return :closed
                  else
                    raise BadRequestError, "Unknown command: #{command}"
                  end
@@ -81,6 +81,14 @@ module Castoro
 
       rescue => e
         channel.send_response e
+      end
+
+      def do_shutdown
+        # something goes wrong with Ruby 1.9.2 running on CentOS 6.2
+        # so, do it in another thread
+        Thread.new do
+          CagentdMain.instance.shutdown_requested
+        end
       end
 
       def do_get_set_prop args, value
