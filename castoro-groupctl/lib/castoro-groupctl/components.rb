@@ -457,12 +457,17 @@ module Castoro
       end
 
       def ps_running?
+        r = nil
         @targets.each do |t, x|  # target type, proxy object
-          r = x.ps_running
-          r.nil? and return nil
-          r or return false
+          x = x.ps_running
+          x.nil? and return nil
+          if r.nil?
+            r = x
+          elsif r != x
+            return nil
+          end
         end
-        true
+        r
       end
 
       def print_ps_printf hostname, type, message
@@ -637,12 +642,17 @@ module Castoro
       end
 
       def ps_running?
+        r = nil
         @peers.each do |x|
-          r = x.ps_running?
-          r.nil? and return nil
-          r or return false
+          x = x.ps_running
+          x.nil? and return nil
+          if r.nil?
+            r = x
+          elsif r != x
+            return nil
+          end
         end
-        true
+        r
       end
 
       def do_status options
