@@ -37,11 +37,6 @@ module Castoro
 
       def stop
         @server.stop
-
-        # something goes wrong with Ruby 1.9.2 running on CentOS 6.2
-        # so, exit here.
-        sleep 1
-        Process.exit 0
       end
     end
 
@@ -91,6 +86,10 @@ module Castoro
       def do_shutdown
         # something goes wrong with Ruby 1.9.2 running on CentOS 6.2
         # so, do it in another thread
+        Thread.new do
+          sleep 1
+          Process.exit 0
+        end
         Thread.new do
           CagentdMain.instance.shutdown_requested
         end
