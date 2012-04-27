@@ -27,16 +27,9 @@ module Castoro
       def initialize
         @clients = 0  # number of all clients
         @waiting = 0  # number of clients being waiting
-        @results = []
         @phase = 0  # 0: waiting for ready;  1: waiting for join
         @mutex = Mutex.new
         @cv = CustomConditionVariable.new
-      end
-
-      def reset
-        @mutex.synchronize do
-          @results.clear
-        end
       end
 
       def clients= clients
@@ -45,17 +38,10 @@ module Castoro
         end
       end
 
-      def results
-        @mutex.synchronize do
-          @results.dup
-        end
-      end
-
-      def wait args = nil  # :result, :timelimit
+      def wait args = nil  # :timelimit
         @mutex.synchronize do
           @waiting = @waiting + 1
           # p [ :clients, @clients, :waiting, @waiting ]
-          @results.push( args[ :result ] ) if args and args.has_key? :result
           my_phase = @phase  # Fixnum
           if @clients <= @waiting
             @waiting = 0
