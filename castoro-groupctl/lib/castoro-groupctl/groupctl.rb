@@ -59,7 +59,6 @@ module Castoro
 
       def do_start_daemons
         puts "[ #{Time.new.to_s}  Starting daemons ]"
-        XBarrier.instance.reset
         @x = ProxyPool.instance.get_peer_group
         XBarrier.instance.clients = @x.number_of_targets + 1
         @x.do_start
@@ -70,7 +69,6 @@ module Castoro
 
       def do_stop_deamons
         puts "[ #{Time.new.to_s}  Stopping daemons ]"
-        XBarrier.instance.reset
         @x = ProxyPool.instance.get_peer_group
         XBarrier.instance.clients = @x.number_of_targets + 1
         @x.do_stop
@@ -80,7 +78,6 @@ module Castoro
       end
 
       def do_ps
-        XBarrier.instance.reset
         @x = ProxyPool.instance.get_peer_group
         XBarrier.instance.clients = @x.number_of_targets + 1
         @x.do_ps nil
@@ -95,7 +92,6 @@ module Castoro
       end
 
       def do_status
-        XBarrier.instance.reset
         @x = ProxyPool.instance.get_peer_group
         XBarrier.instance.clients = @x.number_of_targets + 1
         @x.do_status @options
@@ -111,7 +107,6 @@ module Castoro
 
       def turn_autopilot_off
         puts "[ #{Time.new.to_s}  Turning the autopilot off ]"
-        XBarrier.instance.reset
         @x = ProxyPool.instance.get_peer_group
         XBarrier.instance.clients = @x.number_of_targets + 1
         @x.do_auto false
@@ -122,7 +117,6 @@ module Castoro
 
       def turn_autopilot_on
         puts "[ #{Time.new.to_s}  Turning the autopilot auto ]"
-        XBarrier.instance.reset
         @x.do_auto true
         XBarrier.instance.wait  # let slaves start
         XBarrier.instance.wait  # wait until slaves finish their tasks
@@ -132,7 +126,6 @@ module Castoro
       def ascend_the_mode_to mode
         m = ServerStatus.status_code_to_s( mode )
         puts "[ #{Time.new.to_s}  Ascending the mode to #{m} ]"
-        XBarrier.instance.reset
         @x = ProxyPool.instance.get_peer_group
         XBarrier.instance.clients = @x.number_of_targets + 1
         @x.ascend_mode mode
@@ -144,7 +137,6 @@ module Castoro
       def descend_the_mode_to mode
         m = ServerStatus.status_code_to_s( mode )
         puts "[ #{Time.new.to_s}  Descending the mode to #{m} ]"
-        XBarrier.instance.reset
         @x.descend_mode mode
         XBarrier.instance.wait  # let slaves start
         XBarrier.instance.wait  # wait until slaves finish their tasks
@@ -228,7 +220,6 @@ module Castoro
       def run
         do_ps_and_print
 
-        XBarrier.instance.reset
         @y = ProxyPool.instance.get_the_first_peer
         XBarrier.instance.clients = @y.number_of_targets + 1
         unless @y.ps_running?
@@ -272,7 +263,6 @@ module Castoro
         mode = 10
         m = ServerStatus.status_code_to_s( mode )
         puts "[ #{Time.new.to_s}  Descending the mode to #{m} ]"
-        XBarrier.instance.reset
         @y = ProxyPool.instance.get_the_first_peer
         XBarrier.instance.clients = @y.number_of_targets + 1
         @y.descend_mode 10  # 10 offline
@@ -284,7 +274,6 @@ module Castoro
         do_status_and_print
 
         puts "[ #{Time.new.to_s}  Stopping the daemon ]"
-        XBarrier.instance.reset
         @y = ProxyPool.instance.get_the_first_peer
         XBarrier.instance.clients = @y.number_of_targets + 1
         @y.do_stop
@@ -295,7 +284,6 @@ module Castoro
 
         do_ps_and_print
 
-        XBarrier.instance.reset
         @z = ProxyPool.instance.get_the_rest_of_peers
         XBarrier.instance.clients = @z.number_of_targets + 1
         if 0 < @z.number_of_targets
