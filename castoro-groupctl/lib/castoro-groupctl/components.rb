@@ -87,18 +87,16 @@ module Castoro
         @ps_running = nil
         issue_command_to_cstartd( 'PS', { :target => @target, :options => options } ) do |h, t, r|  # hostname, target, response
           if r.nil?
-            Failure.new h, t, nil
+            #
           elsif r.has_key? 'error'
             e = r[ 'error' ]
-            Failure.new h, t, "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}"
-            @ps_error  = "#{e['code']}: #{e['message']}"
+            @ps_error  = "#{e['code']}: #{e['message']}"  # e['backtrace'].join(' ')
           elsif r.has_key? 'stdout'
             @ps_stdout = r[ 'stdout' ]
             @ps_header = r[ 'header' ]
             @ps_running = ( @ps_stdout.size == 1 )
-            Success.new h, t, r[ 'stdout' ]
           else
-            Failure.new h, t, "Unknown error: #{r.inspect}"
+            # "Unknown error: #{r.inspect}"
           end
         end
       end
@@ -111,18 +109,16 @@ module Castoro
         @status_debug = nil
         issue_command_to_cagentd( 'STATUS', { :target => @target, :options => options } ) do |h, t, r|  # hostname, target, response
           if r.nil?
-            Failure.new h, t, nil
+            #
           elsif r.has_key? 'error'
             e = r[ 'error' ]
-            Failure.new h, t, "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}"
             @status_error  = "#{e['code']}: #{e['message']}"
           elsif r.has_key? 'mode'
             @status_mode = r[ 'mode' ]
             @status_auto = r[ 'auto' ]
             @status_debug = r[ 'debug' ]
-            Success.new h, t, r[ 'mode' ]  # Todo: maybe, Success and Failure are not needed any longer
           else
-            Failure.new h, t, "Unknown error: #{r.inspect}"
+            # 
           end
         end
       end
@@ -134,25 +130,19 @@ module Castoro
         @start_message = nil
         issue_command_to_cstartd( 'START', { :target => @target } ) do |h, t, r|  # hostname, target, response
           if r.nil?
-            Failure.new h, t, nil
             @start_error = "nil"
           elsif r.has_key? 'error'
             e = r[ 'error' ]
-            Failure.new h, t, "#{e['code']} #{e['message']} #{e['backtrace'].join(' ')}"
             @start_error = "#{e['code']}: #{e['message']}"
           elsif r.has_key? 'status' and r[ 'status' ] != 0
-            Failure.new h, t, "status=#{r['status']} #{r['message']}"
             @start_error = "status=#{r['status']} #{r['message']}"
           elsif r.has_key? 'status' and r[ 'status' ] == 0
             if r[ 'stdout' ].find { |x| x.match( /Starting.*NG/ ) } and r[ 'stderr' ].find { |x| x.match( /Errno::EADDRINUSE/ ) }
-              Success.new h, t, "Already started"
               @start_message = "Already started"
             else
-              Success.new h, t, "status=#{r['status']} #{r['message']}"
               @start_message = "status=#{r['status']} #{r['message']}"
             end
           else
-            Failure.new h, t, "Unknown error: #{r.inspect}"
             @start_error = "Unknown error: #{r.inspect}"
           end
         end
@@ -165,27 +155,21 @@ module Castoro
         @stop_message = nil
         issue_command_to_cstartd( 'STOP', { :target => @target } ) do |h, t, r|  # hostname, target, response
           if r.nil?
-            Failure.new h, t, nil
+            #
           elsif r.has_key? 'error'
             e = r[ 'error' ]
-            Failure.new h, t, "#{e['code']} #{e['message']} #{e['backtrace'].join(' ')}"
             @stop_error = "#{e['code']}: #{e['message']}"
           elsif r.has_key? 'status' and r[ 'status' ] != 0
             if t == :manipulatord and r[ 'status' ] == 1 and r[ 'stderr' ].find { |x| x.match( /PID file not found/ ) }
-              Success.new h, t, "Already stopped"
               @stop_message = "Already stopped"
             else
-              Failure.new h, t, "status=#{r['status']} #{r['message']}"
               @stop_error = "status=#{r['status']} #{r['message']}"
             end
           elsif r.has_key? 'stdout' and r[ 'stdout' ].find { |x| x.match( /Errno::ECONNREFUSED/ ) }
-            Success.new h, t, "Already stopped"
             @stop_message = "Already stopped"
           elsif r.has_key? 'status' and r[ 'status' ] == 0
-            Success.new h, t, "status=#{r['status']} #{r['message']}"
             @stop_message = "status=#{r['status']} #{r['message']}"
           else
-            Failure.new h, t, "Unknown error: #{r.inspect}"
             @stop_error = "Unknown error: #{r.inspect}"
           end
         end
@@ -202,19 +186,16 @@ module Castoro
         @mode_message = nil
         issue_command_to_cagentd( 'MODE', { :target => @target, :mode => mode } ) do |h, t, r|  # hostname, target, response
           if r.nil?
-            Failure.new h, t, nil
+            #
           elsif r.has_key? 'error'
             e = r[ 'error' ]
-            Failure.new h, t, "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}"
             @mode_error = "#{e['code']}: #{e['message']}"
           elsif r.has_key? 'mode'
             @status_mode = r[ 'mode' ]
             f = r[ 'mode_previous' ] ? ServerStatus.status_code_to_s( r[ 'mode_previous' ] ) : 'unknown'
             t = r[ 'mode' ] ? ServerStatus.status_code_to_s( r[ 'mode' ] ) : 'unknown'
             @mode_message = "Mode has changed from #{f} to #{t}"
-            Success.new h, t, r[ 'mode' ]  # Todo: maybe, Success and Failure are not needed any longer
           else
-            Failure.new h, t, "Unknown error: #{r.inspect}"
             @mode_error = "Unknown error: #{r.inspect}"
           end
         end
@@ -229,7 +210,7 @@ module Castoro
               XBarrier.instance.wait
               @mode_error = nil
               @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status_mode )}"
-              XBarrier.instance.wait( :result => nil )
+              XBarrier.instance.wait
             end
           end
         end
@@ -244,7 +225,7 @@ module Castoro
               XBarrier.instance.wait
               @mode_error = nil
               @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status_mode )}"
-              XBarrier.instance.wait( :result => nil )
+              XBarrier.instance.wait
             end
           end
         end
@@ -257,45 +238,22 @@ module Castoro
         @auto_message = nil
         issue_command_to_cagentd( 'AUTO', { :target => @target, :auto => auto } ) do |h, t, r|  # hostname, target, response
           if r.nil?
-            Failure.new h, t, nil
+            #
           elsif r.has_key? 'error'
             e = r[ 'error' ]
-            Failure.new h, t, "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}"
             @auto_error = "#{e['code']}: #{e['message']}"
           elsif r.has_key? 'auto'
             @status_auto = r[ 'auto' ]
             f = r[ 'auto_previous' ].nil? ? 'unknown' : ( r[ 'auto_previous' ] ? 'auto' : 'off' )
             t = r[ 'auto' ].nil? ? 'unknown' : ( r[ 'auto' ] ? 'auto' : 'off' )
             @auto_message = "Autopilot has changed from #{f} to #{t}"
-            Success.new h, t, r[ 'auto' ]  # Todo: maybe, Success and Failure are not needed any longer
           else
-            Failure.new h, t, "Unknown error: #{r.inspect}"
             @auto_error = "Unknown error: #{r.inspect}"
           end
         end
       end
-
     end
 
-    class ResultStatus
-      attr_reader :hostname, :target, :message
-
-      def initialize hostname, target, message
-        @hostname, @target, @message = hostname, target, message
-      end
-    end
-
-    class Success < ResultStatus
-    end
-
-    class Failure < ResultStatus
-      attr_reader :backtrace
-
-      def initialize hostname, target, message, backtrace = nil
-        super hostname, target, message
-        @backtrace = backtrace
-      end
-    end
 
     class ManipulatordProxy < Proxy
       def initialize hostname
@@ -310,7 +268,7 @@ module Castoro
             @status_mode = nil
             @status_auto = nil
             @status_debug = nil
-            XBarrier.instance.wait( :result => nil )
+            XBarrier.instance.wait
           end
         end
       end
@@ -322,7 +280,7 @@ module Castoro
             XBarrier.instance.wait
             @mode_error = nil
             @mode_message = nil
-            XBarrier.instance.wait( :result => nil )
+            XBarrier.instance.wait
           end
         end
       end
@@ -346,7 +304,7 @@ module Castoro
             XBarrier.instance.wait
             @auto_error = nil
             @auto_message = nil
-            XBarrier.instance.wait( :result => nil )
+            XBarrier.instance.wait
           end
         end
       end
