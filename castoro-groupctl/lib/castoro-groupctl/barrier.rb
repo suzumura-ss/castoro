@@ -38,7 +38,17 @@ module Castoro
         end
       end
 
-      def wait args = nil  # :timelimit
+      def timedwait timelimit
+        _wait timelimit
+      end
+
+      def wait
+        _wait nil
+      end
+
+      private
+
+      def _wait timelimit
         @mutex.synchronize do
           @waiting = @waiting + 1
           # p [ :clients, @clients, :waiting, @waiting ]
@@ -50,16 +60,19 @@ module Castoro
             @cv.broadcast
           end
           while ( @phase == my_phase ) do
-            if args and args.has_key? :timelimit
-              t = :timelimit - Time.new
-              if 0 < t
-                x = @cv.timedwait @mutex, t
-                return :etimedout if x == :etimedout
-              else
+            if timelimit.nil?
+              @cv.wait @mutex
+            else
+              t = timelimit - Time.new  # how many seconds left
+              if t <= 0  # already expired
+                # p [ :already_expired ]
                 return :etimedout
               end
-            else
-              @cv.wait @mutex
+              x = @cv.timedwait @mutex, t
+              if x == :etimedout  # just expired
+                # p [ :just_expired ]
+                return :etimedout
+              end
             end
             sleep 0.01  # To avoid an out-of-control infinite loop
           end
