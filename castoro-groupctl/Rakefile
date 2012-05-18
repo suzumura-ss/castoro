@@ -25,7 +25,7 @@ require 'rake/rdoctask'
 
 spec = Gem::Specification.new do |s|
   s.name = 'castoro-groupctl'
-  s.version = '0.0.1.pre1'
+  s.version = '0.0.2'
   s.has_rdoc = true
   s.extra_rdoc_files = ['README.textile']
   s.summary = "Remote control subsystem for peer groups of Castoro."
