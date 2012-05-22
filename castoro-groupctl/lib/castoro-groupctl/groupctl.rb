@@ -34,7 +34,7 @@ require 'castoro-groupctl/command_line_options'
 module Castoro
   module Peer
     
-    PROGRAM_VERSION = "0.0.1.pre1 - 2012-04-26"
+    PROGRAM_VERSION = "0.0.2 - 2012-05-25"
 
     class SubCommand
       def initialize
