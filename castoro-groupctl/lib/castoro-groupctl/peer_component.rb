@@ -30,9 +30,9 @@ module Castoro
         @targets.size
       end
 
-      def do_ps options
+      def do_ps
         @targets.each do |t, x|  # target type, proxy object
-          x.do_ps options
+          x.do_ps
         end
       end
 
@@ -80,9 +80,9 @@ module Castoro
         printf "%-14s%-14s%s\n", h, t, message
       end
 
-      def do_status options
+      def do_status
         @targets.each do |t, x|  # target type, proxy object
-          x.do_status options
+          x.do_status
         end
       end
 

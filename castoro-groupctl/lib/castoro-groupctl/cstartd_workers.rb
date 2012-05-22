@@ -174,8 +174,7 @@ module Castoro
         stdout = []
         header = nil
         c = Configurations.instance.cstartd_ps_command
-        x = args[ 'options' ]
-        options = x.nil? ? Configurations.instance.cstartd_ps_options : x.join( ' ' )
+        options = Configurations.instance.cstartd_ps_options
         command = "#{c} #{options}"
         command.match( %r(\A[a-zA-Z0-9_ /-]+\Z) ) or raise ArgumentError, "Non-alphanumeric letter are given: #{command}"
         IO.popen( command ) do |pipe|

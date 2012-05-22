@@ -82,10 +82,10 @@ module Castoro
 
       attr_reader :ps_error, :ps_stdout, :ps_header, :ps_running
 
-      def do_ps options
+      def do_ps
         @ps_stdout = nil
         @ps_running = nil
-        issue_command_to_cstartd( 'PS', { :target => @target, :options => options } ) do |h, t, r|  # hostname, target, response
+        issue_command_to_cstartd( 'PS', { :target => @target } ) do |h, t, r|  # hostname, target, response
           if r.nil?
             #
           elsif r.has_key? 'error'
@@ -103,11 +103,11 @@ module Castoro
 
       attr_reader :status_error, :status_mode, :status_auto, :status_debug
 
-      def do_status options
+      def do_status
         @status_mode = nil
         @status_auto = nil
         @status_debug = nil
-        issue_command_to_cagentd( 'STATUS', { :target => @target, :options => options } ) do |h, t, r|  # hostname, target, response
+        issue_command_to_cagentd( 'STATUS', { :target => @target } ) do |h, t, r|  # hostname, target, response
           if r.nil?
             #
           elsif r.has_key? 'error'
@@ -260,7 +260,7 @@ module Castoro
         super hostname, :manipulatord
       end
 
-      def do_status options
+      def do_status
         # ManipulatordProxy does not currently support a STATUS command
         Thread.new do
           begin

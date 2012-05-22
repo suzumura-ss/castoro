@@ -35,9 +35,9 @@ module Castoro
         c
       end
 
-      def do_ps options
+      def do_ps
         @peers.each do |x|
-          x.do_ps options
+          x.do_ps
         end
       end
 
@@ -61,9 +61,9 @@ module Castoro
         r
       end
 
-      def do_status options
+      def do_status
         @peers.each do |x|
-          x.do_status options
+          x.do_status
         end
       end
 

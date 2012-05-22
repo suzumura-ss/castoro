@@ -94,7 +94,7 @@ module Castoro
       end
 
       def do_status
-        xxxxx { @x.do_status @options }
+        xxxxx { @x.do_status }
       end
 
       def do_status_and_print
