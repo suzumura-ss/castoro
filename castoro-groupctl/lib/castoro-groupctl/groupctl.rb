@@ -57,89 +57,75 @@ module Castoro
         end
       end
 
-      def do_start_daemons
-        puts "[ #{Time.new.to_s}  Starting daemons ]"
+      def title message
+        puts "[ #{Time.new.to_s}  #{message} ]"
+      end
+
+      def xxxxx &block
         @x = ProxyPool.instance.get_peer_group
         XBarrier.instance.clients = @x.number_of_targets + 1
-        @x.do_start
+        if block_given?
+          yield
+        end
         XBarrier.instance.wait  # let slaves start
         XBarrier.instance.wait  # wait until slaves finish their tasks
+      end
+
+      def do_start_daemons
+        title "Starting daemons"
+        xxxxx { @x.do_start }
         @x.print_start
       end
 
       def do_stop_deamons
-        puts "[ #{Time.new.to_s}  Stopping daemons ]"
-        @x = ProxyPool.instance.get_peer_group
-        XBarrier.instance.clients = @x.number_of_targets + 1
-        @x.do_stop
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
+        title "Stopping daemons"
+        xxxxx { @x.do_stop }
         @x.print_stop
       end
 
       def do_ps
-        @x = ProxyPool.instance.get_peer_group
-        XBarrier.instance.clients = @x.number_of_targets + 1
-        @x.do_ps nil
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
+        xxxxx { @x.do_ps nil }
       end
 
       def do_ps_and_print
-        puts "[ #{Time.new.to_s}  Daemon processes ]"
+        title "Daemon processes"
         do_ps
         @x.print_ps
       end
 
       def do_status
-        @x = ProxyPool.instance.get_peer_group
-        XBarrier.instance.clients = @x.number_of_targets + 1
-        @x.do_status @options
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
+        xxxxx { @x.do_status @options }
       end
 
       def do_status_and_print
-        puts "[ #{Time.new.to_s}  Status ]"
+        title "Status"
         do_status
         @x.print_status
       end
 
       def turn_autopilot_off
-        puts "[ #{Time.new.to_s}  Turning the autopilot off ]"
-        @x = ProxyPool.instance.get_peer_group
-        XBarrier.instance.clients = @x.number_of_targets + 1
-        @x.do_auto false
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
+        title "Turning the autopilot off"
+        xxxxx { @x.do_auto false }
         @x.print_auto
       end
 
       def turn_autopilot_on
-        puts "[ #{Time.new.to_s}  Turning the autopilot auto ]"
+        title "Turning the autopilot auto"
         @x.do_auto true
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
         @x.print_auto
       end
 
       def ascend_the_mode_to mode
         m = ServerStatus.status_code_to_s( mode )
-        puts "[ #{Time.new.to_s}  Ascending the mode to #{m} ]"
-        @x = ProxyPool.instance.get_peer_group
-        XBarrier.instance.clients = @x.number_of_targets + 1
-        @x.ascend_mode mode
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
+        title "Ascending the mode to #{m}"
+        xxxxx { @x.ascend_mode mode }
         @x.print_mode
       end
 
       def descend_the_mode_to mode
         m = ServerStatus.status_code_to_s( mode )
-        puts "[ #{Time.new.to_s}  Descending the mode to #{m} ]"
+        title "Descending the mode to #{m}"
         @x.descend_mode mode
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
         @x.print_mode
       end
 
@@ -223,7 +209,7 @@ module Castoro
         @y = ProxyPool.instance.get_the_first_peer
         XBarrier.instance.clients = @y.number_of_targets + 1
         unless @y.ps_running?
-          puts "[ #{Time.new.to_s}  Starting the daemon ]"
+          title "Starting the daemon"
           @y.do_start
           XBarrier.instance.wait  # let slaves start
           XBarrier.instance.wait  # wait until slaves finish their tasks
@@ -262,23 +248,19 @@ module Castoro
 
         mode = 10
         m = ServerStatus.status_code_to_s( mode )
-        puts "[ #{Time.new.to_s}  Descending the mode to #{m} ]"
+        title "Descending the mode to #{m}"
         @y = ProxyPool.instance.get_the_first_peer
         XBarrier.instance.clients = @y.number_of_targets + 1
         @y.descend_mode 10  # 10 offline
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
         @y.print_mode
         sleep 2
 
         do_status_and_print
 
-        puts "[ #{Time.new.to_s}  Stopping the daemon ]"
+        title "Stopping the daemon"
         @y = ProxyPool.instance.get_the_first_peer
         XBarrier.instance.clients = @y.number_of_targets + 1
         @y.do_stop
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
         @x.print_stop
         sleep 2
 
@@ -287,7 +269,7 @@ module Castoro
         @z = ProxyPool.instance.get_the_rest_of_peers
         XBarrier.instance.clients = @z.number_of_targets + 1
         if 0 < @z.number_of_targets
-          puts "[ #{Time.new.to_s}  Turning the autopilot auto ]"
+          title "Turning the autopilot auto"
           @z.do_auto true
           XBarrier.instance.wait  # let slaves start
           XBarrier.instance.wait  # wait until slaves finish their tasks
