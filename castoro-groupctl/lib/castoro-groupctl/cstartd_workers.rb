@@ -118,17 +118,29 @@ module Castoro
         loop do
           command, args = channel.receive_command
           command.nil? and return 0  # end of file reached
-          result = case command.upcase
-                   when 'START'    ; do_start args
-                   when 'STOP'     ; do_stop args
-                   when 'PS'       ; do_ps args
-                   when 'QUIT'     ; return 0
-                   when 'SHUTDOWN' ; return 99
-                   else
-                     raise BadRequestError, "Unknown command: #{command}"
-                   end
-          Log.debug "result=#{result.inspect}" if $DEBUG
-          channel.send_response result
+
+          case command.upcase!
+          when 'QUIT'     ; return 0
+          when 'SHUTDOWN' ; return 99
+          end
+
+          begin
+            target = args[ 'target' ] or raise ArgumentError, "target is not specified"
+            result = case command
+                     when 'START'    ; do_initd target, 'start'
+                     when 'STOP'     ; do_initd target, 'stop'
+                     when 'PS'       ; do_ps target
+                     else
+                       raise BadRequestError, "Unknown command: #{command}"
+                     end
+
+          rescue => e
+            result = { :error => { :code => e.class, :message => e.message, :backtrace => e.backtrace.slice(0,5) } }
+
+          ensure
+            Log.debug "result=#{result.inspect}" if $DEBUG
+            channel.send_response result
+          end
         end
 
       rescue => e
@@ -136,58 +148,41 @@ module Castoro
         1
       end
 
-      def do_start args
-        do_xxx args, 'start'
+      def run command, options
+        x = ProcessExecutor.new
+        x.execute command, options
+        stdout, stderr = x.gets
+        status = x.wait
+        [ status, stdout, stderr ]
       end
 
-      def do_stop args
-        do_xxx args, 'stop'
-      end
-
-      def do_xxx args, subcommand
-        target = args[ 'target' ] or raise ArgumentError, "target is not specified"
-        targets = {
+      def do_initd target, options
+        command = {
           'cmond'         => '/etc/init.d/cmond',
           'cpeerd'        => '/etc/init.d/cpeerd',
           'crepd'         => '/etc/init.d/crepd',
           'manipulatord'  => '/etc/init.d/castoro-manipulatord',
-        }
-        executable = targets[ target ] or raise ArgumentError, "Unknown target: #{target}"
-        x = ProcessExecutor.new
-        x.execute executable, subcommand
-        stdout, stderr = x.gets
-        status = x.wait
+        }[ target ] or raise ArgumentError, "Unknown target: #{target}"
+
+        status, stdout, stderr = run command, options
         { :target => target, :status => status, :stdout => stdout, :stderr => stderr }
-      rescue => e
-        { :error => { :code => e.class, :message => e.message, :backtrace => e.backtrace.slice(0,5) } }
       end
 
-      def do_ps args
-        target = args[ 'target' ] or raise ArgumentError, "target is not specified"
-        patterns = {
+      def do_ps target
+        pattern = {
           'cmond'         => 'bin/cmond',
           'cpeerd'        => 'bin/cpeerd',
           'crepd'         => 'bin/crepd',
           'manipulatord'  => 'bin/castoro-manipulator',
-        }
-        pattern = patterns[ target ] or raise ArgumentError, "Unknown target: #{target}"
-        stdout = []
-        header = nil
-        c = Configurations.instance.cstartd_ps_command
+        }[ target ] or raise ArgumentError, "Unknown target: #{target}"
+
+        command = Configurations.instance.cstartd_ps_command
         options = Configurations.instance.cstartd_ps_options
-        command = "#{c} #{options}"
-        command.match( %r(\A[a-zA-Z0-9_ /-]+\Z) ) or raise ArgumentError, "Non-alphanumeric letter are given: #{command}"
-        IO.popen( command ) do |pipe|
-          while line = pipe.gets do
-            header = line.chomp if header.nil?
-            if line.match pattern
-              stdout << line.chomp
-            end
-          end
-        end
-        { :target => target, :stdout => stdout, :header => header }
-      rescue => e
-        { :error => { :code => e.class, :message => e.message, :backtrace => e.backtrace.slice(0,5) } }
+
+        status, stdout, stderr = run command, options
+        header = stdout.shift
+        stdout = stdout.select { |x| x.match pattern }
+        { :target => target, :status => status, :stdout => stdout, :stderr => stderr, :header => header }
       end
     end
 
