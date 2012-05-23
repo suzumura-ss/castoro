@@ -177,9 +177,9 @@ module Castoro
         }[ target ] or raise ArgumentError, "Unknown target: #{target}"
 
         command = Configurations.instance.cstartd_ps_command
-        options = Configurations.instance.cstartd_ps_options
+        options = Configurations.instance.cstartd_ps_options.split( ' ' )
 
-        status, stdout, stderr = run command, options
+        status, stdout, stderr = run( [ command, options ].flatten )
         header = stdout.shift
         stdout = stdout.select { |x| x.match pattern }
         { :target => target, :status => status, :stdout => stdout, :stderr => stderr, :header => header }
