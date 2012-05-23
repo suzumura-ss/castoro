@@ -28,7 +28,7 @@ require 'thread'
 require 'socket'
 require 'singleton'
 require 'getoptlong'
-require 'castoro-groupctl/components'
+require 'castoro-groupctl/peer_group_component'
 
 module Castoro
   module Peer
@@ -83,7 +83,7 @@ module Castoro
       end
 
       def do_ps
-        xxxxx { @x.do_ps nil }
+        xxxxx { @x.do_ps }
       end
 
       def do_ps_and_print

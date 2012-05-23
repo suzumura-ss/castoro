@@ -17,6 +17,8 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+require 'castoro-groupctl/proxy_pool'
+
 module Castoro
   module Peer
 
@@ -36,48 +38,52 @@ module Castoro
         end
       end
 
-      def print_ps
-        f = "%-14s%-14s%s\n"  # format
-        h = @hostname
-        printf f, 'HOSTNAME', 'DAEMON', @targets.values[0].ps_header
-        @targets.map do |t, x|
-          if x.ps_error
-            printf f, h, t, x.ps_error
+      def __print_ps h, t, m  # hostname, target type, message
+        printf "%-14s%-14s%s\n", h, t, m
+      end
+
+      def print_ps_header
+        __print_ps 'HOSTNAME', 'DAEMON', @targets.values[0].ps.header
+      end
+
+      def _print_ps t, m
+        __print_ps @hostname, t, m
+      end
+
+      def print_ps_body
+        @targets.each do |t, x|  # target type, proxy object
+          # p x
+          if x.ps.error
+            _print_ps t, x.ps.error
           else
-            if x.ps_stdout
-              if 0 < x.ps_stdout.size
-                x.ps_stdout.each do |y|
-                  printf f, h, t, y
+            if x.ps.stdout
+              if 0 < x.ps.stdout.size
+                x.ps.stdout.each do |y|
+                  _print_ps t, y
                 end
               else
-                printf f, h, t, ''  # grep pattern did not match
+                _print_ps t, ''  # grep pattern did not match
               end
             else
-              printf f, h, t, '(error occured)'
+              _print_ps t, '(error occured)'
             end
           end
         end
         puts ''
       end
 
-      def ps_running?
+      def ps_alive?
         r = nil
         @targets.each do |t, x|  # target type, proxy object
-          x = x.ps_running
-          x.nil? and return nil
+          a = x.ps.alive
+          a.nil? and return nil
           if r.nil?
-            r = x
-          elsif r != x
+            r = a
+          elsif r != a
             return nil
           end
         end
         r
-      end
-
-      def print_ps_printf hostname, type, message
-        h = hostname || 'HOSTNAME'
-        t = type || 'DAEMON'
-        printf "%-14s%-14s%s\n", h, t, message
       end
 
       def do_status

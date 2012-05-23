@@ -17,6 +17,8 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+require 'castoro-groupctl/peer_component'
+
 module Castoro
   module Peer
 
@@ -29,32 +31,28 @@ module Castoro
 
       def number_of_targets
         c = 0  # count
-        @peers.each do |x|
-          c = c + x.number_of_targets
-        end
+        @peers.each { |x| c = c + x.number_of_targets }
         c
       end
 
       def do_ps
-        @peers.each do |x|
-          x.do_ps
-        end
+        @peers.each { |x| x.do_ps }
       end
 
       def print_ps
-        @peers.each do |x|
-          x.print_ps
-        end
+        @peers[0].print_ps_header
+#        puts ''
+        @peers.each { |x| x.print_ps_body }
       end
 
-      def ps_running?
+      def ps_alive?
         r = nil
         @peers.each do |x|
-          x = x.ps_running?
-          x.nil? and return nil
+          a = x.ps_alive?
+          a.nil? and return nil
           if r.nil?
-            r = x
-          elsif r != x
+            r = a
+          elsif r != a
             return nil
           end
         end
@@ -62,63 +60,43 @@ module Castoro
       end
 
       def do_status
-        @peers.each do |x|
-          x.do_status
-        end
+        @peers.each { |x| x.do_status }
       end
 
       def print_status
-        @peers.each do |x|
-          x.print_status
-        end
+        @peers.each { |x| x.print_status }
       end
 
       def do_start
-        @peers.each do |x|
-          x.do_start
-        end
+        @peers.each { |x| x.do_start }
       end
 
       def print_start
-        @peers.each do |x|
-          x.print_start
-        end
+        @peers.each { |x| x.print_start }
       end
 
       def do_stop
-        @peers.each do |x|
-          x.do_stop
-        end
+        @peers.each { |x| x.do_stop }
       end
 
       def print_stop
-        @peers.each do |x|
-          x.print_stop
-        end
+        @peers.each { |x| x.print_stop }
       end
 
       def do_mode mode
-        @peers.each do |x|
-          x.do_mode mode
-        end
+        @peers.each { |x| x.do_mode mode }
       end
 
       def print_mode
-        @peers.each do |x|
-          x.print_mode
-        end
+        @peers.each { |x| x.print_mode }
       end
 
       def ascend_mode mode
-        @peers.each do |x|
-          x.ascend_mode mode
-        end
+        @peers.each { |x| x.ascend_mode mode }
       end
 
       def descend_mode mode
-        @peers.each do |x|
-          x.descend_mode mode
-        end
+        @peers.each { |x| x.descend_mode mode }
       end
 
       def mode
@@ -136,15 +114,11 @@ module Castoro
       end
 
       def do_auto auto
-        @peers.each do |x|
-          x.do_auto auto
-        end
+        @peers.each { |x| x.do_auto auto }
       end
 
       def print_auto
-        @peers.each do |x|
-          x.print_auto
-        end
+        @peers.each { |x| x.print_auto }
       end
     end
 

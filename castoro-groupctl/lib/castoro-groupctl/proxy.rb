@@ -18,12 +18,9 @@
 #
 
 require 'thread'
-require 'socket'
 require 'singleton'
-require 'castoro-groupctl/channel'
 require 'castoro-groupctl/barrier'
-require 'castoro-groupctl/tcp_socket'
-require 'castoro-groupctl/configurations'
+require 'castoro-groupctl/command'
 require 'castoro-groupctl/server_status'
 
 module Castoro
@@ -34,184 +31,63 @@ module Castoro
     end
 
     class Proxy
+      attr_reader :ps
+
       def initialize hostname, target
         @hostname, @target  = hostname, target
-        @response = nil
       end
 
-      def issue_command_to_cstartd command, args, &block
-        port = Configurations.instance.cstartd_comm_tcpport
-        issue_command port, command, args, &block
-      end
-
-      def issue_command_to_cagentd command, args, &block
-        port = Configurations.instance.cagentd_comm_tcpport
-        issue_command port, command, args, &block
-      end
-
-      def issue_command port, command, args, &block
+      def execute command, &block
         Thread.new do
           begin
-            # port is a Fixnum. thus, there is no need to duplicate it.
-            c = command.dup 
-            a = args.dup
-            @response = nil
-
             XBarrier.instance.wait
-
-            timelimit = 5
-            client = TcpClient.new
-            socket = client.timed_connect @hostname, port, timelimit
-            channel = TcpClientChannel.new socket
-            channel.send_command command, args
-            x_command, @response = channel.receive_response
-            socket.close
-
-            if block_given?
-              result = yield @hostname, @target, @response
-            else
-              result = [ @hostname, @target, @response ]
-            end
-
-            XBarrier.instance.wait( :result => result )
+            yield command
           rescue => e
-            XBarrier.instance.wait( :result => e )
+#            command.exception = e
+            command.error = "#{e.class} #{e.message}"  # "#{e.backtrace.join(' ')}"
+          ensure
+            XBarrier.instance.wait
           end
         end
       end
-
-      attr_reader :ps_error, :ps_stdout, :ps_header, :ps_running
 
       def do_ps
-        @ps_stdout = nil
-        @ps_running = nil
-        issue_command_to_cstartd( 'PS', { :target => @target } ) do |h, t, r|  # hostname, target, response
-          if r.nil?
-            #
-          elsif r.has_key? 'error'
-            e = r[ 'error' ]
-            @ps_error  = "#{e['code']}: #{e['message']}"  # e['backtrace'].join(' ')
-          elsif r.has_key? 'stdout'
-            @ps_stdout = r[ 'stdout' ]
-            @ps_header = r[ 'header' ]
-            @ps_running = ( @ps_stdout.size == 1 )
-          else
-            # "Unknown error: #{r.inspect}"
-          end
-        end
+        @ps = Command::Ps.new @hostname, @target
+        execute( @ps ) { |c| c.execute }
       end
-
-      attr_reader :status_error, :status_mode, :status_auto, :status_debug
 
       def do_status
-        @status_mode = nil
-        @status_auto = nil
-        @status_debug = nil
-        issue_command_to_cagentd( 'STATUS', { :target => @target } ) do |h, t, r|  # hostname, target, response
-          if r.nil?
-            #
-          elsif r.has_key? 'error'
-            e = r[ 'error' ]
-            @status_error  = "#{e['code']}: #{e['message']}"
-          elsif r.has_key? 'mode'
-            @status_mode = r[ 'mode' ]
-            @status_auto = r[ 'auto' ]
-            @status_debug = r[ 'debug' ]
-          else
-            # 
-          end
-        end
+        @status = Command::Status.new @hostname, @target
+        execute( @status ) { |c| c.execute }
       end
-
-      attr_reader :start_error, :start_stdout, :start_message
 
       def do_start
-        @start_error = nil
-        @start_message = nil
-        issue_command_to_cstartd( 'START', { :target => @target } ) do |h, t, r|  # hostname, target, response
-          if r.nil?
-            @start_error = "nil"
-          elsif r.has_key? 'error'
-            e = r[ 'error' ]
-            @start_error = "#{e['code']}: #{e['message']}"
-          elsif r.has_key? 'status' and r[ 'status' ] != 0
-            @start_error = "status=#{r['status']} #{r['message']}"
-          elsif r.has_key? 'status' and r[ 'status' ] == 0
-            if r[ 'stdout' ].find { |x| x.match( /Starting.*NG/ ) } and r[ 'stderr' ].find { |x| x.match( /Errno::EADDRINUSE/ ) }
-              @start_message = "Already started"
-            else
-              @start_message = "status=#{r['status']} #{r['message']}"
-            end
-          else
-            @start_error = "Unknown error: #{r.inspect}"
-          end
-        end
+        @start = Command::Start.new @hostname, @target
+        execute( @start ) { |c| c.execute }
       end
-
-      attr_reader :stop_error, :stop_message
 
       def do_stop
-        @stop_error = nil
-        @stop_message = nil
-        issue_command_to_cstartd( 'STOP', { :target => @target } ) do |h, t, r|  # hostname, target, response
-          if r.nil?
-            #
-          elsif r.has_key? 'error'
-            e = r[ 'error' ]
-            @stop_error = "#{e['code']}: #{e['message']}"
-          elsif r.has_key? 'status' and r[ 'status' ] != 0
-            if t == :manipulatord and r[ 'status' ] == 1 and r[ 'stderr' ].find { |x| x.match( /PID file not found/ ) }
-              @stop_message = "Already stopped"
-            else
-              @stop_error = "status=#{r['status']} #{r['message']}"
-            end
-          elsif r.has_key? 'stdout' and r[ 'stdout' ].find { |x| x.match( /Errno::ECONNREFUSED/ ) }
-            @stop_message = "Already stopped"
-          elsif r.has_key? 'status' and r[ 'status' ] == 0
-            @stop_message = "status=#{r['status']} #{r['message']}"
-          else
-            @stop_error = "Unknown error: #{r.inspect}"
-          end
-        end
+        @stop = Command::Stop.new @hostname, @target
+        execute( @stop ) { |c| c.execute }
       end
 
-      def shutdown
-        issue_command_to_cstartd( 'SHUTDOWN', nil )
-      end
-
-      attr_reader :mode_error, :mode_message
+#      def shutdown
+#        @shutdown = Command::Stop.new @hostname, @target
+#        execute( @shutdown ) { |c| c.execute }
+#      end
 
       def do_mode mode
-        @mode_error = nil
-        @mode_message = nil
-        issue_command_to_cagentd( 'MODE', { :target => @target, :mode => mode } ) do |h, t, r|  # hostname, target, response
-          if r.nil?
-            #
-          elsif r.has_key? 'error'
-            e = r[ 'error' ]
-            @mode_error = "#{e['code']}: #{e['message']}"
-          elsif r.has_key? 'mode'
-            @status_mode = r[ 'mode' ]
-            f = r[ 'mode_previous' ] ? ServerStatus.status_code_to_s( r[ 'mode_previous' ] ) : 'unknown'
-            t = r[ 'mode' ] ? ServerStatus.status_code_to_s( r[ 'mode' ] ) : 'unknown'
-            @mode_message = "Mode has changed from #{f} to #{t}"
-          else
-            @mode_error = "Unknown error: #{r.inspect}"
-          end
-        end
+        @mode = Command::Mode.new @hostname, @target
+        execute( @mode ) { |c| c.execute mode }
       end
 
       def ascend_mode mode
+        @mode = Command::Mode.new @hostname, @target
         if @status_mode.nil? or @status_mode < mode
           do_mode mode
         else
-          Thread.new do
-            begin
-              XBarrier.instance.wait
-              @mode_error = nil
-              @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status_mode )}"
-              XBarrier.instance.wait
-            end
+          execute( @mode ) do |c|
+            c.message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status_mode )}"
           end
         end
       end
@@ -236,7 +112,7 @@ module Castoro
       def do_auto auto
         @auto_error = nil
         @auto_message = nil
-        issue_command_to_cagentd( 'AUTO', { :target => @target, :auto => auto } ) do |h, t, r|  # hostname, target, response
+        execute_to_cagentd( 'AUTO', { :target => @target, :auto => auto } ) do |h, t, r|  # hostname, target, response
           if r.nil?
             #
           elsif r.has_key? 'error'
