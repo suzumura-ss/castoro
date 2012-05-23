@@ -25,8 +25,8 @@ module Castoro
 
     class MasterSlaveBarrier
       def initialize
-        @clients = 0  # number of all clients
-        @waiting = 0  # number of clients being waiting
+        @clients = 0  # the number of clients that have been registered
+        @waiting = 0  # the number of clients that have been waiting
         @phase = 0  # 0: waiting for ready;  1: waiting for join
         @mutex = Mutex.new
         @cv = CustomConditionVariable.new
