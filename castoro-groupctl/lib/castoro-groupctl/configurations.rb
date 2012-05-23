@@ -31,6 +31,8 @@ module Castoro
 
       CONFIGURATION_FILE_CANDIDATES = [ '/etc/castoro/groupctl.conf' ]
 
+      @@initial_file = nil
+
       def self.file= file
         @@initial_file = file
       end
@@ -46,8 +48,7 @@ module Castoro
       def initialize
         @mutex = Mutex.new
         @entries = nil
-        @file = @@initial_file if defined? @@initial_file
-        @file = default_configuration_file if @file.nil?
+        @file = @@initial_file || default_configuration_file
         @config_file = ConfigurationFile.new
         self.load
       end
