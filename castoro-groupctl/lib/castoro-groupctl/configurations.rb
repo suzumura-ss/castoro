@@ -142,11 +142,14 @@ module Castoro
         end
 
         def register key, value
-          ( necessity, type, path = @entries[ key ] ) or raise NameError, "Unknown parameter"
+          ( necessity, type, subtype = @entries[ key ] ) or raise NameError, "Unknown parameter"
           @data[ key ] = case type 
                          when :string
-                           if path
+                           case subtype
+                           when :path
                              File.exist?( value ) or raise NameError, "The path does not exist"
+                           when :shell_escape
+                             value.match( %r(\A[a-zA-Z0-9_ /-]+\Z) ) or raise ArgumentError, "Non-alphanumeric letter is included: #{command}"
                            end
                            value
                          when :number  # positive integer number only
@@ -194,7 +197,7 @@ module Castoro
                 :cstartd_comm_tcpport                       => [ :mandatory, :number ],
                 :cagentd_comm_tcpport                       => [ :mandatory, :number ],
                 :cstartd_ps_command                         => [ :mandatory, :string, :path ],
-                :cstartd_ps_options                         => [ :mandatory, :string ],
+                :cstartd_ps_options                         => [ :mandatory, :string, :shell_escape ],
                 )
         end
       end
