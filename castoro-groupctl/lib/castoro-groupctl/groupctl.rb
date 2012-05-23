@@ -29,7 +29,6 @@ require 'socket'
 require 'singleton'
 require 'getoptlong'
 require 'castoro-groupctl/components'
-require 'castoro-groupctl/command_line_options'
 
 module Castoro
   module Peer
