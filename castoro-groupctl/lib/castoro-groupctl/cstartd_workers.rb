@@ -119,7 +119,7 @@ module Castoro
           command, args = channel.receive_command
           command.nil? and return 0  # end of file reached
 
-          case command.upcase!
+          case command
           when 'QUIT'     ; return 0
           when 'SHUTDOWN' ; return 99
           end
