@@ -63,7 +63,7 @@ module Castoro
           r = super
         ensure
           @stdout = r[ 'stdout' ] or raise XXX
-#          @stderr = r[ 'stderr' ] or raise XXX
+          @stderr = r[ 'stderr' ] or raise XXX
         end
       end
 
