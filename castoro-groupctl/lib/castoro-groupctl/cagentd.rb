@@ -17,6 +17,13 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+if $0 == __FILE__
+  $LOAD_PATH.dup.each do |x|
+    $LOAD_PATH.delete x if x.match %r(/gems/)
+  end
+  $LOAD_PATH.unshift '..'
+end
+
 require 'castoro-groupctl/main'
 require 'castoro-groupctl/cagentd_workers'
 require 'castoro-groupctl/command_line_options'
@@ -49,15 +56,6 @@ module Castoro
   end
 end
 
-
-################################################################################
-# Please Do Not Remvoe the Following Code. It is used for development efforts.
-################################################################################
-
 if $0 == __FILE__
-  $LOAD_PATH.dup.each { |x|
-    $LOAD_PATH.delete x if x.match '\/gems\/'
-  }
-
   Castoro::Peer::CagentdMain.instance.run
 end
