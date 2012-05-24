@@ -37,13 +37,13 @@ module Castoro
           @error = nil
           a = { :target => @target }.merge args
           r = @stub.call command, a
-        ensure
           r.nil? and raise XXX
           if r.has_key? 'error'
             e = r[ 'error' ]
             @error  = "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}"
             raise XXX
           end
+          r
 
           # "Unknown error: #{r.inspect}"
         end
@@ -61,9 +61,9 @@ module Castoro
           @stdout = nil
           @stderr = nil
           r = super
-        ensure
           @stdout = r[ 'stdout' ] or raise XXX
           @stderr = r[ 'stderr' ] or raise XXX
+          r
         end
       end
 
