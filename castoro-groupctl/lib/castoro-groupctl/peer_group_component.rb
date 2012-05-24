@@ -23,9 +23,9 @@ module Castoro
   module Peer
 
     class PeerGroupComponent
-      def initialize hostnames
-        @peers = hostnames.map do |h|  # hostname
-          PeerComponent.new h
+      def initialize entries
+        @peers = entries.map do |h, t|  # hostname, targets
+          PeerComponent.new h, t
         end
       end
 

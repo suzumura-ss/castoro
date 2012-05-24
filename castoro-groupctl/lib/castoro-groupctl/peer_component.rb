@@ -17,15 +17,14 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'castoro-groupctl/proxy_pool'
+require 'castoro-groupctl/proxy'
 
 module Castoro
   module Peer
 
     class PeerComponent
-      def initialize hostname
-        @hostname = hostname
-        @targets = ProxyPool.instance.entries[ hostname ]
+      def initialize hostname, targets
+        @hostname, @targets = hostname, targets
       end
 
       def number_of_targets

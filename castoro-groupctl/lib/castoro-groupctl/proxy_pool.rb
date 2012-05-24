@@ -18,6 +18,8 @@
 #
 
 require 'castoro-groupctl/proxy'
+require 'castoro-groupctl/peer_component'
+require 'castoro-groupctl/peer_group_component'
 
 module Castoro
   module Peer
@@ -41,7 +43,7 @@ module Castoro
       end
 
       def get_peer hostname
-        PeerComponent.new hostname
+        PeerComponent.new hostname, @entries[ hostname ]
       end
 
       def get_the_first_peer
@@ -49,13 +51,13 @@ module Castoro
       end
 
       def get_the_rest_of_peers
-        h = @entries.keys  # hostnames
-        h.shift
-        PeerGroupComponent.new h
+        x = @entries.dup
+        x.delete( x.keys[0] )
+        PeerGroupComponent.new x
       end
 
       def get_peer_group
-        PeerGroupComponent.new @entries.keys
+        PeerGroupComponent.new @entries
       end
     end
 
