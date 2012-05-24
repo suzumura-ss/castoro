@@ -71,7 +71,7 @@ module Castoro
         puts ''
       end
 
-      def ps_alive?
+      def alive?
         r = nil
         @targets.each do |t, x|  # target type, proxy object
           a = x.ps.alive

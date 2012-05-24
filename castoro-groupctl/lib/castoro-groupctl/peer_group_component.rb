@@ -45,10 +45,10 @@ module Castoro
         @peers.each { |x| x.print_ps_body }
       end
 
-      def ps_alive?
+      def alive?
         r = nil
         @peers.each do |x|
-          a = x.ps_alive?
+          a = x.alive?
           a.nil? and return nil
           if r.nil?
             r = a

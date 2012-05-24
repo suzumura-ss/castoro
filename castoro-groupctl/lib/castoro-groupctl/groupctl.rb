@@ -206,9 +206,10 @@ module Castoro
         do_ps_and_print
 
         @y = ProxyPool.instance.get_the_first_peer
-        XBarrier.instance.clients = @y.number_of_targets + 1
-        unless @y.ps_running?
+        p @y
+        unless @y.alive?
           title "Starting the daemon"
+          XBarrier.instance.clients = @y.number_of_targets + 1
           @y.do_start
           XBarrier.instance.wait  # let slaves start
           XBarrier.instance.wait  # wait until slaves finish their tasks
