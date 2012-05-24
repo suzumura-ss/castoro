@@ -37,7 +37,7 @@ module Castoro
 
     class SubCommand
       def initialize
-        @options = nil
+        @options = []
         parse_arguments
       end
 
@@ -50,8 +50,7 @@ module Castoro
           rescue SocketError => e
             # intentionally ignored. it is not a hostname
           end
-          x.match( /\A[a-zA-Z0-9_ -]*\Z/ ) or raise CommandLineArgumentError, "Non-alphanumeric letter are given: #{x}"
-          @options = [] if @options.nil?
+          x.match( /\A[a-zA-Z0-9_ -]*\Z/ ) or raise CommandLineArgumentError, "Non-alphanumeric letter is not allowed in the command line: #{x}"
           @options.push x
         end
       end
