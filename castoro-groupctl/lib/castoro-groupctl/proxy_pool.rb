@@ -17,8 +17,6 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'castoro-groupctl/proxy'
-require 'castoro-groupctl/peer_component'
 require 'castoro-groupctl/peer_group_component'
 
 module Castoro
@@ -34,16 +32,11 @@ module Castoro
       end
 
       def add_peer hostname
-        @entries[ hostname ] = {
-          :cmond        => CmondProxy.new( hostname ),
-          :cpeerd       => CpeerdProxy.new( hostname ),
-          :crepd        => CrepdProxy.new( hostname ),
-          :manipulatord => ManipulatordProxy.new( hostname ),
-        }
+        @entries[ hostname ] = PeerGroupComponent.create_components hostname
       end
 
       def get_peer hostname
-        PeerComponent.new hostname, @entries[ hostname ]
+        PeerGroupComponent.new( { hostname => @entries[ hostname ] } )
       end
 
       def get_the_first_peer

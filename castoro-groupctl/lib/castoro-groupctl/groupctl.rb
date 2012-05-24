@@ -28,7 +28,7 @@ require 'thread'
 require 'socket'
 require 'singleton'
 require 'getoptlong'
-require 'castoro-groupctl/peer_group_component'
+require 'castoro-groupctl/proxy_pool'
 
 module Castoro
   module Peer
@@ -61,7 +61,7 @@ module Castoro
 
       def xxxxx &block
         @x = ProxyPool.instance.get_peer_group
-        XBarrier.instance.clients = @x.number_of_targets + 1
+        XBarrier.instance.clients = @x.number_of_components + 1
         if block_given?
           yield
         end
@@ -208,7 +208,7 @@ module Castoro
         p @y
         unless @y.alive?
           title "Starting the daemon"
-          XBarrier.instance.clients = @y.number_of_targets + 1
+          XBarrier.instance.clients = @y.number_of_components + 1
           @y.do_start
           XBarrier.instance.wait  # let slaves start
           XBarrier.instance.wait  # wait until slaves finish their tasks
@@ -249,7 +249,7 @@ module Castoro
         m = ServerStatus.status_code_to_s( mode )
         title "Descending the mode to #{m}"
         @y = ProxyPool.instance.get_the_first_peer
-        XBarrier.instance.clients = @y.number_of_targets + 1
+        XBarrier.instance.clients = @y.number_of_components + 1
         @y.descend_mode 10  # 10 offline
         @y.print_mode
         sleep 2
@@ -258,7 +258,7 @@ module Castoro
 
         title "Stopping the daemon"
         @y = ProxyPool.instance.get_the_first_peer
-        XBarrier.instance.clients = @y.number_of_targets + 1
+        XBarrier.instance.clients = @y.number_of_components + 1
         @y.do_stop
         @x.print_stop
         sleep 2
@@ -266,8 +266,8 @@ module Castoro
         do_ps_and_print
 
         @z = ProxyPool.instance.get_the_rest_of_peers
-        XBarrier.instance.clients = @z.number_of_targets + 1
-        if 0 < @z.number_of_targets
+        XBarrier.instance.clients = @z.number_of_components + 1
+        if 0 < @z.number_of_components
           title "Turning the autopilot auto"
           @z.do_auto true
           XBarrier.instance.wait  # let slaves start

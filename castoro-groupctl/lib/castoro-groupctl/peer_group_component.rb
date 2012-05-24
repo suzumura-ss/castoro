@@ -17,32 +17,68 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'castoro-groupctl/peer_component'
+require 'castoro-groupctl/proxy'
 
 module Castoro
   module Peer
 
     class PeerGroupComponent
-      def initialize entries
-        @peers = entries.map do |h, t|  # hostname, targets
-          PeerComponent.new h, t
-        end
+      def self.create_components hostname
+        { :cmond        => CmondProxy.new( hostname ),
+          :cpeerd       => CpeerdProxy.new( hostname ),
+          :crepd        => CrepdProxy.new( hostname ),
+          :manipulatord => ManipulatordProxy.new( hostname ) }
       end
 
-      def number_of_targets
-        c = 0  # count
-        @peers.each { |x| c = c + x.number_of_targets }
-        c
+      def initialize entries
+        @entries = entries
+      end
+
+      def number_of_components
+        n = 0  # number
+        @entries.values.each { |c| n = n + c.size }  # components
+        n
       end
 
       def do_ps
-        @peers.each { |x| x.do_ps }
+        @entries.values.each do |c|  # components
+          c.values.each { |x| x.do_ps }  # proxy object
+        end
+      end
+
+      def obtain_ps_header
+        @entries.values.each do |c|  # components
+          c.values.each do |x|  # proxy object
+            return x.ps.header if x.ps.header and x.ps.header != ''
+          end
+        end
+        nil
       end
 
       def print_ps
-        @peers[0].print_ps_header
-#        puts ''
-        @peers.each { |x| x.print_ps_body }
+        f = "%-14s%-14s%s\n"  # format
+        printf f, 'HOSTNAME', 'DAEMON', obtain_ps_header
+        @entries.each do |h, c|  # hostname, components
+          c.each do |t, x|  # component type, proxy object
+            # p x
+            if x.ps.error
+              printf f, h, t, x.ps.error
+            else
+              if x.ps.stdout
+                if 0 < x.ps.stdout.size
+                  x.ps.stdout.each do |y|
+                    printf f, h, t, y
+                  end
+                else
+                  printf f, h, t, ''  # grep pattern did not match
+                end
+              else
+                printf f, h, t, '(error occured)'
+              end
+            end
+          end
+          puts ''
+        end
       end
 
       def alive?
