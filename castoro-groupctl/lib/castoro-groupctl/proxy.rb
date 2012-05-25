@@ -22,6 +22,7 @@ require 'singleton'
 require 'castoro-groupctl/barrier'
 require 'castoro-groupctl/command'
 require 'castoro-groupctl/server_status'
+require 'castoro-groupctl/exceptions'
 
 module Castoro
   module Peer
@@ -31,7 +32,7 @@ module Castoro
     end
 
     class Proxy
-      attr_reader :ps
+      attr_reader :ps, :start, :stop, :status, :mode
 
       def initialize hostname, target
         @hostname, @target  = hostname, target
@@ -43,22 +44,22 @@ module Castoro
             XBarrier.instance.wait
             yield command
           rescue => e
-#            command.exception = e
-            command.error = "#{e.class} #{e.message}"  # "#{e.backtrace.join(' ')}"
+            command.exception = e
+            Exceptions.instance.push e
+#            command.error = "#{e.class} #{e.message}"  # "#{e.backtrace.join(' ')}"
           ensure
             XBarrier.instance.wait
           end
         end
       end
 
+      def do_dummy
+        execute( nil ) { |c| }  # do nothing
+      end
+
       def do_ps
         @ps = Command::Ps.new @hostname, @target
         execute( @ps ) { |c| c.execute }
-      end
-
-      def do_status
-        @status = Command::Status.new @hostname, @target
-        execute( @status ) { |c| c.execute }
       end
 
       def do_start
@@ -75,6 +76,11 @@ module Castoro
 #        @shutdown = Command::Stop.new @hostname, @target
 #        execute( @shutdown ) { |c| c.execute }
 #      end
+
+      def do_status
+        @status = Command::Status.new @hostname, @target
+        execute( @status ) { |c| c.execute }
+      end
 
       def do_mode mode
         @mode = Command::Mode.new @hostname, @target
@@ -134,19 +140,6 @@ module Castoro
     class ManipulatordProxy < Proxy
       def initialize hostname
         super hostname, :manipulatord
-      end
-
-      def do_status
-        # ManipulatordProxy does not currently support a STATUS command
-        Thread.new do
-          begin
-            XBarrier.instance.wait
-            @status_mode = nil
-            @status_auto = nil
-            @status_debug = nil
-            XBarrier.instance.wait
-          end
-        end
       end
 
       def dummy_mode mode

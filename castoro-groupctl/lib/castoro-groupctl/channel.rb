@@ -18,7 +18,7 @@
 #
 
 require "json"
-require 'castoro-groupctl/errors'
+require 'castoro-groupctl/exceptions'
 
 module Castoro
   module Peer

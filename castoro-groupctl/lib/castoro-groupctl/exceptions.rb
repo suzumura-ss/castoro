@@ -17,8 +17,28 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+require 'singleton'
+
 module Castoro
   module Peer
+
+    class Exceptions
+      include Singleton
+
+      def initialize
+        @exceptions = []
+      end
+
+      def push e
+        d = @exceptions.select do |x|  # duplication
+          x.code == e.code && x.message == e.message && x.backtrace == e.backtrace
+        end
+        if d.size == 0
+          @exceptions.push e
+        end
+      end
+
+    end
 
     class ConfigurationError < StandardError ; end
 

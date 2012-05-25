@@ -29,6 +29,7 @@ require 'socket'
 require 'singleton'
 require 'getoptlong'
 require 'castoro-groupctl/proxy_pool'
+require 'castoro-groupctl/exceptions'
 
 module Castoro
   module Peer
@@ -181,7 +182,7 @@ module Castoro
       def run
         do_ps_and_print
 
-        unless @x.ps_running?
+        unless @x.ps.alive?
           do_start_daemons       ; sleep 2
           do_ps_and_print        ; sleep 2
         end
@@ -205,7 +206,6 @@ module Castoro
         do_ps_and_print
 
         @y = ProxyPool.instance.get_the_first_peer
-        p @y
         unless @y.alive?
           title "Starting the daemon"
           XBarrier.instance.clients = @y.number_of_components + 1
@@ -238,7 +238,7 @@ module Castoro
         do_status_and_print
 
         @y = ProxyPool.instance.get_the_first_peer
-        if false == @y.ps_running?
+        if false == @y.ps.alive?
           puts "The deamons on the peer have already stopped."
           return
         end
@@ -286,7 +286,7 @@ module Castoro
         do_ps_and_print
         do_status_and_print
 
-        if false == @x.ps_running?
+        if false == @x.ps.alive?
           puts "All deamons on every peer have already stopped."
           return
         end
@@ -414,6 +414,7 @@ module Castoro
           ProxyPool.instance.add_peer h
         end
         command.run
+ p Exceptions.instance
 
       rescue CommandLineArgumentError => e
         STDERR.puts "#{@program_name}: #{e.message}"

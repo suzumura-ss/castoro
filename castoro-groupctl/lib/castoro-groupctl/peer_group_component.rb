@@ -34,23 +34,36 @@ module Castoro
         @entries = entries
       end
 
+      def work_on_every_component linefeed, &block
+        @entries.each do |h, c|  # hostname, components
+          c.each do |t, x|  # component type, proxy object
+            yield h, t, x  # hostname, component type, proxy object
+          end
+          puts '' if linefeed
+        end
+      end
+
+      def work_on_every_component_simple &block
+        @entries.values.each do |c|  # components
+          c.values.each do |x|  # proxy object
+            yield x  # proxy object
+          end
+        end
+      end
+
       def number_of_components
         n = 0  # number
-        @entries.values.each { |c| n = n + c.size }  # components
+        work_on_every_component_simple { |x| n = n + 1 }
         n
       end
 
       def do_ps
-        @entries.values.each do |c|  # components
-          c.values.each { |x| x.do_ps }  # proxy object
-        end
+        work_on_every_component_simple { |x| x.do_ps }  # proxy object
       end
 
       def obtain_ps_header
-        @entries.values.each do |c|  # components
-          c.values.each do |x|  # proxy object
-            return x.ps.header if x.ps.header and x.ps.header != ''
-          end
+        work_on_every_component_simple do |x|
+          return x.ps.header if x.ps.header and x.ps.header != ''
         end
         nil
       end
@@ -58,33 +71,29 @@ module Castoro
       def print_ps
         f = "%-14s%-14s%s\n"  # format
         printf f, 'HOSTNAME', 'DAEMON', obtain_ps_header
-        @entries.each do |h, c|  # hostname, components
-          c.each do |t, x|  # component type, proxy object
-            # p x
-            if x.ps.error
-              printf f, h, t, x.ps.error
-            else
-              if x.ps.stdout
-                if 0 < x.ps.stdout.size
-                  x.ps.stdout.each do |y|
-                    printf f, h, t, y
-                  end
-                else
-                  printf f, h, t, ''  # grep pattern did not match
+        work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
+          if ( e = x.ps.exception || x.ps.error )
+            printf f, h, t, e
+          else
+            if x.ps.stdout
+              if 0 < x.ps.stdout.size
+                x.ps.stdout.each do |y|
+                  printf f, h, t, y
                 end
               else
-                printf f, h, t, '(error occured)'
+                printf f, h, t, ''  # grep pattern did not match
               end
+            else
+              printf f, h, t, '(unknown error occured)'
             end
           end
-          puts ''
         end
       end
 
       def alive?
-        r = nil
-        @peers.each do |x|
-          a = x.alive?
+        r = nil  # return value
+        work_on_every_component_simple do |x|  # proxy object
+          a = x.ps.alive
           a.nil? and return nil
           if r.nil?
             r = a
@@ -95,28 +104,72 @@ module Castoro
         r
       end
 
-      def do_status
-        @peers.each { |x| x.do_status }
-      end
-
-      def print_status
-        @peers.each { |x| x.print_status }
-      end
-
       def do_start
-        @peers.each { |x| x.do_start }
+        work_on_every_component_simple do |x|  # proxy object
+          if @starting_daemon = ( x.ps.alive == 1 )
+            x.do_start
+          else
+            x.do_dummy
+          end
+        end
       end
 
       def print_start
-        @peers.each { |x| x.print_start }
+        f = "%-14s%-14s%s\n"  # format
+        printf f, 'HOSTNAME', 'DAEMON', 'RESULTS'
+        work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
+          m = @starting_daemon ? ( x.start.exception || x.start.error || x.start.message ) : '(Did nothing because the daemon process is running.)'
+          printf f, h, t, m
+        end
       end
 
       def do_stop
-        @peers.each { |x| x.do_stop }
+        work_on_every_component_simple do |x|  # proxy object
+          if @stopping_daemon = ( x.ps.alive == 0 )
+            x.do_stop
+          else
+            x.do_dummy
+          end
+        end
       end
 
       def print_stop
-        @peers.each { |x| x.print_stop }
+        f = "%-14s%-14s%s\n"  # format
+        printf f, 'HOSTNAME', 'DAEMON', 'RESULTS'
+        work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
+          m = @stopping_daemon ? ( x.stop.exception || x.stop.error || x.stop.message ) : '(Did nothing because the daemon process has stopped.)'
+          printf f, h, t, m
+        end
+      end
+
+      def do_status
+        work_on_every_component_simple do |x|  # proxy object
+          x.do_status
+        end
+      end
+
+      def print_status
+        f = "%-14s%-14s%-14s%-14s%-14s%-14s\n"  # format
+        printf f, 'HOSTNAME', 'DAEMON', 'ACTIVITY', 'MODE', 'AUTOPILOT', 'DEBUG'
+        work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
+          e = x.ps.exception || x.ps.error
+          if e
+            printf f, h, t, e, nil, nil, nil
+          else
+            r = x.ps.status
+            s = x.status
+            e = s.exception || s.error
+            if e
+              m = e || ( s.error.match( /Connection refused/ ) ? nil : s.error )
+              printf f, h, t, r, m, nil, nil
+            else
+              m = s.mode ? ServerStatus.status_code_to_s( s.mode ) : ''
+              a = s.auto.nil? ? '' : ( s.auto ? 'auto' : 'off' )
+              d = s.debug.nil? ? '' : ( s.debug ? 'on' : 'off' )
+              printf f, h, t, r, m, a, d
+            end
+          end
+        end
       end
 
       def do_mode mode

@@ -17,6 +17,7 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+require 'singleton'
 require 'castoro-groupctl/peer_group_component'
 
 module Castoro

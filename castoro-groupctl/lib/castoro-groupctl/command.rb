@@ -25,16 +25,14 @@ module Castoro
 
     module Command
       class Base
-#        attr_accessor :exception
-        attr_accessor :error
-#        attr_reader 
+        attr_accessor :exception, :error
 
         def initialize hostname, target
           @hostname, @target = hostname, target
         end
 
         def call command, args = {}
-          @error = nil
+          @exception, @error = nil, nil
           a = { :target => @target }.merge args
           r = @stub.call command, a
           r.nil? and raise XXX
@@ -67,10 +65,24 @@ module Castoro
         end
       end
 
-      class Cagentd < Base
-        def initialize hostname, target
-          super
-          @stub = Stub::Cagentd.new hostname
+      class Ps < Cstartd
+        attr_reader :header, :alive, :status
+
+        def execute
+          @alive = nil
+          r = call :PS
+          @header = r[ 'header' ] or raise XXX
+          @alive = case @stdout.size
+                   when 0 ; false
+                   when 1 ; true
+                   else   ; nil  # more than one process are running
+                   end
+          @status = case @stdout.size
+                    when 0 ; 'stopped'
+                    when 1 ; 'running'
+                    when nil ;  'unknown'
+                    else   ;  'more than 1 daemon processes are running'
+                    end
         end
       end
 
@@ -120,30 +132,23 @@ module Castoro
         end
       end
 
-      class Ps < Cstartd
-        attr_reader :header, :alive
-
-        def execute
-          @alive = nil
-          r = call :PS
-          @header = r[ 'header' ] or raise XXX
-          @alive = case @stdout.size
-                   when 0 ; false
-                   when 1 ; true
-                   else   ; nil  # more than one process are running
-                   end
-        end
-      end
-
 #      def shutdown
 #        issue_command( :cstartd, 'SHUTDOWN', nil )
 #      end
+
+      class Cagentd < Base
+        def initialize hostname, target
+          super
+          @stub = Stub::Cagentd.new hostname
+        end
+      end
 
       class Status < Cagentd
         attr_reader :mode, :auto, :debug
 
         def execute
           @mode, @auto, @debug = nil, nil, nil
+          return if @target == :manipulatord  # manipulatord does not currently support a STATUS command
           r = call :STATUS
           @mode = r[ 'mode' ]
           @auto = r[ 'auto' ]
