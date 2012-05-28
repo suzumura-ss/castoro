@@ -106,7 +106,7 @@ module Castoro
 
       def do_start
         work_on_every_component_simple do |x|  # proxy object
-          if @starting_daemon = ( x.ps.alive == 1 )
+          if x.flag = ( x.ps.alive == false )
             x.do_start
           else
             x.do_dummy
@@ -118,14 +118,14 @@ module Castoro
         f = "%-14s%-14s%s\n"  # format
         printf f, 'HOSTNAME', 'DAEMON', 'RESULTS'
         work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
-          m = @starting_daemon ? ( x.start.exception || x.start.error || x.start.message ) : '(Did nothing because the daemon process is running.)'
+          m = x.flag ? ( x.start.exception || x.start.error || x.start.message ) : '(Did nothing because the daemon process is running.)'
           printf f, h, t, m
         end
       end
 
       def do_stop
         work_on_every_component_simple do |x|  # proxy object
-          if @stopping_daemon = ( x.ps.alive == 0 )
+          if x.flag = ( x.ps.alive == true )
             x.do_stop
           else
             x.do_dummy
@@ -137,7 +137,7 @@ module Castoro
         f = "%-14s%-14s%s\n"  # format
         printf f, 'HOSTNAME', 'DAEMON', 'RESULTS'
         work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
-          m = @stopping_daemon ? ( x.stop.exception || x.stop.error || x.stop.message ) : '(Did nothing because the daemon process has stopped.)'
+          m = x.flag ? ( x.stop.exception || x.stop.error || x.stop.message ) : '(Did nothing because the daemon process has stopped.)'
           printf f, h, t, m
         end
       end
@@ -160,7 +160,7 @@ module Castoro
             s = x.status
             e = s.exception || s.error
             if e
-              m = e || ( s.error.match( /Connection refused/ ) ? nil : s.error )
+              m = e || ( s.error.match( /Connection refused/ ) ? '(Connection refused)' : s.error )
               printf f, h, t, r, m, nil, nil
             else
               m = s.mode ? ServerStatus.status_code_to_s( s.mode ) : ''
@@ -173,25 +173,40 @@ module Castoro
       end
 
       def do_mode mode
-        @peers.each { |x| x.do_mode mode }
+        work_on_every_component_simple do |x|  # proxy object
+          x.do_mode mode
+        end
       end
 
       def print_mode
-        @peers.each { |x| x.print_mode }
+        f = "%-14s%-14s%s\n"  # format
+        printf f, 'HOSTNAME', 'DAEMON', 'RESULTS'
+        work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
+          e = x.mode.exception || x.mode.error
+          if e
+            printf f, h, t, e
+          else
+            printf f, h, t, x.mode.message
+          end
+        end
       end
 
       def ascend_mode mode
-        @peers.each { |x| x.ascend_mode mode }
+        work_on_every_component_simple do |x|  # proxy object
+          x.ascend_mode mode
+        end
       end
 
       def descend_mode mode
-        @peers.each { |x| x.descend_mode mode }
+        work_on_every_component_simple do |x|  # proxy object
+          x.descend_mode mode
+        end
       end
 
       def mode
         r = nil
-        @peers.each do |x|
-          m = x.mode
+        work_on_every_component_simple do |x|  # proxy object
+          m = x.status.mode
           m.nil? and return nil
           if r.nil?
             r = m
@@ -203,11 +218,22 @@ module Castoro
       end
 
       def do_auto auto
-        @peers.each { |x| x.do_auto auto }
+        work_on_every_component_simple do |x|  # proxy object
+          x.do_auto auto
+        end
       end
 
       def print_auto
-        @peers.each { |x| x.print_auto }
+        f = "%-14s%-14s%s\n"  # format
+        printf f, 'HOSTNAME', 'DAEMON', 'RESULTS'
+        work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
+           e = x.auto.exception || x.auto.error
+          if e
+            printf f, h, t, e
+          else
+            printf f, h, t, x.auto.message
+          end
+        end
       end
     end
 

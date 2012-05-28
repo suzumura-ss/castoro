@@ -98,6 +98,7 @@ module Castoro
 
       def do_status_and_print
         title "Status"
+        do_ps
         do_status
         @x.print_status
       end
@@ -110,7 +111,7 @@ module Castoro
 
       def turn_autopilot_on
         title "Turning the autopilot auto"
-        @x.do_auto true
+        xxxxx { @x.do_auto true }
         @x.print_auto
       end
 
@@ -124,7 +125,7 @@ module Castoro
       def descend_the_mode_to mode
         m = ServerStatus.status_code_to_s( mode )
         title "Descending the mode to #{m}"
-        @x.descend_mode mode
+        xxxxx { @x.descend_mode mode }
         @x.print_mode
       end
 
@@ -172,7 +173,6 @@ module Castoro
 
     class StatusSubCommand < SubCommand
       def run
-        do_ps  # obtain the information on the existance of the processes
         do_status_and_print
       end
     end
@@ -182,7 +182,7 @@ module Castoro
       def run
         do_ps_and_print
 
-        unless @x.ps.alive?
+        unless @x.alive?
           do_start_daemons       ; sleep 2
           do_ps_and_print        ; sleep 2
         end
@@ -218,6 +218,7 @@ module Castoro
         end
 
         @x = ProxyPool.instance.get_peer_group
+        do_status_and_print    ; sleep 2
         unless @x.mode == 30
           turn_autopilot_off     ; sleep 2
           do_status_and_print    ; sleep 2
@@ -238,7 +239,7 @@ module Castoro
         do_status_and_print
 
         @y = ProxyPool.instance.get_the_first_peer
-        if false == @y.ps.alive?
+        if false == @y.alive?
           puts "The deamons on the peer have already stopped."
           return
         end
@@ -251,6 +252,8 @@ module Castoro
         @y = ProxyPool.instance.get_the_first_peer
         XBarrier.instance.clients = @y.number_of_components + 1
         @y.descend_mode 10  # 10 offline
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
         @y.print_mode
         sleep 2
 
@@ -260,6 +263,8 @@ module Castoro
         @y = ProxyPool.instance.get_the_first_peer
         XBarrier.instance.clients = @y.number_of_components + 1
         @y.do_stop
+        XBarrier.instance.wait  # let slaves start
+        XBarrier.instance.wait  # wait until slaves finish their tasks
         @x.print_stop
         sleep 2
 
@@ -274,9 +279,10 @@ module Castoro
           XBarrier.instance.wait  # wait until slaves finish their tasks
           @x.print_auto
           sleep 2
+
+          do_ps_and_print
         end
 
-        do_ps_and_print
         do_status_and_print
       end
     end
@@ -286,7 +292,7 @@ module Castoro
         do_ps_and_print
         do_status_and_print
 
-        if false == @x.ps.alive?
+        if false == @x.alive?
           puts "All deamons on every peer have already stopped."
           return
         end

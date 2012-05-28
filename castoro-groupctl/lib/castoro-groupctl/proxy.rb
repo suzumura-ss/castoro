@@ -32,7 +32,8 @@ module Castoro
     end
 
     class Proxy
-      attr_reader :ps, :start, :stop, :status, :mode
+      attr_accessor :flag
+      attr_reader :ps, :start, :stop, :status, :mode, :auto
 
       def initialize hostname, target
         @hostname, @target  = hostname, target
@@ -87,52 +88,30 @@ module Castoro
         execute( @mode ) { |c| c.execute mode }
       end
 
-      def ascend_mode mode
-        @mode = Command::Mode.new @hostname, @target
-        if @status_mode.nil? or @status_mode < mode
+      def do_mode_with_condition mode, condition
+        if condition
           do_mode mode
         else
+          @mode = Command::Mode.new @hostname, @target
           execute( @mode ) do |c|
-            c.message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status_mode )}"
+            c.message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status.mode )}"
           end
         end
+      end
+
+      def ascend_mode mode
+        condition = ( @status.mode.nil? || @status.mode < mode )
+        do_mode_with_condition mode, condition
       end
 
       def descend_mode mode
-        if @status_mode.nil? or mode < @status_mode
-          do_mode mode
-        else
-          Thread.new do
-            begin
-              XBarrier.instance.wait
-              @mode_error = nil
-              @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status_mode )}"
-              XBarrier.instance.wait
-            end
-          end
-        end
+        condition = ( @status.mode.nil? || @status.mode > mode )
+        do_mode_with_condition mode, condition
       end
 
-      attr_reader :auto_error, :auto_message
-
       def do_auto auto
-        @auto_error = nil
-        @auto_message = nil
-        execute_to_cagentd( 'AUTO', { :target => @target, :auto => auto } ) do |h, t, r|  # hostname, target, response
-          if r.nil?
-            #
-          elsif r.has_key? 'error'
-            e = r[ 'error' ]
-            @auto_error = "#{e['code']}: #{e['message']}"
-          elsif r.has_key? 'auto'
-            @status_auto = r[ 'auto' ]
-            f = r[ 'auto_previous' ].nil? ? 'unknown' : ( r[ 'auto_previous' ] ? 'auto' : 'off' )
-            t = r[ 'auto' ].nil? ? 'unknown' : ( r[ 'auto' ] ? 'auto' : 'off' )
-            @auto_message = "Autopilot has changed from #{f} to #{t}"
-          else
-            @auto_error = "Unknown error: #{r.inspect}"
-          end
-        end
+        @auto = Command::Auto.new @hostname, @target
+        execute( @auto ) { |c| c.execute auto }
       end
     end
 
@@ -140,42 +119,6 @@ module Castoro
     class ManipulatordProxy < Proxy
       def initialize hostname
         super hostname, :manipulatord
-      end
-
-      def dummy_mode mode
-        # ManipulatordProxy does not currently support a MODE command
-        Thread.new do
-          begin
-            XBarrier.instance.wait
-            @mode_error = nil
-            @mode_message = nil
-            XBarrier.instance.wait
-          end
-        end
-      end
-
-      def do_mode mode
-        dummy_mode mode
-      end
-
-      def ascend_mode mode
-        dummy_mode mode
-      end
-
-      def descend_mode mode
-        dummy_mode mode
-      end
-
-      def do_auto auto
-        # ManipulatordProxy does not currently support a AUTO command
-        Thread.new do
-          begin
-            XBarrier.instance.wait
-            @auto_error = nil
-            @auto_message = nil
-            XBarrier.instance.wait
-          end
-        end
       end
     end
 

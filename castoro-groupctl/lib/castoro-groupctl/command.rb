@@ -156,76 +156,51 @@ module Castoro
         end
       end
 
-      attr_reader :mode_error, :mode_message
+      class Mode < Cagentd
+        attr_accessor :message
+        attr_reader :mode
 
-      def do_mode mode
-        @mode_error = nil
-        @mode_message = nil
-        issue_command( :cagentd, 'MODE', { :target => @target, :mode => mode } ) do |h, t, r|  # hostname, target, response
-          if r.nil?
-            #
-          elsif r.has_key? 'error'
-            e = r[ 'error' ]
-            @mode_error = "#{e['code']}: #{e['message']}"
-          elsif r.has_key? 'mode'
-            @status_mode = r[ 'mode' ]
-            f = r[ 'mode_previous' ] ? ServerStatus.status_code_to_s( r[ 'mode_previous' ] ) : 'unknown'
-            t = r[ 'mode' ] ? ServerStatus.status_code_to_s( r[ 'mode' ] ) : 'unknown'
-            @mode_message = "Mode has changed from #{f} to #{t}"
-          else
-            @mode_error = "Unknown error: #{r.inspect}"
-          end
-        end
-      end
-
-      def ascend_mode mode
-        if @status_mode.nil? or @status_mode < mode
-          do_mode mode
-        else
-          Thread.new do
-            begin
-              XBarrier.instance.wait
-              @mode_error = nil
-              @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status_mode )}"
-              XBarrier.instance.wait
+        def execute mode
+          @mode, @message = nil, nil
+          return if @target == :manipulatord  # manipulatord does not currently support a MODE command
+          r = call( :MODE, { :mode => mode } )
+          @mode = r[ 'mode' ]
+          f = r[ 'mode_previous' ]  # from
+          t = r[ 'mode' ]           # to
+          from = f.nil? ? 'unknown' : ServerStatus.status_code_to_s( f )
+          to   = t.nil? ? 'unknown' : ServerStatus.status_code_to_s( t )
+          if @mode == mode and not ( f.nil? or t.nil? )
+            if f == t
+              @message = "Mode is already #{to}"
+            else
+              @message = "Mode has changed from #{from} to #{to}"
             end
-          end
-        end
-      end
-
-      def descend_mode mode
-        if @status_mode.nil? or mode < @status_mode
-          do_mode mode
-        else
-          Thread.new do
-            begin
-              XBarrier.instance.wait
-              @mode_error = nil
-              @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status_mode )}"
-              XBarrier.instance.wait
-            end
-          end
-        end
-      end
-
-      attr_reader :auto_error, :auto_message
-
-      def do_auto auto
-        @auto_error = nil
-        @auto_message = nil
-        issue_command( :cagentd, 'AUTO', { :target => @target, :auto => auto } ) do |h, t, r|  # hostname, target, response
-          if r.nil?
-            #
-          elsif r.has_key? 'error'
-            e = r[ 'error' ]
-            @auto_error = "#{e['code']}: #{e['message']}"
-          elsif r.has_key? 'auto'
-            @status_auto = r[ 'auto' ]
-            f = r[ 'auto_previous' ].nil? ? 'unknown' : ( r[ 'auto_previous' ] ? 'auto' : 'off' )
-            t = r[ 'auto' ].nil? ? 'unknown' : ( r[ 'auto' ] ? 'auto' : 'off' )
-            @auto_message = "Autopilot has changed from #{f} to #{t}"
           else
-            @auto_error = "Unknown error: #{r.inspect}"
+            @error = "#{@error} An attempt of changing the mode to #{mode} failed. The current mode is #{to}"
+          end
+        end
+      end
+
+      class Auto < Cagentd
+        attr_reader :auto, :message
+
+        def execute auto
+          @auto, @message = nil, nil
+          return if @target == :manipulatord  # manipulatord does not currently support a AUTO command
+          r = call( :AUTO, { :auto => auto } )
+          @auto = r[ 'auto' ]
+          f = r[ 'auto_previous' ]  # from
+          t = r[ 'auto' ]           # to
+          from = f.nil? ? 'unknown' : ( f ? 'auto' : 'off' )
+          to   = t.nil? ? 'unknown' : ( t ? 'auto' : 'off' )
+          if @auto == auto and not ( f.nil? or t.nil? )
+            if f == t
+              @message = "Autopilot is already #{to}"
+            else
+              @message = "Autopilot has changed from #{from} to #{to}"
+            end
+          else
+            @error = "#{@error} An attempt of changing the autopilot to #{auto} failed. The current autopilot is #{to}"
           end
         end
       end
