@@ -26,14 +26,15 @@ module Castoro
 
     module Stub
       class Base
+        TIMELIMIT = 3  # in seconds
+
         def initialize hostname
           @hostname = hostname
         end
 
         def call command, args
-          timelimit = 5  # in seconds
           client = TcpClient.new
-          socket = client.timed_connect @hostname, port, timelimit
+          socket = client.timed_connect @hostname, port, TIMELIMIT
           channel = TcpClientChannel.new socket
           channel.send_command command, args
           x_command, response = channel.receive_response
