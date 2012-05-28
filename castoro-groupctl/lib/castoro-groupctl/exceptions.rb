@@ -31,7 +31,7 @@ module Castoro
 
       def push e
         d = @exceptions.select do |x|  # duplication
-          x.code == e.code && x.message == e.message && x.backtrace == e.backtrace
+          x.class == e.class && x.message == e.message && x.backtrace == e.backtrace
         end
         if d.size == 0
           @exceptions.push e
