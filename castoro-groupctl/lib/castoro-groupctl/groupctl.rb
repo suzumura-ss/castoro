@@ -28,6 +28,7 @@ require 'thread'
 require 'socket'
 require 'singleton'
 require 'getoptlong'
+require 'castoro-groupctl/barrier'
 require 'castoro-groupctl/component'
 require 'castoro-groupctl/exceptions'
 
@@ -62,12 +63,12 @@ module Castoro
 
       def xxxxx &block
         @x = Component.get_peer_group
-        XBarrier.instance.clients = @x.number_of_components + 1
+        Barrier.instance.clients = @x.number_of_components + 1
         if block_given?
           yield
         end
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
+        Barrier.instance.wait  # let slaves start
+        Barrier.instance.wait  # wait until slaves finish their tasks
       end
 
       def do_start_daemons
@@ -208,10 +209,10 @@ module Castoro
         @y = Component.get_the_first_peer
         unless @y.alive?
           title "Starting the daemon"
-          XBarrier.instance.clients = @y.number_of_components + 1
+          Barrier.instance.clients = @y.number_of_components + 1
           @y.do_start
-          XBarrier.instance.wait  # let slaves start
-          XBarrier.instance.wait  # wait until slaves finish their tasks
+          Barrier.instance.wait  # let slaves start
+          Barrier.instance.wait  # wait until slaves finish their tasks
           @y.print_start
           sleep 2
           do_ps_and_print
@@ -250,10 +251,10 @@ module Castoro
         m = ServerStatus.status_code_to_s( mode )
         title "Descending the mode to #{m}"
         @y = Component.get_the_first_peer
-        XBarrier.instance.clients = @y.number_of_components + 1
+        Barrier.instance.clients = @y.number_of_components + 1
         @y.descend_mode 10  # 10 offline
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
+        Barrier.instance.wait  # let slaves start
+        Barrier.instance.wait  # wait until slaves finish their tasks
         @y.print_mode
         sleep 2
 
@@ -261,22 +262,22 @@ module Castoro
 
         title "Stopping the daemon"
         @y = Component.get_the_first_peer
-        XBarrier.instance.clients = @y.number_of_components + 1
+        Barrier.instance.clients = @y.number_of_components + 1
         @y.do_stop
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
+        Barrier.instance.wait  # let slaves start
+        Barrier.instance.wait  # wait until slaves finish their tasks
         @x.print_stop
         sleep 2
 
         do_ps_and_print
 
         @z = Component.get_the_rest_of_peers
-        XBarrier.instance.clients = @z.number_of_components + 1
+        Barrier.instance.clients = @z.number_of_components + 1
         if 0 < @z.number_of_components
           title "Turning the autopilot auto"
           @z.do_auto true
-          XBarrier.instance.wait  # let slaves start
-          XBarrier.instance.wait  # wait until slaves finish their tasks
+          Barrier.instance.wait  # let slaves start
+          Barrier.instance.wait  # wait until slaves finish their tasks
           @x.print_auto
           sleep 2
 

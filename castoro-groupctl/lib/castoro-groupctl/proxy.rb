@@ -18,17 +18,12 @@
 #
 
 require 'thread'
-require 'singleton'
 require 'castoro-groupctl/barrier'
 require 'castoro-groupctl/command'
 require 'castoro-groupctl/exceptions'
 
 module Castoro
   module Peer
-
-    class XBarrier < MasterSlaveBarrier
-      include Singleton
-    end
 
     class Proxy
       attr_accessor :flag
@@ -45,14 +40,14 @@ module Castoro
       def execute command, &block
         Thread.new do
           begin
-            XBarrier.instance.wait
+            Barrier.instance.wait
             yield command
           rescue => e
             command.exception = e
             Exceptions.instance.push e
 #            command.error = "#{e.class} #{e.message}"  # "#{e.backtrace.join(' ')}"
           ensure
-            XBarrier.instance.wait
+            Barrier.instance.wait
           end
         end
       end

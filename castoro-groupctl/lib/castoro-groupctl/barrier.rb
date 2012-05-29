@@ -18,6 +18,7 @@
 #
 
 require 'thread'
+require 'singleton'
 require 'castoro-groupctl/custom_condition_variable'
 
 module Castoro
@@ -81,6 +82,11 @@ module Castoro
         end
         nil
       end
+    end
+
+
+    class Barrier < MasterSlaveBarrier
+      include Singleton
     end
 
   end
