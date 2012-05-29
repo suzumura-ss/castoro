@@ -29,10 +29,10 @@ module Castoro
         @@pool.has_key? hostname and raise XXX
 
         @@pool[ hostname ] = 
-          [ CmondProxy.new( hostname ),
-            CpeerdProxy.new( hostname ),
-            CrepdProxy.new( hostname ),
-            ManipulatordProxy.new( hostname ) ]
+          [ Proxy::Cmond.new( hostname ),
+            Proxy::Cpeerd.new( hostname ),
+            Proxy::Crepd.new( hostname ),
+            Proxy::Manipulatord.new( hostname ) ]
       end
 
       def self.get_peer hostname
