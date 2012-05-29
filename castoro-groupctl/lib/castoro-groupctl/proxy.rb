@@ -34,12 +34,12 @@ module Castoro
       attr_accessor :flag
       attr_reader :ps, :start, :stop, :status, :mode, :auto
 
-      def initialize hostname
-        @hostname = hostname
-      end
-
       def target
         # should be implemented in a subclass
+      end
+
+      def initialize hostname
+        @hostname = hostname
       end
 
       def execute command, &block
