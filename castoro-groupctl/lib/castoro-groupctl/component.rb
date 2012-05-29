@@ -22,7 +22,7 @@ require 'castoro-groupctl/proxy'
 module Castoro
   module Peer
 
-    class PeerGroupComponent
+    class Component
       @@pool = {}
 
       def self.add_peer hostname
