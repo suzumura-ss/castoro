@@ -18,23 +18,41 @@
 #
 
 require 'castoro-groupctl/server_status'
-require 'castoro-groupctl/stub'
+require 'castoro-groupctl/configurations'
+require 'castoro-groupctl/tcp_socket'
+require 'castoro-groupctl/channel'
 
 module Castoro
   module Peer
 
     module Command
       class Base
+        TIMELIMIT = 3  # in seconds
+
         attr_accessor :exception, :error
+
+        def port
+          # should be implmented in a subclass
+        end
 
         def initialize hostname, target
           @hostname, @target = hostname, target
         end
 
+        def send command, args
+          client = TcpClient.new
+          socket = client.timed_connect @hostname, port, TIMELIMIT
+          channel = TcpClientChannel.new socket
+          channel.send_command command, args
+          x_command, response = channel.receive_response
+          socket.close
+          response
+        end
+
         def call command, args = {}
           @exception, @error = nil, nil
           a = { :target => @target }.merge args
-          r = @stub.call command, a
+          r = send command, a
           r.nil? and raise XXX
           if r.has_key? 'error'
             e = r[ 'error' ]
@@ -50,9 +68,8 @@ module Castoro
       class Cstartd < Base
         attr_reader :stdout, :stderr
 
-        def initialize hostname, target
-          super
-          @stub = Stub::Cstartd.new hostname
+        def port
+          Configurations.instance.cstartd_comm_tcpport
         end
 
         def call command, args = {}
@@ -137,9 +154,8 @@ module Castoro
 #      end
 
       class Cagentd < Base
-        def initialize hostname, target
-          super
-          @stub = Stub::Cagentd.new hostname
+        def port
+          Configurations.instance.cagentd_comm_tcpport
         end
       end
 
