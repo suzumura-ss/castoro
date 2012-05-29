@@ -123,25 +123,21 @@ module Castoro
     end
 
 
-    class CxxxdProxy < Proxy
-    end
-
-
-    class CmondProxy < CxxxdProxy
+    class CmondProxy < Proxy
       def initialize hostname
         super hostname, :cmond
       end
     end
 
 
-    class CpeerdProxy < CxxxdProxy
+    class CpeerdProxy < Proxy
       def initialize hostname
         super hostname, :cpeerd
       end
     end
 
 
-    class CrepdProxy < CxxxdProxy
+    class CrepdProxy < Proxy
       def initialize hostname
         super hostname, :crepd
       end
