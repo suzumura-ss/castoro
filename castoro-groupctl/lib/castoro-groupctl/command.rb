@@ -157,8 +157,7 @@ module Castoro
       end
 
       class Mode < Cagentd
-        attr_accessor :message
-        attr_reader :mode
+        attr_reader :mode, :message
 
         def execute mode
           @mode, @message = nil, nil
@@ -178,6 +177,23 @@ module Castoro
           else
             @error = "#{@error} An attempt of changing the mode to #{mode} failed. The current mode is #{to}"
           end
+        end
+
+        def ascend_or_descend_mode current_mode, new_mode, &block
+          if yield current_mode, new_mode
+            execute new_mode
+          else
+            @mode = current_mode
+            @message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( current_mode )}"
+          end
+        end
+
+        def ascend_mode current_mode, new_mode
+          ascend_or_descend_mode( current_mode, new_mode ) { |c, n| c.nil? || c < n }
+        end
+
+        def descend_mode current_mode, new_mode
+          ascend_or_descend_mode( current_mode, new_mode ) { |c, n| c.nil? || c > n }
         end
       end
 

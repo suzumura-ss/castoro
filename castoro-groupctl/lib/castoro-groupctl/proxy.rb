@@ -21,7 +21,6 @@ require 'thread'
 require 'singleton'
 require 'castoro-groupctl/barrier'
 require 'castoro-groupctl/command'
-require 'castoro-groupctl/server_status'
 require 'castoro-groupctl/exceptions'
 
 module Castoro
@@ -92,25 +91,14 @@ module Castoro
         execute( @mode ) { |c| c.execute mode }
       end
 
-      def do_mode_with_condition mode, condition
-        if condition
-          do_mode mode
-        else
-          @mode = Command::Mode.new @hostname, target
-          execute( @mode ) do |c|
-            c.message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status.mode )}"
-          end
-        end
-      end
-
       def ascend_mode mode
-        condition = ( @status.mode.nil? || @status.mode < mode )
-        do_mode_with_condition mode, condition
+        @mode = Command::Mode.new @hostname, target
+        execute( @mode ) { |c| c.ascend_mode @status.mode, mode }
       end
 
       def descend_mode mode
-        condition = ( @status.mode.nil? || @status.mode > mode )
-        do_mode_with_condition mode, condition
+        @mode = Command::Mode.new @hostname, target
+        execute( @mode ) { |c| c.descend_mode @status.mode, mode }
       end
 
       def do_auto auto
