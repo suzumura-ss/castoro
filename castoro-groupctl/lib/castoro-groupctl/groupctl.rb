@@ -28,7 +28,7 @@ require 'thread'
 require 'socket'
 require 'singleton'
 require 'getoptlong'
-require 'castoro-groupctl/proxy_pool'
+require 'castoro-groupctl/peer_group_component'
 require 'castoro-groupctl/exceptions'
 
 module Castoro
@@ -61,7 +61,7 @@ module Castoro
       end
 
       def xxxxx &block
-        @x = ProxyPool.instance.get_peer_group
+        @x = PeerGroupComponent.get_peer_group
         XBarrier.instance.clients = @x.number_of_components + 1
         if block_given?
           yield
@@ -205,7 +205,7 @@ module Castoro
       def run
         do_ps_and_print
 
-        @y = ProxyPool.instance.get_the_first_peer
+        @y = PeerGroupComponent.get_the_first_peer
         unless @y.alive?
           title "Starting the daemon"
           XBarrier.instance.clients = @y.number_of_components + 1
@@ -217,7 +217,7 @@ module Castoro
           do_ps_and_print
         end
 
-        @x = ProxyPool.instance.get_peer_group
+        @x = PeerGroupComponent.get_peer_group
         do_status_and_print    ; sleep 2
         unless @x.mode == 30
           turn_autopilot_off     ; sleep 2
@@ -238,7 +238,7 @@ module Castoro
         do_ps_and_print
         do_status_and_print
 
-        @y = ProxyPool.instance.get_the_first_peer
+        @y = PeerGroupComponent.get_the_first_peer
         if false == @y.alive?
           puts "The deamons on the peer have already stopped."
           return
@@ -249,7 +249,7 @@ module Castoro
         mode = 10
         m = ServerStatus.status_code_to_s( mode )
         title "Descending the mode to #{m}"
-        @y = ProxyPool.instance.get_the_first_peer
+        @y = PeerGroupComponent.get_the_first_peer
         XBarrier.instance.clients = @y.number_of_components + 1
         @y.descend_mode 10  # 10 offline
         XBarrier.instance.wait  # let slaves start
@@ -260,7 +260,7 @@ module Castoro
         do_status_and_print
 
         title "Stopping the daemon"
-        @y = ProxyPool.instance.get_the_first_peer
+        @y = PeerGroupComponent.get_the_first_peer
         XBarrier.instance.clients = @y.number_of_components + 1
         @y.do_stop
         XBarrier.instance.wait  # let slaves start
@@ -270,7 +270,7 @@ module Castoro
 
         do_ps_and_print
 
-        @z = ProxyPool.instance.get_the_rest_of_peers
+        @z = PeerGroupComponent.get_the_rest_of_peers
         XBarrier.instance.clients = @z.number_of_components + 1
         if 0 < @z.number_of_components
           title "Turning the autopilot auto"
@@ -417,7 +417,7 @@ module Castoro
         command = parse_sub_command
         hostnames = parse_hostnames
         hostnames.each do |h|  # hostname
-          ProxyPool.instance.add_peer h
+          PeerGroupComponent.add_peer h
         end
         command.run
  p Exceptions.instance

@@ -23,12 +23,36 @@ module Castoro
   module Peer
 
     class PeerGroupComponent
-      def self.create_components hostname
-        [ CmondProxy.new( hostname ),
-          CpeerdProxy.new( hostname ),
-          CrepdProxy.new( hostname ),
-          ManipulatordProxy.new( hostname ) ]
+      @@pool = {}
+
+      def self.add_peer hostname
+        @@pool.has_key? hostname and raise XXX
+
+        @@pool[ hostname ] = 
+          [ CmondProxy.new( hostname ),
+            CpeerdProxy.new( hostname ),
+            CrepdProxy.new( hostname ),
+            ManipulatordProxy.new( hostname ) ]
       end
+
+      def self.get_peer hostname
+        self.new( { hostname => @@pool[ hostname ] } )
+      end
+
+      def self.get_the_first_peer
+        get_peer @@pool.keys[0]
+      end
+
+      def self.get_the_rest_of_peers
+        x = @@pool.dup
+        x.delete( x.keys[0] )
+        self.new x
+      end
+
+      def self.get_peer_group
+        self.new @@pool
+      end
+
 
       def initialize entries
         @entries = entries
