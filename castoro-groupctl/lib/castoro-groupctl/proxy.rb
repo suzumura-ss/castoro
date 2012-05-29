@@ -35,8 +35,12 @@ module Castoro
       attr_accessor :flag
       attr_reader :ps, :start, :stop, :status, :mode, :auto
 
-      def initialize hostname, target
-        @hostname, @target  = hostname, target
+      def initialize hostname
+        @hostname = hostname
+      end
+
+      def target
+        # should be implemented in a subclass
       end
 
       def execute command, &block
@@ -59,32 +63,32 @@ module Castoro
       end
 
       def do_ps
-        @ps = Command::Ps.new @hostname, @target
+        @ps = Command::Ps.new @hostname, target
         execute( @ps ) { |c| c.execute }
       end
 
       def do_start
-        @start = Command::Start.new @hostname, @target
+        @start = Command::Start.new @hostname, target
         execute( @start ) { |c| c.execute }
       end
 
       def do_stop
-        @stop = Command::Stop.new @hostname, @target
+        @stop = Command::Stop.new @hostname, target
         execute( @stop ) { |c| c.execute }
       end
 
 #      def shutdown
-#        @shutdown = Command::Stop.new @hostname, @target
+#        @shutdown = Command::Stop.new @hostname, target
 #        execute( @shutdown ) { |c| c.execute }
 #      end
 
       def do_status
-        @status = Command::Status.new @hostname, @target
+        @status = Command::Status.new @hostname, target
         execute( @status ) { |c| c.execute }
       end
 
       def do_mode mode
-        @mode = Command::Mode.new @hostname, @target
+        @mode = Command::Mode.new @hostname, target
         execute( @mode ) { |c| c.execute mode }
       end
 
@@ -92,7 +96,7 @@ module Castoro
         if condition
           do_mode mode
         else
-          @mode = Command::Mode.new @hostname, @target
+          @mode = Command::Mode.new @hostname, target
           execute( @mode ) do |c|
             c.message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status.mode )}"
           end
@@ -110,36 +114,36 @@ module Castoro
       end
 
       def do_auto auto
-        @auto = Command::Auto.new @hostname, @target
+        @auto = Command::Auto.new @hostname, target
         execute( @auto ) { |c| c.execute auto }
       end
     end
 
 
-    class ManipulatordProxy < Proxy
-      def initialize hostname
-        super hostname, :manipulatord
-      end
-    end
-
-
     class CmondProxy < Proxy
-      def initialize hostname
-        super hostname, :cmond
+      def target
+        :cmond
       end
     end
 
 
     class CpeerdProxy < Proxy
-      def initialize hostname
-        super hostname, :cpeerd
+      def target
+        :cpeerd
       end
     end
 
 
     class CrepdProxy < Proxy
-      def initialize hostname
-        super hostname, :crepd
+      def target
+        :crepd
+      end
+    end
+
+
+    class ManipulatordProxy < Proxy
+      def target
+        :manipulatord
       end
     end
 

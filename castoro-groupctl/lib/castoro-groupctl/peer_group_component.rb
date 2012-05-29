@@ -24,10 +24,10 @@ module Castoro
 
     class PeerGroupComponent
       def self.create_components hostname
-        { :cmond        => CmondProxy.new( hostname ),
-          :cpeerd       => CpeerdProxy.new( hostname ),
-          :crepd        => CrepdProxy.new( hostname ),
-          :manipulatord => ManipulatordProxy.new( hostname ) }
+        [ CmondProxy.new( hostname ),
+          CpeerdProxy.new( hostname ),
+          CrepdProxy.new( hostname ),
+          ManipulatordProxy.new( hostname ) ]
       end
 
       def initialize entries
@@ -36,7 +36,8 @@ module Castoro
 
       def work_on_every_component linefeed, &block
         @entries.each do |h, c|  # hostname, components
-          c.each do |t, x|  # component type, proxy object
+          c.each do |x|  # proxy object
+            t = x.target   # component type
             yield h, t, x  # hostname, component type, proxy object
           end
           puts '' if linefeed
@@ -45,7 +46,7 @@ module Castoro
 
       def work_on_every_component_simple &block
         @entries.values.each do |c|  # components
-          c.values.each do |x|  # proxy object
+          c.each do |x|  # proxy object
             yield x  # proxy object
           end
         end
