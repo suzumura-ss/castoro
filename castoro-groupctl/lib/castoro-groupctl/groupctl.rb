@@ -115,6 +115,7 @@ module Castoro
         title "Turning the autopilot off"
         xxxxx { @x.do_auto false }
         @x.print_auto
+        @x.verify_auto false
         Exceptions.instance.confirm
       end
 
@@ -122,6 +123,7 @@ module Castoro
         title "Turning the autopilot auto"
         xxxxx { @x.do_auto true }
         @x.print_auto
+        @x.verify_auto true
         Exceptions.instance.confirm
       end
 
@@ -334,6 +336,7 @@ module Castoro
           Barrier.instance.wait  # let slaves start
           Barrier.instance.wait  # wait until slaves finish their tasks
           @x.print_auto
+          @x.verify_auto true
           Exceptions.instance.confirm
           sleep 2
 
