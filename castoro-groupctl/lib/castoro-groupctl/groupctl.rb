@@ -30,6 +30,7 @@ require 'singleton'
 require 'getoptlong'
 require 'castoro-groupctl/barrier'
 require 'castoro-groupctl/component'
+require 'castoro-groupctl/signal_handler'
 require 'castoro-groupctl/exceptions'
 
 module Castoro
@@ -141,20 +142,23 @@ module Castoro
 
       def descend_the_mode_to_readonly
         turn_autopilot_off     ; sleep 2
-        do_status_and_print    ; sleep 2
+        do_status_and_print
+        SignalHandler.check    ; sleep 2
 
         m = @x.mode
-        if m.nil? or 30 <= @x.mode
+         if m.nil? or 30 <= @x.mode
           descend_the_mode_to 25 ; sleep 2  # 25 fin_rep
           do_status_and_print
-          @x.verify_mode_less_or_equal 25 ; sleep 2
+          @x.verify_mode_less_or_equal 25
+          SignalHandler.check ; sleep 2
         end
 
         m = @x.mode
         if m.nil? or 25 <= @x.mode
           descend_the_mode_to 23 ; sleep 2  # 23 rep
           do_status_and_print
-          @x.verify_mode_less_or_equal 23 ; sleep 2
+          @x.verify_mode_less_or_equal 23
+          SignalHandler.check ; sleep 2
         end
 
         m = @x.mode
@@ -162,6 +166,7 @@ module Castoro
           descend_the_mode_to 20 ; sleep 2  # 20 readonly
           do_status_and_print
           @x.verify_mode_less_or_equal 20 ; sleep 2
+          SignalHandler.check ; sleep 2
         end
       end
 
@@ -172,7 +177,8 @@ module Castoro
         if m.nil? or 20 <= @x.mode
           descend_the_mode_to 10 ; sleep 2  # 10 offline
           do_status_and_print
-          @x.verify_mode_less_or_equal 10 ; sleep 2
+          @x.verify_mode_less_or_equal 10
+          SignalHandler.check ; sleep 2
         end
       end
     end
@@ -195,19 +201,25 @@ module Castoro
     class StartAllSubCommand < SubCommand
       def run
         do_ps_and_print
+        SignalHandler.check
 
         unless @x.alive?
           do_start_daemons       ; sleep 2
           do_ps_and_print
           @x.verify_start        ; sleep 2
+          SignalHandler.check
         end
 
         unless @x.mode == 30
           turn_autopilot_off     ; sleep 2
           do_status_and_print    ; sleep 2
+          SignalHandler.check
+
           ascend_the_mode_to 30  ; sleep 2
           do_status_and_print
           @x.verify_mode_more_or_equal 30 ; sleep 2
+          SignalHandler.check
+
           turn_autopilot_on      ; sleep 2
         end
 
@@ -225,6 +237,7 @@ module Castoro
     class StartSubCommand < SubCommand
       def run
         do_ps_and_print
+        SignalHandler.check
 
         @y = Component.get_the_first_peer
         unless @y.alive?
@@ -238,15 +251,22 @@ module Castoro
           sleep 2
           do_ps_and_print
           @y.verify_start
+          SignalHandler.check
         end
 
         @x = Component.get_peer_group
         do_status_and_print    ; sleep 2
+        SignalHandler.check
+
         unless @x.mode == 30
           turn_autopilot_off     ; sleep 2
           do_status_and_print    ; sleep 2
+          SignalHandler.check
+
           ascend_the_mode_to 30  ; sleep 2
           do_status_and_print
+          SignalHandler.check
+
           @x.verify_mode_more_or_equal 30 ; sleep 2
           turn_autopilot_on      ; sleep 2
         end
@@ -266,6 +286,7 @@ module Castoro
       def run
         do_ps_and_print
         do_status_and_print
+        SignalHandler.check
 
         @y = Component.get_the_first_peer
         if false == @y.alive?
@@ -288,9 +309,8 @@ module Castoro
 
         do_status_and_print
         @y.verify_mode_less_or_equal 10
+        SignalHandler.check
         sleep 2
-
-        do_status_and_print
 
         title "Stopping the daemon"
         @y = Component.get_the_first_peer
@@ -303,6 +323,7 @@ module Castoro
         sleep 2
 
         do_ps_and_print
+        SignalHandler.check
 
         @z = Component.get_the_rest_of_peers
         Barrier.instance.clients = @z.number_of_components + 1
@@ -316,6 +337,7 @@ module Castoro
           sleep 2
 
           do_ps_and_print
+          SignalHandler.check
         end
 
         do_status_and_print
@@ -329,6 +351,7 @@ module Castoro
       def run
         do_ps_and_print
         do_status_and_print
+        SignalHandler.check
 
         if false == @x.alive?
           puts "All deamons on every peer have already stopped."
@@ -337,6 +360,7 @@ module Castoro
 
         descend_the_mode_to_offline
         do_stop_deamons
+        SignalHandler.check
         sleep 2
 
         do_ps_and_print
@@ -476,7 +500,9 @@ module Castoro
         
       def run
         c = parse
+        SignalHandler.setup
         execute c
+        SignalHandler.final_check
       end
     end
 
