@@ -213,6 +213,7 @@ module Castoro
           SignalHandler.check
         end
 
+        do_status_and_print
         unless @x.mode == 30
           turn_autopilot_off     ; sleep 2
           do_status_and_print    ; sleep 2
@@ -321,7 +322,7 @@ module Castoro
         @y.do_stop
         Barrier.instance.wait  # let slaves start
         Barrier.instance.wait  # wait until slaves finish their tasks
-        @x.print_stop
+        @y.print_stop
         Exceptions.instance.confirm
         sleep 2
 
@@ -335,8 +336,8 @@ module Castoro
           @z.do_auto true
           Barrier.instance.wait  # let slaves start
           Barrier.instance.wait  # wait until slaves finish their tasks
-          @x.print_auto
-          @x.verify_auto true
+          @z.print_auto
+          @z.verify_auto true
           Exceptions.instance.confirm
           sleep 2
 
@@ -347,7 +348,7 @@ module Castoro
         do_status_and_print
         @y.verify_stop
         @z.verify_alive
-        @z.verify_mode 10
+        @z.verify_mode 20
       end
     end
 
@@ -491,20 +492,19 @@ module Castoro
         Process.exit 1
       end
 
-      def execute command
+      def run
+        args = ARGV.join(' ')
+        command = parse
+        SignalHandler.setup
         command.run
+        SignalHandler.final_check
+        puts "\nSucceeded:\n #{@program_name} #{args}"
       rescue Failure::Base => e
         puts "\nOne or more errors occurred:"
         m = e.message.gsub( %r/\n/, "\n " )
         puts " #{m}"
+        puts "\nFailed:\n #{@program_name} #{args}"
         Process.exit 2
-      end
-        
-      def run
-        c = parse
-        SignalHandler.setup
-        execute c
-        SignalHandler.final_check
       end
     end
 
