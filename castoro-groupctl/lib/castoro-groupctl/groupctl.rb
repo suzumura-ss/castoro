@@ -32,6 +32,7 @@ require 'castoro-groupctl/barrier'
 require 'castoro-groupctl/component'
 require 'castoro-groupctl/signal_handler'
 require 'castoro-groupctl/exceptions'
+require 'castoro-groupctl/configurations'
 
 module Castoro
   module Peer
@@ -370,9 +371,6 @@ module Castoro
     end
 
 
-    class CommandLineArgumentError < ArgumentError
-    end
-    
     class GroupctlMain
       include Singleton
 
@@ -493,8 +491,9 @@ module Castoro
       def execute command
         command.run
       rescue Failure::Base => e
-        puts "One or more errors occurred."
-        puts "#{e.message}"
+        puts "\nOne or more errors occurred:"
+        m = e.message.gsub( %r/\n/, "\n " )
+        puts " #{m}"
         Process.exit 2
       end
         

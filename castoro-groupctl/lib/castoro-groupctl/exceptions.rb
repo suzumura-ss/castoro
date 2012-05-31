@@ -40,7 +40,7 @@ module Castoro
 
       def confirm
         if 0 < @exceptions.size
-          raise Failure::Proxy, ( @exceptions.map { |e| "#{e.class}: #{e.message}" } ).join("\n")
+          raise Failure::Proxy, ( @exceptions.map { |e| e.message } ).join("\n")
         end
       end
     end
@@ -53,6 +53,12 @@ module Castoro
       class Mode  < Base ; end
     end
 
+    class ConnectionError < StandardError ; end
+    class ConnectionRefusedError < ConnectionError ; end
+    class ConnectionTimedoutError < ConnectionError ; end
+
+    class CommandLineArgumentError < ArgumentError ; end
+    class UnexpectedResponseError < StandardError ; end
     class ConfigurationError < StandardError ; end
 
     class BadRequestError < StandardError ; end

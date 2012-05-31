@@ -76,7 +76,7 @@ module Castoro
         errno = socket.getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR).unpack('i')[0]
         unless errno == 0
           # See /usr/include/sys/errno.h
-          raise StandardError, "Connection refused or else: errno=#{errno} #{addr}:#{port}"
+          raise ConnectionRefusedError, "Connection refused or else: errno=#{errno} hostname=#{addr} port=#{port}"
         end
 
         s = TcpSocketDelegator.new socket
@@ -87,7 +87,7 @@ module Castoro
           s.peername = socket.getpeername
         rescue Errno::ENOTCONN => e
           # The socket is not connected.
-          raise StandardError, "Connection timed out #{timedout}s: #{addr}:#{port}"
+          raise ConnectionTimedoutError, "Connection timed out: timelimit=#{timedout}s hostname=#{addr} port=#{port}"
         end
 
         Log.debug "Connected to: #{s.addr}:#{s.port}" if $DEBUG

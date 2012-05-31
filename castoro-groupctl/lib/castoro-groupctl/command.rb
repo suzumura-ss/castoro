@@ -48,37 +48,37 @@ module Castoro
           x_command, response = channel.receive_response
           socket.close
           response
+        rescue ConnectionTimedoutError => e
+          raise ConnectionTimedoutError, "#{e.message}: An attempt of connecting to #{name} on #{@hostname} failed. Please check #{@hostname} is online and #{name} is running."
+        rescue ConnectionRefusedError => e
+          raise ConnectionRefusedError, "#{e.message}: An attempt of connecting to #{name} on #{@hostname} failed. Please check #{name} is running."
         end
 
         def call command, args = {}
           @exception, @error = nil, nil
           a = { :target => @target }.merge args
           r = send command, a
-          r.nil? and raise XXX
+          r.nil? and raise UnexpectedResponseError, "sent #{command} #{a.inspect}, but its corresponding response is wrong."
           if r.has_key? 'error'
             e = r[ 'error' ]
-            @error  = "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}"
-            raise XXX
+            @error  =  $DEBUG ? "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}" : e['message']
           end
           r
-
-          # "Unknown error: #{r.inspect}"
         end
       end
 
       class Cstartd < Base
         attr_reader :stdout, :stderr
 
-        def port
-          Configurations.instance.cstartd_comm_tcpport
-        end
+        def port ; Configurations.instance.cstartd_comm_tcpport ; end
+        def name ; :cstartd ; end
 
         def call command, args = {}
           @stdout = nil
           @stderr = nil
           r = super
-          @stdout = r[ 'stdout' ] or raise XXX
-          @stderr = r[ 'stderr' ] or raise XXX
+          @stdout = r[ 'stdout' ] or raise UnexpectedResponseError, "sent #{command}, but its corresponding response does not include stdout: #{r.inspect}"
+          @stderr = r[ 'stderr' ] or raise UnexpectedResponseError, "sent #{command}, but its corresponding response does not include stderr: #{r.inspect}"
           r
         end
       end
@@ -89,7 +89,7 @@ module Castoro
         def execute
           @alive = nil
           r = call :PS
-          @header = r[ 'header' ] or raise XXX
+          @header = r[ 'header' ] or raise UnexpectedResponseError, "sent PS, but its corresponding response does not include header: #{r.inspect}"
           @alive = case @stdout.size
                    when 0 ; false
                    when 1 ; true
@@ -111,7 +111,7 @@ module Castoro
           @status = nil
           @message = nil
           r = call command
-          @status = r[ 'status' ] or raise XXX, r.inspect
+          @status = r[ 'status' ] or raise UnexpectedResponseError, "sent STATUS, but its corresponding response does not include status: #{r.inspect}"
           "status=#{@status} #{@stdout.join(' ')} #{@stderr.join(' ')}"
         end
       end
@@ -155,9 +155,8 @@ module Castoro
 #      end
 
       class Cagentd < Base
-        def port
-          Configurations.instance.cagentd_comm_tcpport
-        end
+        def port ; Configurations.instance.cagentd_comm_tcpport ; end
+        def name ; :cagentd ; end
       end
 
       class Status < Cagentd

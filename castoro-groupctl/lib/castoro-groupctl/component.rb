@@ -27,7 +27,7 @@ module Castoro
       @@pool = {}
 
       def self.add_peer hostname
-        @@pool.has_key? hostname and raise XXX
+        @@pool.has_key? hostname and raise CommandLineArgumentError, "Hostname #{hostname} is given twice."
 
         @@pool[ hostname ] = 
           [ Proxy::Cmond.new( hostname ),
