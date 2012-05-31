@@ -319,6 +319,21 @@ module Castoro
           end
         end
       end
+
+      def verify_auto auto
+        z = []
+        work_on_every_component do |h, t, x|  # hostname, component type, proxy object
+          if x.has_auto?
+            z.push "#{x.auto.exception}: #{h} #{t}" if x.auto.exception
+            z.push "#{x.auto.error}: #{h} #{t}"     if x.auto.error
+            unless x.auto.auto == auto
+              a = auto ? 'auto' : 'off'
+              z.push "Autopilot of #{'%-6s' % t} on #{h} should be #{a}, but it is currently #{x.auto.message}"
+            end
+          end
+        end
+        raise Failure::Auto, z.join("\n") if 0 < z.size
+      end
     end
 
   end

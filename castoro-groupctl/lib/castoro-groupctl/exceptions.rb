@@ -51,6 +51,7 @@ module Castoro
       class Stop  < Base ; end
       class Start < Base ; end
       class Mode  < Base ; end
+      class Auto  < Base ; end
     end
 
     class ConnectionError < StandardError ; end
