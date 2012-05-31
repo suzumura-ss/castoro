@@ -28,7 +28,11 @@ require 'thread'
 require 'socket'
 require 'singleton'
 require 'getoptlong'
-require 'castoro-groupctl/peer_group_component'
+require 'castoro-groupctl/barrier'
+require 'castoro-groupctl/component'
+require 'castoro-groupctl/signal_handler'
+require 'castoro-groupctl/exceptions'
+require 'castoro-groupctl/configurations'
 
 module Castoro
   module Peer
@@ -37,7 +41,7 @@ module Castoro
 
     class SubCommand
       def initialize
-        @options = nil
+        @options = []
         parse_arguments
       end
 
@@ -50,8 +54,7 @@ module Castoro
           rescue SocketError => e
             # intentionally ignored. it is not a hostname
           end
-          x.match( /\A[a-zA-Z0-9_ -]*\Z/ ) or raise CommandLineArgumentError, "Non-alphanumeric letter are given: #{x}"
-          @options = [] if @options.nil?
+          x.match( /\A[a-zA-Z0-9_ -]*\Z/ ) or raise CommandLineArgumentError, "Non-alphanumeric letter is not allowed in the command line: #{x}"
           @options.push x
         end
       end
@@ -61,29 +64,33 @@ module Castoro
       end
 
       def xxxxx &block
-        @x = ProxyPool.instance.get_peer_group
-        XBarrier.instance.clients = @x.number_of_targets + 1
+        @x = Component.get_peer_group
+        Barrier.instance.clients = @x.number_of_components + 1
         if block_given?
           yield
         end
-        XBarrier.instance.wait  # let slaves start
-        XBarrier.instance.wait  # wait until slaves finish their tasks
+        Barrier.instance.wait  # let slaves start
+        Barrier.instance.wait  # wait until slaves finish their tasks
+        Exceptions.instance.confirm
       end
 
       def do_start_daemons
         title "Starting daemons"
         xxxxx { @x.do_start }
         @x.print_start
+        Exceptions.instance.confirm
       end
 
       def do_stop_deamons
         title "Stopping daemons"
         xxxxx { @x.do_stop }
         @x.print_stop
+        Exceptions.instance.confirm
       end
 
       def do_ps
         xxxxx { @x.do_ps }
+        Exceptions.instance.confirm
       end
 
       def do_ps_and_print
@@ -94,10 +101,12 @@ module Castoro
 
       def do_status
         xxxxx { @x.do_status }
+        Exceptions.instance.confirm
       end
 
       def do_status_and_print
         title "Status"
+        do_ps
         do_status
         @x.print_status
       end
@@ -106,12 +115,14 @@ module Castoro
         title "Turning the autopilot off"
         xxxxx { @x.do_auto false }
         @x.print_auto
+        Exceptions.instance.confirm
       end
 
       def turn_autopilot_on
         title "Turning the autopilot auto"
-        @x.do_auto true
+        xxxxx { @x.do_auto true }
         @x.print_auto
+        Exceptions.instance.confirm
       end
 
       def ascend_the_mode_to mode
@@ -119,35 +130,44 @@ module Castoro
         title "Ascending the mode to #{m}"
         xxxxx { @x.ascend_mode mode }
         @x.print_mode
+        Exceptions.instance.confirm
       end
 
       def descend_the_mode_to mode
         m = ServerStatus.status_code_to_s( mode )
         title "Descending the mode to #{m}"
-        @x.descend_mode mode
+        xxxxx { @x.descend_mode mode }
         @x.print_mode
+        Exceptions.instance.confirm
       end
 
       def descend_the_mode_to_readonly
         turn_autopilot_off     ; sleep 2
-        do_status_and_print    ; sleep 2
+        do_status_and_print
+        SignalHandler.check    ; sleep 2
 
         m = @x.mode
-        if m.nil? or 30 <= @x.mode
+         if m.nil? or 30 <= m
           descend_the_mode_to 25 ; sleep 2  # 25 fin_rep
-          do_status_and_print    ; sleep 2
+          do_status_and_print
+          @x.verify_mode_less_or_equal 25
+          SignalHandler.check ; sleep 2
         end
 
         m = @x.mode
-        if m.nil? or 25 <= @x.mode
+        if m.nil? or 25 <= m
           descend_the_mode_to 23 ; sleep 2  # 23 rep
-          do_status_and_print    ; sleep 2
+          do_status_and_print
+          @x.verify_mode_less_or_equal 23
+          SignalHandler.check ; sleep 2
         end
 
         m = @x.mode
-        if m.nil? or 23 <= @x.mode
+        if m.nil? or 23 <= m
           descend_the_mode_to 20 ; sleep 2  # 20 readonly
-          do_status_and_print    ; sleep 2
+          do_status_and_print
+          @x.verify_mode_less_or_equal 20 ; sleep 2
+          SignalHandler.check ; sleep 2
         end
       end
 
@@ -155,9 +175,11 @@ module Castoro
         descend_the_mode_to_readonly
 
         m = @x.mode
-        if m.nil? or 20 <= @x.mode
+        if m.nil? or 20 <= m
           descend_the_mode_to 10 ; sleep 2  # 10 offline
-          do_status_and_print    ; sleep 2
+          do_status_and_print
+          @x.verify_mode_less_or_equal 10
+          SignalHandler.check ; sleep 2
         end
       end
     end
@@ -172,7 +194,6 @@ module Castoro
 
     class StatusSubCommand < SubCommand
       def run
-        do_ps  # obtain the information on the existance of the processes
         do_status_and_print
       end
     end
@@ -181,22 +202,35 @@ module Castoro
     class StartAllSubCommand < SubCommand
       def run
         do_ps_and_print
+        SignalHandler.check
 
-        unless @x.ps_running?
+        unless @x.alive?
           do_start_daemons       ; sleep 2
-          do_ps_and_print        ; sleep 2
+          do_ps_and_print
+          @x.verify_start        ; sleep 2
+          SignalHandler.check
         end
 
         unless @x.mode == 30
           turn_autopilot_off     ; sleep 2
           do_status_and_print    ; sleep 2
+          SignalHandler.check
+
           ascend_the_mode_to 30  ; sleep 2
-          do_status_and_print    ; sleep 2
+          do_status_and_print
+          @x.verify_mode_more_or_equal 30 ; sleep 2
+          SignalHandler.check
+
           turn_autopilot_on      ; sleep 2
         end
 
         do_ps_and_print
         do_status_and_print
+        @x.verify_mode 30
+        sleep 2
+
+        do_status_and_print
+        @x.verify_mode 30
       end
     end
 
@@ -204,30 +238,47 @@ module Castoro
     class StartSubCommand < SubCommand
       def run
         do_ps_and_print
+        SignalHandler.check
 
-        @y = ProxyPool.instance.get_the_first_peer
-        XBarrier.instance.clients = @y.number_of_targets + 1
-        unless @y.ps_running?
+        @y = Component.get_the_first_peer
+        unless @y.alive?
           title "Starting the daemon"
+          Barrier.instance.clients = @y.number_of_components + 1
           @y.do_start
-          XBarrier.instance.wait  # let slaves start
-          XBarrier.instance.wait  # wait until slaves finish their tasks
+          Barrier.instance.wait  # let slaves start
+          Barrier.instance.wait  # wait until slaves finish their tasks
           @y.print_start
+          Exceptions.instance.confirm
           sleep 2
           do_ps_and_print
+          @y.verify_start
+          SignalHandler.check
         end
 
-        @x = ProxyPool.instance.get_peer_group
+        @x = Component.get_peer_group
+        do_status_and_print    ; sleep 2
+        SignalHandler.check
+
         unless @x.mode == 30
           turn_autopilot_off     ; sleep 2
           do_status_and_print    ; sleep 2
+          SignalHandler.check
+
           ascend_the_mode_to 30  ; sleep 2
-          do_status_and_print    ; sleep 2
+          do_status_and_print
+          SignalHandler.check
+
+          @x.verify_mode_more_or_equal 30 ; sleep 2
           turn_autopilot_on      ; sleep 2
         end
 
         do_ps_and_print
         do_status_and_print
+        @x.verify_mode 30
+        sleep 2
+
+        do_status_and_print
+        @x.verify_mode 30
       end
     end
 
@@ -236,9 +287,10 @@ module Castoro
       def run
         do_ps_and_print
         do_status_and_print
+        SignalHandler.check
 
-        @y = ProxyPool.instance.get_the_first_peer
-        if false == @y.ps_running?
+        @y = Component.get_the_first_peer
+        if false == @y.alive?
           puts "The deamons on the peer have already stopped."
           return
         end
@@ -248,36 +300,51 @@ module Castoro
         mode = 10
         m = ServerStatus.status_code_to_s( mode )
         title "Descending the mode to #{m}"
-        @y = ProxyPool.instance.get_the_first_peer
-        XBarrier.instance.clients = @y.number_of_targets + 1
+        @y = Component.get_the_first_peer
+        Barrier.instance.clients = @y.number_of_components + 1
         @y.descend_mode 10  # 10 offline
+        Barrier.instance.wait  # let slaves start
+        Barrier.instance.wait  # wait until slaves finish their tasks
         @y.print_mode
-        sleep 2
+        Exceptions.instance.confirm
 
         do_status_and_print
+        @y.verify_mode_less_or_equal 10
+        SignalHandler.check
+        sleep 2
 
         title "Stopping the daemon"
-        @y = ProxyPool.instance.get_the_first_peer
-        XBarrier.instance.clients = @y.number_of_targets + 1
+        @y = Component.get_the_first_peer
+        Barrier.instance.clients = @y.number_of_components + 1
         @y.do_stop
+        Barrier.instance.wait  # let slaves start
+        Barrier.instance.wait  # wait until slaves finish their tasks
         @x.print_stop
+        Exceptions.instance.confirm
         sleep 2
 
         do_ps_and_print
+        SignalHandler.check
 
-        @z = ProxyPool.instance.get_the_rest_of_peers
-        XBarrier.instance.clients = @z.number_of_targets + 1
-        if 0 < @z.number_of_targets
+        @z = Component.get_the_rest_of_peers
+        Barrier.instance.clients = @z.number_of_components + 1
+        if 0 < @z.number_of_components
           title "Turning the autopilot auto"
           @z.do_auto true
-          XBarrier.instance.wait  # let slaves start
-          XBarrier.instance.wait  # wait until slaves finish their tasks
+          Barrier.instance.wait  # let slaves start
+          Barrier.instance.wait  # wait until slaves finish their tasks
           @x.print_auto
+          Exceptions.instance.confirm
           sleep 2
+
+          do_ps_and_print
+          SignalHandler.check
         end
 
-        do_ps_and_print
         do_status_and_print
+        @y.verify_stop
+        @z.verify_alive
+        @z.verify_mode 10
       end
     end
 
@@ -285,25 +352,25 @@ module Castoro
       def run
         do_ps_and_print
         do_status_and_print
+        SignalHandler.check
 
-        if false == @x.ps_running?
+        if false == @x.alive?
           puts "All deamons on every peer have already stopped."
           return
         end
 
         descend_the_mode_to_offline
         do_stop_deamons
+        SignalHandler.check
         sleep 2
 
         do_ps_and_print
         do_status_and_print
+        @x.verify_stop
       end
     end
 
 
-    class CommandLineArgumentError < ArgumentError
-    end
-    
     class GroupctlMain
       include Singleton
 
@@ -406,20 +473,35 @@ module Castoro
         puts ""
       end
 
-      def run
+      def parse
         parse_command_line_options
         command = parse_sub_command
         hostnames = parse_hostnames
         hostnames.each do |h|  # hostname
-          ProxyPool.instance.add_peer h
+          Component.add_peer h
         end
-        command.run
-
+        command
       rescue CommandLineArgumentError => e
         STDERR.puts "#{@program_name}: #{e.message}"
         puts ""
         usage
         Process.exit 1
+      end
+
+      def execute command
+        command.run
+      rescue Failure::Base => e
+        puts "\nOne or more errors occurred:"
+        m = e.message.gsub( %r/\n/, "\n " )
+        puts " #{m}"
+        Process.exit 2
+      end
+        
+      def run
+        c = parse
+        SignalHandler.setup
+        execute c
+        SignalHandler.final_check
       end
     end
 

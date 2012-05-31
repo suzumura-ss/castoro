@@ -21,7 +21,7 @@ require 'singleton'
 require 'yaml'
 require 'json'
 require 'castoro-groupctl/log'
-require 'castoro-groupctl/errors'
+require 'castoro-groupctl/exceptions'
 
 module Castoro
   module Peer

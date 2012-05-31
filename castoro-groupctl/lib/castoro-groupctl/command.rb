@@ -18,59 +18,89 @@
 #
 
 require 'castoro-groupctl/server_status'
-require 'castoro-groupctl/stub'
+require 'castoro-groupctl/configurations'
+require 'castoro-groupctl/tcp_socket'
+require 'castoro-groupctl/channel'
 
 module Castoro
   module Peer
 
     module Command
       class Base
-#        attr_accessor :exception
-        attr_accessor :error
-#        attr_reader 
+        TIMELIMIT = 3  # in seconds
+
+        attr_accessor :exception
+        attr_reader :error
+
+        def port
+          # should be implmented in a subclass
+        end
 
         def initialize hostname, target
           @hostname, @target = hostname, target
         end
 
+        def send command, args
+          client = TcpClient.new
+          socket = client.timed_connect @hostname, port, TIMELIMIT
+          channel = TcpClientChannel.new socket
+          channel.send_command command, args
+          x_command, response = channel.receive_response
+          socket.close
+          response
+        rescue ConnectionTimedoutError => e
+          raise ConnectionTimedoutError, "#{e.message}: An attempt of connecting to #{name} on #{@hostname} failed. Please check #{@hostname} is online and #{name} is running."
+        rescue ConnectionRefusedError => e
+          raise ConnectionRefusedError, "#{e.message}: An attempt of connecting to #{name} on #{@hostname} failed. Please check #{name} is running."
+        end
+
         def call command, args = {}
-          @error = nil
+          @exception, @error = nil, nil
           a = { :target => @target }.merge args
-          r = @stub.call command, a
-        ensure
-          r.nil? and raise XXX
+          r = send command, a
+          r.nil? and raise UnexpectedResponseError, "sent #{command} #{a.inspect}, but its corresponding response is wrong."
           if r.has_key? 'error'
             e = r[ 'error' ]
-            @error  = "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}"
-            raise XXX
+            @error  =  $DEBUG ? "#{e['code']}: #{e['message']} #{e['backtrace'].join(' ')}" : e['message']
           end
-
-          # "Unknown error: #{r.inspect}"
+          r
         end
       end
 
       class Cstartd < Base
         attr_reader :stdout, :stderr
 
-        def initialize hostname, target
-          super
-          @stub = Stub::Cstartd.new hostname
-        end
+        def port ; Configurations.instance.cstartd_comm_tcpport ; end
+        def name ; :cstartd ; end
 
         def call command, args = {}
           @stdout = nil
           @stderr = nil
           r = super
-        ensure
-          @stdout = r[ 'stdout' ] or raise XXX
-#          @stderr = r[ 'stderr' ] or raise XXX
+          @stdout = r[ 'stdout' ] or raise UnexpectedResponseError, "sent #{command}, but its corresponding response does not include stdout: #{r.inspect}"
+          @stderr = r[ 'stderr' ] or raise UnexpectedResponseError, "sent #{command}, but its corresponding response does not include stderr: #{r.inspect}"
+          r
         end
       end
 
-      class Cagentd < Base
-        def initialize hostname, target
-          super
-          @stub = Stub::Cagentd.new hostname
+      class Ps < Cstartd
+        attr_reader :header, :alive, :status
+
+        def execute
+          @alive = nil
+          r = call :PS
+          @header = r[ 'header' ] or raise UnexpectedResponseError, "sent PS, but its corresponding response does not include header: #{r.inspect}"
+          @alive = case @stdout.size
+                   when 0 ; false
+                   when 1 ; true
+                   else   ; nil  # more than one process are running
+                   end
+          @status = case @stdout.size
+                    when 0 ; 'stopped'
+                    when 1 ; 'running'
+                    when nil ;  'unknown'
+                    else   ;  'more than 1 daemon processes are running'
+                    end
         end
       end
 
@@ -81,7 +111,7 @@ module Castoro
           @status = nil
           @message = nil
           r = call command
-          @status = r[ 'status' ] or raise XXX, r.inspect
+          @status = r[ 'status' ] or raise UnexpectedResponseError, "sent STATUS, but its corresponding response does not include status: #{r.inspect}"
           "status=#{@status} #{@stdout.join(' ')} #{@stderr.join(' ')}"
         end
       end
@@ -120,30 +150,21 @@ module Castoro
         end
       end
 
-      class Ps < Cstartd
-        attr_reader :header, :alive
-
-        def execute
-          @alive = nil
-          r = call :PS
-          @header = r[ 'header' ] or raise XXX
-          @alive = case @stdout.size
-                   when 0 ; false
-                   when 1 ; true
-                   else   ; nil  # more than one process are running
-                   end
-        end
-      end
-
 #      def shutdown
 #        issue_command( :cstartd, 'SHUTDOWN', nil )
 #      end
+
+      class Cagentd < Base
+        def port ; Configurations.instance.cagentd_comm_tcpport ; end
+        def name ; :cagentd ; end
+      end
 
       class Status < Cagentd
         attr_reader :mode, :auto, :debug
 
         def execute
           @mode, @auto, @debug = nil, nil, nil
+          return if @target == :manipulatord  # manipulatord does not currently support a STATUS command
           r = call :STATUS
           @mode = r[ 'mode' ]
           @auto = r[ 'auto' ]
@@ -151,76 +172,67 @@ module Castoro
         end
       end
 
-      attr_reader :mode_error, :mode_message
+      class Mode < Cagentd
+        attr_reader :mode, :message
 
-      def do_mode mode
-        @mode_error = nil
-        @mode_message = nil
-        issue_command( :cagentd, 'MODE', { :target => @target, :mode => mode } ) do |h, t, r|  # hostname, target, response
-          if r.nil?
-            #
-          elsif r.has_key? 'error'
-            e = r[ 'error' ]
-            @mode_error = "#{e['code']}: #{e['message']}"
-          elsif r.has_key? 'mode'
-            @status_mode = r[ 'mode' ]
-            f = r[ 'mode_previous' ] ? ServerStatus.status_code_to_s( r[ 'mode_previous' ] ) : 'unknown'
-            t = r[ 'mode' ] ? ServerStatus.status_code_to_s( r[ 'mode' ] ) : 'unknown'
-            @mode_message = "Mode has changed from #{f} to #{t}"
-          else
-            @mode_error = "Unknown error: #{r.inspect}"
-          end
-        end
-      end
-
-      def ascend_mode mode
-        if @status_mode.nil? or @status_mode < mode
-          do_mode mode
-        else
-          Thread.new do
-            begin
-              XBarrier.instance.wait
-              @mode_error = nil
-              @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status_mode )}"
-              XBarrier.instance.wait
+        def execute mode
+          @mode, @message = nil, nil
+          return if @target == :manipulatord  # manipulatord does not currently support a MODE command
+          r = call( :MODE, { :mode => mode } )
+          @mode = r[ 'mode' ]
+          f = r[ 'mode_previous' ]  # from
+          t = r[ 'mode' ]           # to
+          from = f.nil? ? 'unknown' : ServerStatus.status_code_to_s( f )
+          to   = t.nil? ? 'unknown' : ServerStatus.status_code_to_s( t )
+          if @mode == mode and not ( f.nil? or t.nil? )
+            if f == t
+              @message = "Mode is already #{to}"
+            else
+              @message = "Mode has changed from #{from} to #{to}"
             end
-          end
-        end
-      end
-
-      def descend_mode mode
-        if @status_mode.nil? or mode < @status_mode
-          do_mode mode
-        else
-          Thread.new do
-            begin
-              XBarrier.instance.wait
-              @mode_error = nil
-              @mode_message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( @status_mode )}"
-              XBarrier.instance.wait
-            end
-          end
-        end
-      end
-
-      attr_reader :auto_error, :auto_message
-
-      def do_auto auto
-        @auto_error = nil
-        @auto_message = nil
-        issue_command( :cagentd, 'AUTO', { :target => @target, :auto => auto } ) do |h, t, r|  # hostname, target, response
-          if r.nil?
-            #
-          elsif r.has_key? 'error'
-            e = r[ 'error' ]
-            @auto_error = "#{e['code']}: #{e['message']}"
-          elsif r.has_key? 'auto'
-            @status_auto = r[ 'auto' ]
-            f = r[ 'auto_previous' ].nil? ? 'unknown' : ( r[ 'auto_previous' ] ? 'auto' : 'off' )
-            t = r[ 'auto' ].nil? ? 'unknown' : ( r[ 'auto' ] ? 'auto' : 'off' )
-            @auto_message = "Autopilot has changed from #{f} to #{t}"
           else
-            @auto_error = "Unknown error: #{r.inspect}"
+            @error = "#{@error} An attempt of changing the mode to #{mode} failed. The current mode is #{to}"
+          end
+        end
+
+        def ascend_or_descend_mode current_mode, new_mode, &block
+          if yield current_mode, new_mode
+            execute new_mode
+          else
+            @mode = current_mode
+            @message = "Do nothing since the mode is already #{ServerStatus.status_code_to_s( current_mode )}"
+          end
+        end
+
+        def ascend_mode current_mode, new_mode
+          ascend_or_descend_mode( current_mode, new_mode ) { |c, n| c.nil? || c < n }
+        end
+
+        def descend_mode current_mode, new_mode
+          ascend_or_descend_mode( current_mode, new_mode ) { |c, n| c.nil? || c > n }
+        end
+      end
+
+      class Auto < Cagentd
+        attr_reader :auto, :message
+
+        def execute auto
+          @auto, @message = nil, nil
+          return if @target == :manipulatord  # manipulatord does not currently support a AUTO command
+          r = call( :AUTO, { :auto => auto } )
+          @auto = r[ 'auto' ]
+          f = r[ 'auto_previous' ]  # from
+          t = r[ 'auto' ]           # to
+          from = f.nil? ? 'unknown' : ( f ? 'auto' : 'off' )
+          to   = t.nil? ? 'unknown' : ( t ? 'auto' : 'off' )
+          if @auto == auto and not ( f.nil? or t.nil? )
+            if f == t
+              @message = "Autopilot is already #{to}"
+            else
+              @message = "Autopilot has changed from #{from} to #{to}"
+            end
+          else
+            @error = "#{@error} An attempt of changing the autopilot to #{auto} failed. The current autopilot is #{to}"
           end
         end
       end

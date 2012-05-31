@@ -17,9 +17,48 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+require 'singleton'
+
 module Castoro
   module Peer
 
+    class Exceptions
+      include Singleton
+
+      def initialize
+        @exceptions = []
+      end
+
+      def push e
+        d = @exceptions.select do |x|  # duplication
+          x.class == e.class && x.message == e.message && x.backtrace == e.backtrace
+        end
+        if d.size == 0
+          @exceptions.push e
+        end
+      end
+
+      def confirm
+        if 0 < @exceptions.size
+          raise Failure::Proxy, ( @exceptions.map { |e| e.message } ).join("\n")
+        end
+      end
+    end
+
+    module Failure
+      class Base < StandardError ; end
+      class Proxy < Base ; end
+      class Stop  < Base ; end
+      class Start < Base ; end
+      class Mode  < Base ; end
+    end
+
+    class ConnectionError < StandardError ; end
+    class ConnectionRefusedError < ConnectionError ; end
+    class ConnectionTimedoutError < ConnectionError ; end
+
+    class CommandLineArgumentError < ArgumentError ; end
+    class UnexpectedResponseError < StandardError ; end
     class ConfigurationError < StandardError ; end
 
     class BadRequestError < StandardError ; end
@@ -34,13 +73,6 @@ module Castoro
     class InternalServerError < StandardError ; end
     class BasketConflictInternalServerError < InternalServerError ; end
     class UnknownBasketStatusInternalServerError < InternalServerError ; end
-
-
-    # For replication
-    class RetryableError < StandardError ; end
-    class PermanentError < StandardError ; end
-    class AlreadyExistsPermanentError < PermanentError ; end
-    class InvalidArgumentPermanentError < PermanentError ; end
 
   end
 end

@@ -17,45 +17,38 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'castoro-groupctl/proxy'
-
 module Castoro
   module Peer
 
-    class ProxyPool
-      include Singleton
-
-      attr_reader :entries
-
-      def initialize
-        @entries = {}
+    class SignalHandler
+      @@interrupted = false
+      @@program = $0.sub( %r{.*/}, '' )  # name of this program
+      
+      def self.setup
+        Signal.trap('INT')  { signal_handler_INT  }  # 2: Interrupt, Ctrl-C
       end
 
-      def add_peer hostname
-        @entries[ hostname ] = {
-          :cmond        => CmondProxy.new( hostname ),
-          :cpeerd       => CpeerdProxy.new( hostname ),
-          :crepd        => CrepdProxy.new( hostname ),
-          :manipulatord => ManipulatordProxy.new( hostname ),
-        }
+      def self.signal_handler_INT
+        STDERR.puts "\nInterrupted. #{@@program} will quit at the next cancellation point.\n\n"
+        @@interrupted = true
       end
 
-      def get_peer hostname
-        PeerComponent.new hostname
+      def self.interrupted?
+        @@interrupted
       end
 
-      def get_the_first_peer
-        get_peer @entries.keys[0]
+      def self.check
+        if @@interrupted
+          STDERR.puts "\n#{@@program} quit by the interruption.\n\n"
+          Process.exit 3
+        end
       end
 
-      def get_the_rest_of_peers
-        h = @entries.keys  # hostnames
-        h.shift
-        PeerGroupComponent.new h
-      end
-
-      def get_peer_group
-        PeerGroupComponent.new @entries.keys
+      def self.final_check
+        if @@interrupted
+          STDERR.puts "\n#{@@program} was interrupted but is finished before a cancellation point comes.\n\n"
+          Process.exit 0
+        end
       end
     end
 

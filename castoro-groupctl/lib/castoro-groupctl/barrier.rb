@@ -18,6 +18,7 @@
 #
 
 require 'thread'
+require 'singleton'
 require 'castoro-groupctl/custom_condition_variable'
 
 module Castoro
@@ -27,7 +28,7 @@ module Castoro
       def initialize
         @clients = 0  # the number of clients that have been registered
         @waiting = 0  # the number of clients that have been waiting
-        @phase = 0  # 0: waiting for ready;  1: waiting for join
+        @phase = 0    # 0: waiting for ready;  1: waiting for join
         @mutex = Mutex.new
         @cv = CustomConditionVariable.new
       end
@@ -49,14 +50,16 @@ module Castoro
       private
 
       def _wait timelimit
+        debug = false
+
         @mutex.synchronize do
           @waiting = @waiting + 1
-          # p [ :clients, @clients, :waiting, @waiting ]
+          p [ :clients, @clients, :waiting, @waiting ] if debug
           my_phase = @phase  # Fixnum
           if @clients <= @waiting
             @waiting = 0
             @phase = 1 - @phase  # alter its value between 0 and 1
-            # p [ :broadcast ]
+            p [ :broadcast ] if debug
             @cv.broadcast
           end
           while ( @phase == my_phase ) do
@@ -65,12 +68,12 @@ module Castoro
             else
               t = timelimit - Time.new  # how many seconds left
               if t <= 0  # already expired
-                # p [ :already_expired ]
+                p [ :already_expired ] if debug
                 return :etimedout
               end
               x = @cv.timedwait @mutex, t
               if x == :etimedout  # just expired
-                # p [ :just_expired ]
+                p [ :just_expired ] if debug
                 return :etimedout
               end
             end
@@ -79,6 +82,11 @@ module Castoro
         end
         nil
       end
+    end
+
+
+    class Barrier < MasterSlaveBarrier
+      include Singleton
     end
 
   end

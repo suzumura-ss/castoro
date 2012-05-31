@@ -148,9 +148,9 @@ module Castoro
         1
       end
 
-      def run command, options
+      def run *command
         x = ProcessExecutor.new
-        x.execute command, options
+        x.execute *command
         stdout, stderr = x.gets
         status = x.wait
         [ status, stdout, stderr ]
@@ -179,7 +179,7 @@ module Castoro
         command = Configurations.instance.cstartd_ps_command
         options = Configurations.instance.cstartd_ps_options.split( ' ' )
 
-        status, stdout, stderr = run( [ command, options ].flatten )
+        status, stdout, stderr = run( [ command, options ].flatten.join( ' ' ) )
         header = stdout.shift
         stdout = stdout.select { |x| x.match pattern }
         { :target => target, :status => status, :stdout => stdout, :stderr => stderr, :header => header }
