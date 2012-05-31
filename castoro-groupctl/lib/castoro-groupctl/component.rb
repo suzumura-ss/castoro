@@ -18,6 +18,7 @@
 #
 
 require 'castoro-groupctl/proxy'
+require 'castoro-groupctl/exceptions'
 
 module Castoro
   module Peer
@@ -58,7 +59,7 @@ module Castoro
         @entries = entries
       end
 
-      def work_on_every_component linefeed, &block
+      def work_on_every_component linefeed = false, &block
         @entries.each do |h, c|  # hostname, components
           c.each do |x|  # proxy object
             t = x.target   # component type
@@ -148,6 +149,26 @@ module Castoro
         end
       end
 
+      def verify_start
+        z = []
+        work_on_every_component do |h, t, x|  # hostname, component type, proxy object
+          z.push "#{x.ps.exception}: #{h} #{t}" if x.ps.exception
+          z.push "#{x.ps.error}: #{h} #{t}"     if x.ps.error
+          z.push "#{'%-6s' % t} on #{h} should have started." if x.ps.alive != true
+        end
+        raise Failure::Start, z.join("\n") if 0 < z.size
+      end
+
+      def verify_alive
+        z = []
+        work_on_every_component do |h, t, x|  # hostname, component type, proxy object
+          z.push "#{x.ps.exception}: #{h} #{t}" if x.ps.exception
+          z.push "#{x.ps.error}: #{h} #{t}"     if x.ps.error
+          z.push "#{'%-6s' % t} on #{h} should be running." if x.ps.alive != true
+        end
+        raise Failure::Alive, z.join("\n") if 0 < z.size
+      end
+
       def do_stop
         work_on_every_component_simple do |x|  # proxy object
           if x.flag = ( x.ps.alive == true )
@@ -165,6 +186,16 @@ module Castoro
           m = x.flag ? ( x.stop.exception || x.stop.error || x.stop.message ) : '(Did nothing because the daemon process has stopped.)'
           printf f, h, t, m
         end
+      end
+
+      def verify_stop
+        z = []
+        work_on_every_component do |h, t, x|  # hostname, component type, proxy object
+          z.push "#{x.ps.exception}: #{h} #{t}" if x.ps.exception
+          z.push "#{x.ps.error}: #{h} #{t}"     if x.ps.error
+          z.push "#{'%-6s' % t} on #{h} should have stopped." if x.ps.alive != false
+        end
+        raise Failure::Stop, z.join("\n") if 0 < z.size
       end
 
       def do_status
@@ -240,6 +271,32 @@ module Castoro
           end
         end
         r
+      end
+
+      def _verify_mode mode, s, &block
+        z = []
+        work_on_every_component do |h, t, x|  # hostname, component type, proxy object
+          if x.has_mode?
+            unless yield( x.status.mode, mode )
+              a = ServerStatus.status_code_to_s x.status.mode  # actual mode
+              m = ServerStatus.status_code_to_s mode           # mode expected
+              z.push "The mode of #{'%-6s' % t} on #{h} should be #{s}#{m}, but it is currently #{a}."
+            end
+          end
+        end
+        raise Failure::Mode, z.join("\n") if 0 < z.size
+      end
+
+      def verify_mode mode
+        _verify_mode( mode, "" ) { |a, m| a == m }
+      end
+
+      def verify_mode_more_or_equal mode
+        _verify_mode( mode, "more than or equal to " ) { |a, m| ! a.nil? && a >= m }
+      end
+
+      def verify_mode_less_or_equal mode
+        _verify_mode( mode, "less than or equal to " ) { |a, m| ! a.nil? && a <= m }
       end
 
       def do_auto auto

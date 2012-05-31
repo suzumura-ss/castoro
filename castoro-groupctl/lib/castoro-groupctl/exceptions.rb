@@ -38,6 +38,19 @@ module Castoro
         end
       end
 
+      def confirm
+        if 0 < @exceptions.size
+          raise Failure::Proxy, ( @exceptions.map { |e| "#{e.class}: #{e.message}" } ).join("\n")
+        end
+      end
+    end
+
+    module Failure
+      class Base < StandardError ; end
+      class Proxy < Base ; end
+      class Stop  < Base ; end
+      class Start < Base ; end
+      class Mode  < Base ; end
     end
 
     class ConfigurationError < StandardError ; end
@@ -54,13 +67,6 @@ module Castoro
     class InternalServerError < StandardError ; end
     class BasketConflictInternalServerError < InternalServerError ; end
     class UnknownBasketStatusInternalServerError < InternalServerError ; end
-
-
-    # For replication
-    class RetryableError < StandardError ; end
-    class PermanentError < StandardError ; end
-    class AlreadyExistsPermanentError < PermanentError ; end
-    class InvalidArgumentPermanentError < PermanentError ; end
 
   end
 end

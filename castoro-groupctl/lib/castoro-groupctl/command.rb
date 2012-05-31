@@ -29,7 +29,8 @@ module Castoro
       class Base
         TIMELIMIT = 3  # in seconds
 
-        attr_accessor :exception, :error
+        attr_accessor :exception
+        attr_reader :error
 
         def port
           # should be implmented in a subclass

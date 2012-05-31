@@ -69,22 +69,26 @@ module Castoro
         end
         Barrier.instance.wait  # let slaves start
         Barrier.instance.wait  # wait until slaves finish their tasks
+        Exceptions.instance.confirm
       end
 
       def do_start_daemons
         title "Starting daemons"
         xxxxx { @x.do_start }
         @x.print_start
+        Exceptions.instance.confirm
       end
 
       def do_stop_deamons
         title "Stopping daemons"
         xxxxx { @x.do_stop }
         @x.print_stop
+        Exceptions.instance.confirm
       end
 
       def do_ps
         xxxxx { @x.do_ps }
+        Exceptions.instance.confirm
       end
 
       def do_ps_and_print
@@ -95,6 +99,7 @@ module Castoro
 
       def do_status
         xxxxx { @x.do_status }
+        Exceptions.instance.confirm
       end
 
       def do_status_and_print
@@ -108,12 +113,14 @@ module Castoro
         title "Turning the autopilot off"
         xxxxx { @x.do_auto false }
         @x.print_auto
+        Exceptions.instance.confirm
       end
 
       def turn_autopilot_on
         title "Turning the autopilot auto"
         xxxxx { @x.do_auto true }
         @x.print_auto
+        Exceptions.instance.confirm
       end
 
       def ascend_the_mode_to mode
@@ -121,6 +128,7 @@ module Castoro
         title "Ascending the mode to #{m}"
         xxxxx { @x.ascend_mode mode }
         @x.print_mode
+        Exceptions.instance.confirm
       end
 
       def descend_the_mode_to mode
@@ -128,6 +136,7 @@ module Castoro
         title "Descending the mode to #{m}"
         xxxxx { @x.descend_mode mode }
         @x.print_mode
+        Exceptions.instance.confirm
       end
 
       def descend_the_mode_to_readonly
@@ -137,19 +146,22 @@ module Castoro
         m = @x.mode
         if m.nil? or 30 <= @x.mode
           descend_the_mode_to 25 ; sleep 2  # 25 fin_rep
-          do_status_and_print    ; sleep 2
+          do_status_and_print
+          @x.verify_mode_less_or_equal 25 ; sleep 2
         end
 
         m = @x.mode
         if m.nil? or 25 <= @x.mode
           descend_the_mode_to 23 ; sleep 2  # 23 rep
-          do_status_and_print    ; sleep 2
+          do_status_and_print
+          @x.verify_mode_less_or_equal 23 ; sleep 2
         end
 
         m = @x.mode
         if m.nil? or 23 <= @x.mode
           descend_the_mode_to 20 ; sleep 2  # 20 readonly
-          do_status_and_print    ; sleep 2
+          do_status_and_print
+          @x.verify_mode_less_or_equal 20 ; sleep 2
         end
       end
 
@@ -159,7 +171,8 @@ module Castoro
         m = @x.mode
         if m.nil? or 20 <= @x.mode
           descend_the_mode_to 10 ; sleep 2  # 10 offline
-          do_status_and_print    ; sleep 2
+          do_status_and_print
+          @x.verify_mode_less_or_equal 10 ; sleep 2
         end
       end
     end
@@ -185,19 +198,26 @@ module Castoro
 
         unless @x.alive?
           do_start_daemons       ; sleep 2
-          do_ps_and_print        ; sleep 2
+          do_ps_and_print
+          @x.verify_start        ; sleep 2
         end
 
         unless @x.mode == 30
           turn_autopilot_off     ; sleep 2
           do_status_and_print    ; sleep 2
           ascend_the_mode_to 30  ; sleep 2
-          do_status_and_print    ; sleep 2
+          do_status_and_print
+          @x.verify_mode_more_or_equal 30 ; sleep 2
           turn_autopilot_on      ; sleep 2
         end
 
         do_ps_and_print
         do_status_and_print
+        @x.verify_mode 30
+        sleep 2
+
+        do_status_and_print
+        @x.verify_mode 30
       end
     end
 
@@ -214,8 +234,10 @@ module Castoro
           Barrier.instance.wait  # let slaves start
           Barrier.instance.wait  # wait until slaves finish their tasks
           @y.print_start
+          Exceptions.instance.confirm
           sleep 2
           do_ps_and_print
+          @y.verify_start
         end
 
         @x = Component.get_peer_group
@@ -224,12 +246,18 @@ module Castoro
           turn_autopilot_off     ; sleep 2
           do_status_and_print    ; sleep 2
           ascend_the_mode_to 30  ; sleep 2
-          do_status_and_print    ; sleep 2
+          do_status_and_print
+          @x.verify_mode_more_or_equal 30 ; sleep 2
           turn_autopilot_on      ; sleep 2
         end
 
         do_ps_and_print
         do_status_and_print
+        @x.verify_mode 30
+        sleep 2
+
+        do_status_and_print
+        @x.verify_mode 30
       end
     end
 
@@ -256,6 +284,10 @@ module Castoro
         Barrier.instance.wait  # let slaves start
         Barrier.instance.wait  # wait until slaves finish their tasks
         @y.print_mode
+        Exceptions.instance.confirm
+
+        do_status_and_print
+        @y.verify_mode_less_or_equal 10
         sleep 2
 
         do_status_and_print
@@ -267,6 +299,7 @@ module Castoro
         Barrier.instance.wait  # let slaves start
         Barrier.instance.wait  # wait until slaves finish their tasks
         @x.print_stop
+        Exceptions.instance.confirm
         sleep 2
 
         do_ps_and_print
@@ -279,12 +312,16 @@ module Castoro
           Barrier.instance.wait  # let slaves start
           Barrier.instance.wait  # wait until slaves finish their tasks
           @x.print_auto
+          Exceptions.instance.confirm
           sleep 2
 
           do_ps_and_print
         end
 
         do_status_and_print
+        @y.verify_stop
+        @z.verify_alive
+        @z.verify_mode 10
       end
     end
 
@@ -304,6 +341,7 @@ module Castoro
 
         do_ps_and_print
         do_status_and_print
+        @x.verify_stop
       end
     end
 
@@ -413,21 +451,32 @@ module Castoro
         puts ""
       end
 
-      def run
+      def parse
         parse_command_line_options
         command = parse_sub_command
         hostnames = parse_hostnames
         hostnames.each do |h|  # hostname
           Component.add_peer h
         end
-        command.run
- p Exceptions.instance
-
+        command
       rescue CommandLineArgumentError => e
         STDERR.puts "#{@program_name}: #{e.message}"
         puts ""
         usage
         Process.exit 1
+      end
+
+      def execute command
+        command.run
+      rescue Failure::Base => e
+        puts "One or more errors occurred."
+        puts "#{e.message}"
+        Process.exit 2
+      end
+        
+      def run
+        c = parse
+        execute c
       end
     end
 

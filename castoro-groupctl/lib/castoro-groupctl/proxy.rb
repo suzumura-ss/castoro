@@ -46,7 +46,6 @@ module Castoro
             rescue => e
               command.exception = e
               Exceptions.instance.push e
-              #            command.error = "#{e.class} #{e.message}"  # "#{e.backtrace.join(' ')}"
             ensure
               Barrier.instance.wait
             end
@@ -104,31 +103,27 @@ module Castoro
       end
 
 
-      class Cmond < Base
-        def target
-          :cmond
-        end
+      class Cxxxd < Base
+        def has_mode? ; true ; end
+        def has_auto? ; true ; end
       end
 
-
-      class Cpeerd < Base
-        def target
-          :cpeerd
-        end
+      class Cmond < Cxxxd
+        def target ; :cmond ; end
       end
 
-
-      class Crepd < Base
-        def target
-          :crepd
-        end
+      class Cpeerd < Cxxxd
+        def target ; :cpeerd ; end
       end
 
+      class Crepd < Cxxxd
+        def target ; :crepd ; end
+      end
 
       class Manipulatord < Base
-        def target
-          :manipulatord
-        end
+        def has_mode? ; false ; end
+        def has_auto? ; false ; end
+        def target ; :manipulatord ; end
       end
     end
 
