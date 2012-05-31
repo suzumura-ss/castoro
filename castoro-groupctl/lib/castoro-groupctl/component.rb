@@ -262,12 +262,14 @@ module Castoro
       def mode
         r = nil
         work_on_every_component_simple do |x|  # proxy object
-          m = x.status.mode
-          m.nil? and return nil
-          if r.nil?
-            r = m
-          else
-            r == m or return nil
+          if x.has_mode?
+            m = x.status.mode
+            m.nil? and return nil
+            if r.nil?
+              r = m
+            else
+              r == m or return nil
+            end
           end
         end
         r

@@ -146,7 +146,7 @@ module Castoro
         SignalHandler.check    ; sleep 2
 
         m = @x.mode
-         if m.nil? or 30 <= @x.mode
+         if m.nil? or 30 <= m
           descend_the_mode_to 25 ; sleep 2  # 25 fin_rep
           do_status_and_print
           @x.verify_mode_less_or_equal 25
@@ -154,7 +154,7 @@ module Castoro
         end
 
         m = @x.mode
-        if m.nil? or 25 <= @x.mode
+        if m.nil? or 25 <= m
           descend_the_mode_to 23 ; sleep 2  # 23 rep
           do_status_and_print
           @x.verify_mode_less_or_equal 23
@@ -162,7 +162,7 @@ module Castoro
         end
 
         m = @x.mode
-        if m.nil? or 23 <= @x.mode
+        if m.nil? or 23 <= m
           descend_the_mode_to 20 ; sleep 2  # 20 readonly
           do_status_and_print
           @x.verify_mode_less_or_equal 20 ; sleep 2
@@ -174,7 +174,7 @@ module Castoro
         descend_the_mode_to_readonly
 
         m = @x.mode
-        if m.nil? or 20 <= @x.mode
+        if m.nil? or 20 <= m
           descend_the_mode_to 10 ; sleep 2  # 10 offline
           do_status_and_print
           @x.verify_mode_less_or_equal 10
