@@ -30,7 +30,7 @@ require 'castoro-peer/custom_condition_variable'
 module Castoro
   module Peer
 
-    PROGRAM_VERSION = 'peer-0.2 - 2012-03-29'
+    PROGRAM_VERSION = 'peer-2.0 - 2012-06-11'
 
     $RUN_AS_DAEMON = true
 
