@@ -1,3 +1,5 @@
+=== 2.0.0 2012-06-11
+* Changed the version number from 0.2.0 to 2.0.0
 
 === 0.2.0 2012-03-27
 

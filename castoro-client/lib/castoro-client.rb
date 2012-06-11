@@ -18,7 +18,7 @@
 #
 
 require "rubygems"
-gem "castoro-common", ">=0.2.0"
+gem "castoro-common", ">=2.0.0"
 require "castoro-common"
 
 require "castoro-client/timeslide_sender"
