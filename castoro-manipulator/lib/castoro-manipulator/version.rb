@@ -3,8 +3,8 @@ module Castoro #:nodoc:
   module Manipulator #:nodoc:
     module Version #:nodoc:
       unless defined? MAJOR
-        MAJOR  = 0
-        MINOR  = 2
+        MAJOR  = 2
+        MINOR  = 0
         TINY   = 0
         PRE    = nil
 
