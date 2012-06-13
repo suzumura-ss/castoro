@@ -19,6 +19,6 @@
 #
 
 require "rubygems"
-require 'castoro-groupctl/groupctl'
+require 'castoro-pgctl/pgctl'
 
-Castoro::Peer::GroupctlMain.instance.run
+Castoro::Peer::PgctlMain.instance.run

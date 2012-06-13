@@ -22,7 +22,7 @@ require 'socket'
 require 'syslog'
 require 'singleton'
 require 'thread'
-require 'castoro-groupctl/pipeline'
+require 'castoro-pgctl/pipeline'
 
 module Castoro
   module Peer

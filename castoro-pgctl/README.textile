@@ -1,17 +1,17 @@
-h1. castoro-groupctl
+h1. castoro-pgctl
 
-castoro-groupctl is a remote control subsystem for peer groups of Castoro.
+castoro-pgctl is a remote control subsystem for peer groups of Castoro.
 
 h2. Installation
 
 <pre>
-gem uninstall castoro-groupctl
-gem install --no-rdoc --no-ri castoro-groupctl-0.0.2.gem
-cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-groupctl-0.0.2/etc/init.d
+gem uninstall castoro-pgctl
+gem install --no-rdoc --no-ri castoro-pgctl-0.0.2.gem
+cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.2/etc/init.d
 make install
-cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-groupctl-0.0.2/etc/castoro
-cp groupctl.conf-sample-ja.conf /etc/castoro/groupctl.conf
-vi /etc/castoro/groupctl.conf
+cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.2/etc/castoro
+cp pgctl.conf-sample-ja.conf /etc/castoro/pgctl.conf
+vi /etc/castoro/pgctl.conf
 /etc/init.d/cstartd start
 /etc/init.d/cagentd start
 </pre>
@@ -22,7 +22,7 @@ h2. User Scenarios
 h3. Starting every peer of the peer group
 
 <pre>
-groupctl startall peer000 peer001 peer002
+pgctl startall peer000 peer001 peer002
 [ 2012-05-31 17:28:04 +0900  Daemon processes ]
 HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
 peer000       cmond         
@@ -229,14 +229,14 @@ peer002       manipulatord  running
 
 
 Succeeded:
- groupctl startall peer000 peer001 peer002
+ pgctl startall peer000 peer001 peer002
 
 </pre>
 
 h3. Getting ps command outputs
 
 <pre>
-$ groupctl ps peer000 peer001 peer002
+$ pgctl ps peer000 peer001 peer002
 [ 2012-05-31 17:30:46 +0900  Daemon processes ]
 HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
 peer000       cmond            quanp 16107  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
@@ -256,14 +256,14 @@ peer002       manipulatord      root 16100 11970   0 17:28:08 ?           0:00 /
 
 
 Succeeded:
- groupctl ps peer000 peer001 peer002
+ pgctl ps peer000 peer001 peer002
 
 </pre>
 
 h3. Getting the status of peer group
 
 <pre>
-$ groupctl status peer000 peer001 peer002
+$ pgctl status peer000 peer001 peer002
 [ 2012-05-31 17:31:15 +0900  Status ]
 HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
 peer000       cmond         running       30 online     auto          off           
@@ -283,14 +283,14 @@ peer002       manipulatord  running
 
 
 Succeeded:
- groupctl status peer000 peer001 peer002
+ pgctl status peer000 peer001 peer002
 
 </pre>
 
 h3. Stopping the only peer
 
 <pre>
-$ groupctl stop peer000 peer001 peer002
+$ pgctl stop peer000 peer001 peer002
 [ 2012-05-31 17:32:02 +0900  Daemon processes ]
 HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
 peer000       cmond            quanp 16107  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
@@ -557,14 +557,14 @@ peer002       manipulatord  running
 
 
 Succeeded:
- groupctl stop peer000 peer001 peer002
+ pgctl stop peer000 peer001 peer002
 
 </pre>
 
 h3. Starting the only peer
 
 <pre>
-$ groupctl start peer000 peer001 peer002
+$ pgctl start peer000 peer001 peer002
 [ 2012-05-31 17:33:21 +0900  Daemon processes ]
 HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
 peer000       cmond         
@@ -761,14 +761,14 @@ peer002       manipulatord  running
 
 
 Succeeded:
- groupctl start peer000 peer001 peer002
+ pgctl start peer000 peer001 peer002
 
 </pre>
 
 h3. Stopping every peer of the peer group
 
 <pre>
-$ groupctl stopall peer000 peer001 peer002
+$ pgctl stopall peer000 peer001 peer002
 [ 2012-05-31 17:34:21 +0900  Daemon processes ]
 HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
 peer000       cmond            quanp 16651  4604   0 17:33:24 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
@@ -1026,6 +1026,6 @@ peer002       manipulatord  stopped
 
 
 Succeeded:
- groupctl stopall peer000 peer001 peer002
+ pgctl stopall peer000 peer001 peer002
 
 <pre>

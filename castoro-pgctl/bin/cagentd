@@ -19,6 +19,6 @@
 #
 
 require "rubygems"
-require 'castoro-groupctl/cagentd'
+require 'castoro-pgctl/cagentd'
 
 Castoro::Peer::CagentdMain.instance.run

@@ -24,7 +24,7 @@ require 'rake/gempackagetask'
 require 'rake/rdoctask'
 
 spec = Gem::Specification.new do |s|
-  s.name = 'castoro-groupctl'
+  s.name = 'castoro-pgctl'
   s.version = '0.0.2'
   s.has_rdoc = true
   s.extra_rdoc_files = ['README.textile']
@@ -52,7 +52,7 @@ Rake::RDocTask.new do |rdoc|
   files =['README.textile', 'LICENSE', 'lib/**/*.rb']
   rdoc.rdoc_files.add(files)
   rdoc.main = "README.textile" # page to start on
-  rdoc.title = "castor-groupctl Docs"
+  rdoc.title = "castor-pgctl Docs"
   rdoc.rdoc_dir = 'doc/rdoc' # rdoc output folder
   rdoc.options << '--line-numbers'
 end

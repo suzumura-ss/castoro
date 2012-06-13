@@ -18,9 +18,9 @@
 #
 
 require 'thread'
-require 'castoro-groupctl/barrier'
-require 'castoro-groupctl/command'
-require 'castoro-groupctl/exceptions'
+require 'castoro-pgctl/barrier'
+require 'castoro-pgctl/command'
+require 'castoro-pgctl/exceptions'
 
 module Castoro
   module Peer

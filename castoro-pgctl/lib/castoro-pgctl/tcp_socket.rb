@@ -19,7 +19,7 @@
 
 require 'socket'
 require 'fcntl'
-require 'castoro-groupctl/log'
+require 'castoro-pgctl/log'
 
 module Castoro
   module Peer

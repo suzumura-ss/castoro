@@ -18,7 +18,7 @@
 #
 
 require 'getoptlong'
-require 'castoro-groupctl/configurations'
+require 'castoro-pgctl/configurations'
 
 module Castoro
   module Peer

@@ -19,7 +19,7 @@
 
 require 'thread'
 require 'singleton'
-require 'castoro-groupctl/custom_condition_variable'
+require 'castoro-pgctl/custom_condition_variable'
 
 module Castoro
   module Peer

@@ -17,11 +17,11 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'castoro-groupctl/pre_threaded_tcp_server'
-require 'castoro-groupctl//tcp_socket'
-require 'castoro-groupctl/channel'
-require 'castoro-groupctl/configurations'
-require 'castoro-groupctl/log'
+require 'castoro-pgctl/pre_threaded_tcp_server'
+require 'castoro-pgctl//tcp_socket'
+require 'castoro-pgctl/channel'
+require 'castoro-pgctl/configurations'
+require 'castoro-pgctl/log'
 
 module Castoro
   module Peer

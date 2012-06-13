@@ -19,6 +19,6 @@
 #
 
 require "rubygems"
-require 'castoro-groupctl/cstartd'
+require 'castoro-pgctl/cstartd'
 
 Castoro::Peer::CstartdMain.instance.run

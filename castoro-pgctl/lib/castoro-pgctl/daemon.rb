@@ -18,7 +18,7 @@
 #
 
 require 'timeout'
-require 'castoro-groupctl/log'
+require 'castoro-pgctl/log'
 
 module Castoro
   module Peer

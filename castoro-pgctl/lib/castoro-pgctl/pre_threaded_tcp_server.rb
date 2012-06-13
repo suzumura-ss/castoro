@@ -19,8 +19,8 @@
 
 require 'socket'
 require 'thread'
-require 'castoro-groupctl/pipeline'
-require 'castoro-groupctl/log'
+require 'castoro-pgctl/pipeline'
+require 'castoro-pgctl/log'
 
 module Castoro
   module Peer

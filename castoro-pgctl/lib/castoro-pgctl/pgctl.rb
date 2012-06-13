@@ -28,11 +28,11 @@ require 'thread'
 require 'socket'
 require 'singleton'
 require 'getoptlong'
-require 'castoro-groupctl/barrier'
-require 'castoro-groupctl/component'
-require 'castoro-groupctl/signal_handler'
-require 'castoro-groupctl/exceptions'
-require 'castoro-groupctl/configurations'
+require 'castoro-pgctl/barrier'
+require 'castoro-pgctl/component'
+require 'castoro-pgctl/signal_handler'
+require 'castoro-pgctl/exceptions'
+require 'castoro-pgctl/configurations'
 
 module Castoro
   module Peer
@@ -375,7 +375,7 @@ module Castoro
     end
 
 
-    class GroupctlMain
+    class PgctlMain
       include Singleton
 
       def initialize
@@ -447,7 +447,7 @@ module Castoro
         puts "   -d, --debug    this command runs with debug messages being printed."
         puts "   -V, --version  shows a version number of this command."
         puts "   -c file, --configuration-file=file  specifies a configuration file."
-        puts "                  default: /etc/castoro/groupctl.conf"
+        puts "                  default: /etc/castoro/pgctl.conf"
         puts ""
         puts "  sub commands:"
         puts "   ps         lists the deamon processes in a 'ps -ef' format"
@@ -512,5 +512,5 @@ module Castoro
 end
 
 if $0 == __FILE__
-  Castoro::Peer::GroupctlMain.instance.run
+  Castoro::Peer::PgctlMain.instance.run
 end

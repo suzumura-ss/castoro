@@ -17,8 +17,8 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'castoro-groupctl/proxy'
-require 'castoro-groupctl/exceptions'
+require 'castoro-pgctl/proxy'
+require 'castoro-pgctl/exceptions'
 
 module Castoro
   module Peer

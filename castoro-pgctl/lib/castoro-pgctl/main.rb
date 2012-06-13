@@ -19,9 +19,9 @@
 
 require 'singleton'
 require 'etc'
-require 'castoro-groupctl/custom_condition_variable'
-require 'castoro-groupctl/daemon'
-require 'castoro-groupctl/log'
+require 'castoro-pgctl/custom_condition_variable'
+require 'castoro-pgctl/daemon'
+require 'castoro-pgctl/log'
 
 module Castoro
   module Peer

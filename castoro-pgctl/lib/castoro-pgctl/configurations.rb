@@ -20,8 +20,8 @@
 require 'singleton'
 require 'yaml'
 require 'json'
-require 'castoro-groupctl/log'
-require 'castoro-groupctl/exceptions'
+require 'castoro-pgctl/log'
+require 'castoro-pgctl/exceptions'
 
 module Castoro
   module Peer
@@ -29,7 +29,7 @@ module Castoro
     class Configurations
       include Singleton
 
-      CONFIGURATION_FILE_CANDIDATES = [ '/etc/castoro/groupctl.conf' ]
+      CONFIGURATION_FILE_CANDIDATES = [ '/etc/castoro/pgctl.conf' ]
 
       @@initial_file = nil
 

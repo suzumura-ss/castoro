@@ -21,7 +21,7 @@
 export PATH=/usr/bin:/usr/sbin:/sbin:/usr/local/bin
 script=cstartd
 
-config=/etc/castoro/groupctl.conf
+config=/etc/castoro/pgctl.conf
 if [ ! -f "$config" ] ; then
     echo "$0: cannot open $config"
     exit 1

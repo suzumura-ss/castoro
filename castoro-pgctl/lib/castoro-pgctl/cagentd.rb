@@ -24,9 +24,9 @@ if $0 == __FILE__
   $LOAD_PATH.unshift '..'
 end
 
-require 'castoro-groupctl/main'
-require 'castoro-groupctl/cagentd_workers'
-require 'castoro-groupctl/command_line_options'
+require 'castoro-pgctl/main'
+require 'castoro-pgctl/cagentd_workers'
+require 'castoro-pgctl/command_line_options'
 
 module Castoro
   module Peer

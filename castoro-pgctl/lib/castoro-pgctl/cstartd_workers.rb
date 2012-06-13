@@ -17,12 +17,12 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'castoro-groupctl/worker'
-require 'castoro-groupctl/tcp_socket'
-require 'castoro-groupctl/channel'
-require 'castoro-groupctl/process_executor'
-require 'castoro-groupctl/configurations'
-require 'castoro-groupctl/log'
+require 'castoro-pgctl/worker'
+require 'castoro-pgctl/tcp_socket'
+require 'castoro-pgctl/channel'
+require 'castoro-pgctl/process_executor'
+require 'castoro-pgctl/configurations'
+require 'castoro-pgctl/log'
 
 module Castoro
   module Peer
