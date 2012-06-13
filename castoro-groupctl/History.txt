@@ -1,0 +1,8 @@
+=== 0.0.2 2012-05-31
+* Implemented error check
+* Handling a Ctrl-C
+* Refactored class relationship
+
+=== 0.0.1.pre1 2012-04-26
+
+* The initial, preliminary release
