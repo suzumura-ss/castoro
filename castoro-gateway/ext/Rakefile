@@ -17,14 +17,23 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-begin
-  require 'spec'
-rescue LoadError
-  require 'rubygems' unless ENV['NO_RUBYGEMS']
-  gem 'rspec'
-  require 'spec'
+target = "cache.so"
+makefile = "Makefile"
+header_files = FileList[ '*.hxx' ]
+source_files = FileList[ '*.cxx' ]
+
+task :default => [ target, "castoro-gateway/#{target}" ]
+
+file makefile => %w( extconf.rb ) + header_files + source_files do
+  sh "ruby extconf.rb"
 end
 
-$:.unshift(File.dirname(__FILE__) + '/../ext')
-$:.unshift(File.dirname(__FILE__) + '/../lib')
-require 'castoro-gateway'
+file target => makefile do
+  sh "make clean"
+  sh "make"
+end
+
+file "castoro-gateway/#{target}" => target do
+  sh "mkdir -p castoro-gateway"
+  sh "cp #{target} castoro-gateway/#{target}"
+end
