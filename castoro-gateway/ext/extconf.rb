@@ -17,7 +17,18 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+# This extention will require a C++ compiler and its linker, instead of C ones, 
+# during compilation. The linker, however, seems to be assgined with ld by mkmf.
+# That causes a problem in finding libstdc++.so because ld does not know about it.
+# In contrast, the C++ compiler knows where it is because the libstdc++.so comes
+# with the C++ compiler. 
+# By replacing LDSHARED ( default to "ld -G" or so ) in the configuration of Ruby
+# with a "c++-compiler -shared", LDSHAREDXX will be also "c++-compiler -shared"
+require 'rbconfig'
+CONFIG = RbConfig::MAKEFILE_CONFIG
+cxx = CONFIG['CXX'].split(' ')[0]
+CONFIG['LDSHARED'] = "#{cxx} -shared"
+
 require 'mkmf'
 $CFLAGS="-g -Wall -DRUBY_VERSION=\\\"#{RUBY_VERSION.split('.')[0,2].join('.')}\\\""
-$LDFLAGS="-lstdc++"
 create_makefile('castoro-gateway/cache')
