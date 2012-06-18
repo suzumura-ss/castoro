@@ -62,10 +62,3 @@ Dir['tasks/**/*.rake'].each { |t| load t }
 
 task :default => [:spec]
 
-# Prerequisites
-task :spec => :ext  # :ext will be done before :spec starts
-
-# Do the rake in the ext directory
-task :ext do |t|
-  sh "cd ext ; rake"
-end
