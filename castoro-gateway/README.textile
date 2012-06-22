@@ -359,19 +359,23 @@ h3. configurations key list
 |cache / basket_keyconverter / Hex64Seq|Hash|required||required|"Hex64Seq"=>""|
 
 h2. Notices
+
 Test environment to run 'rake spec' requires the following settings.
 
 h4. Network settings
+
 An IP address of test machine must be 192.168.1.x.
 A network interface device 'eth0' must exist.
 
 h4. FireWall Settings
+
 The firewall should not block multicast UDP packets which will be sent from a mock of client 
 and transfered by a mock of Gateway and received by a mock of Peer. 
 Every mock running on the test machine is virtually realized by the rspec code.
 A range of port numbers used by the rspec code is 30108 to 30159.
 
 h4. The Number of CPU Cores
+
 Due to some problems on multithreading programming in the rspec codes of this version
  - not in the production codes - a test machine with one-core CPU might find instability of 
 test results. In contrast, a test machine with four-core CPU could not observe such  problems.
