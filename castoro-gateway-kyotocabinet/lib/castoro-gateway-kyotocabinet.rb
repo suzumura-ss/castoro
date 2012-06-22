@@ -18,7 +18,7 @@
 #
 
 require "rubygems"
-gem "castoro-gateway", ">=0.2.0"
+gem "castoro-gateway", ">=2.0.0"
 require "castoro-gateway"
 
 require 'castoro-gateway-kyotocabinet/kyotocabinet'
