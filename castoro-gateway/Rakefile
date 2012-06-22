@@ -42,7 +42,7 @@ spec = Gem::Specification.new do |s|
 
   s.extensions = ["ext/cache/extconf.rb", "ext/utils/extconf.rb"]
 
-  s.add_dependency('castoro-common', '>=0.2.0')
+  s.add_dependency('castoro-common', '>=2.0.0')
   s.add_development_dependency('rspec', '>=2.0.0')
 end
 
