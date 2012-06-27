@@ -25,7 +25,7 @@ require 'rake/rdoctask'
 
 spec = Gem::Specification.new do |s|
   s.name = 'castoro-peer'
-  s.version = '0.1.4'
+  s.version = '1.4.0'
   s.has_rdoc = true
   s.extra_rdoc_files = ['README.textile']
   s.summary = "This is a peer of the abstructedly distributed file system, Castoro."
@@ -34,7 +34,7 @@ spec = Gem::Specification.new do |s|
   s.files = %w(History.txt LICENSE README.textile Rakefile) + Dir.glob("{bin,ext,lib,spec,config}/**/*")
   s.require_path = "lib"
   s.bindir = "bin"
-  s.add_dependency('castoro-manipulator', '>=0.1.0')
+  s.add_dependency('castoro-manipulator', '>=1.1.0')
 end
 
 Rake::GemPackageTask.new(spec) do |p|

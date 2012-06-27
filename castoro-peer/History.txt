@@ -1,3 +1,7 @@
+=== 1.4.0 2012-06-27
+
+* Change the version number from 0.1.4 to 1.4.0
+
 === 0.1.4 2012-01-20
 
 * fixed issue #55 - Do not respond to a GET request when the status is offline
