@@ -40,7 +40,7 @@ spec = Gem::Specification.new do |s|
 
   s.extensions = ["ext/extconf.rb"]
 
-  s.add_dependency('castoro-common', '>=0.1.0')
+  s.add_dependency('castoro-common', '>=1.1.0')
 end
 
 Rake::GemPackageTask.new(spec) do |p|
