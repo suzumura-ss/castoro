@@ -28,10 +28,10 @@ spec = Gem::Specification.new do |s|
   s.name = 'castoro-client-lo'
   s.version = '0.6.0'
   s.has_rdoc = false
-  s.extra_rdoc_files = ['README', 'LICENSE']
+  s.extra_rdoc_files = ['README.textile', 'LICENSE']
   s.summary = "This(it) is client libraries for Castoro which is distributed abstraction filesystem."
   s.description = s.summary
-  s.files = %w(LICENSE README Rakefile) + Dir.glob("{lib,spec}/**/*")
+  s.files = %w(LICENSE README.textile Rakefile) + Dir.glob("{lib,spec}/**/*")
   s.require_path = "lib"
   s.add_dependency('castoro-client', '>=2.0.0')
 end
@@ -43,9 +43,9 @@ Rake::GemPackageTask.new(spec) do |p|
 end
 
 Rake::RDocTask.new do |rdoc|
-  files =['README', 'LICENSE', 'lib/**/*.rb']
+  files =['README.textile', 'LICENSE', 'lib/**/*.rb']
   rdoc.rdoc_files.add(files)
-  rdoc.main = "README" # page to start on
+  rdoc.main = "README.textile" # page to start on
   rdoc.title = "castor-client Docs"
   rdoc.rdoc_dir = 'doc/rdoc' # rdoc output folder
   rdoc.options << '--line-numbers'
@@ -54,3 +54,8 @@ end
 Rake::TestTask.new do |t|
   t.test_files = FileList['test/**/*.rb']
 end
+
+Dir['tasks/**/*.rake'].each { |t| load t }
+
+task :default => [:spec]
+
