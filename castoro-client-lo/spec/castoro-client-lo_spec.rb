@@ -18,7 +18,7 @@
 #
 
 require 'castoro-client'
-require 'lib/castoro-client-lo'
+require '../lib/castoro-client-lo'
 require 'fileutils'
 
 
