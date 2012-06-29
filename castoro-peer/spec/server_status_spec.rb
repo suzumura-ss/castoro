@@ -111,7 +111,7 @@ describe Castoro::Peer::ServerStatus do
   end
 
   context "when #status_to_s" do
-    `it 'with "ONLINE" should return "30 online"' do
+    it 'with "ONLINE" should return "30 online"' do
       @s_stat.status_to_s(Castoro::Peer::ServerStatus::ONLINE).should == "30 online"
     end
 
