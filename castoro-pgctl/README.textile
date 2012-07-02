@@ -1,6 +1,6 @@
 h1. castoro-pgctl
 
-castoro-pgctl is a remote control subsystem for peer groups of Castoro.
+castoro-pgctl is a subsystem to remotely control peer groups of Castoro.
 
 h2. Installation
 
