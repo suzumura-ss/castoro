@@ -147,25 +147,3 @@ module Castoro
 
   end
 end
-
-if $0 == __FILE__
-  module Castoro
-    module Peer
-      # Log.output = nil
-
-      Log.notice( 'test notice' )
-      Log.debug( 'test debug' ) if $DEBUG
-
-      class A
-        def f
-          raise StandardError, "mmm"
-        rescue => e
-          Log.warning e, "hhh"
-        end
-      end
-
-      x = A.new
-      x.f
-    end
-  end
-end
