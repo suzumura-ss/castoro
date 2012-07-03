@@ -129,7 +129,10 @@ module Castoro
                 :dir_c_perm                                 => [ :optional,  :octal  ],
 
                 # peer.conf in castoro-1 format
+                :HostnameForClient                          => [ :optional,  :string ],
                 :MulticastAddress                           => [ :optional,  :string ],
+                :MulticastNetwork                           => [ :optional,  :string ],
+                :MulticastIf                                => [ :optional,  :string ],
                 :MulticastNetwork                           => [ :optional,  :string ],
                 :GatewayUDPCommandPort                      => [ :optional,  :number ],
                 :PeerTCPCommandPort                         => [ :optional,  :number ],
