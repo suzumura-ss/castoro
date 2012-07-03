@@ -17,117 +17,102 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'singleton'
-require 'yaml'
-require 'json'
-require 'castoro-pgctl/log'
 require 'castoro-pgctl/exceptions'
 
 module Castoro
   module Peer
 
-    class Configurations
-      include Singleton
-
-      CONFIGURATION_FILE_CANDIDATES = [ '/etc/castoro/pgctl.conf' ]
-
-      @@initial_file = nil
-
-      def self.file= file
-        @@initial_file = file
-      end
-          
-      def default_configuration_file
-        files = CONFIGURATION_FILE_CANDIDATES
-        files.map do |f|
-          return f if File.exist? f
+    module Configurations
+      class Base
+        def initialize
+          @file = get_filename
+          c = ConfigurationFile.new @file  # defined in a subclass
+          c.load
+          c.validate
+          @entries = c.entries
+          define_attr_readers @entries
         end
-        raise StandardError, "No configuration file is found. Default files are #{files.join(' ')}"
-      end
 
-      def initialize
-        @mutex = Mutex.new
-        @entries = nil
-        @file = @@initial_file || default_configuration_file
-        @config_file = ConfigurationFile.new
-        self.load
-      end
+        private
 
-      def load( file = nil )
-        @mutex.synchronize {
-          f = file || @file
-          f = "#{Dir.getwd}/#{f}" unless f.match(/\A\//)
-          # Log.notice( "Loading configration file: #{f}" )
-          # print "#{caller.join("\n")}\n"
-          @entries = @config_file.load( f )  # exceptions might be raised
-          @file = f
-          # Log.notice( "Configuration data in #{@file}: #{@entries.inspect}" )
-          define_readers()
-          @entries
-        }
-      end
+        def get_filename
+          file = configuration_file  # defined in a subclass
+          file = "#{Dir.getwd}/#{file}" unless file.match(/\A\//)
+          File.exist? file or raise ConfigurationError, "Configuration file does not exist: #{file}"
+          file
+        end
 
-      private
-
-      def define_readers
-        @entries.keys.map do |item|
-          Configurations.class_eval do
-            if ( method_defined? item )
-              remove_method( item )
-            end
-            define_method( item ) do
-              @mutex.synchronize do
-                @entries[ item ]
+        def define_attr_readers entries
+          entries.map do |item, value|
+            self.class.class_eval do
+              if method_defined? item
+                remove_method item 
+              end
+              define_method( item ) do
+                value
               end
             end
           end
         end
       end
-    end
 
 
-    class ConfigurationFile
-      def initialize
-        @global = nil
-        @services = []
-      end
+      class ConfigurationFileBase
+        def initialize file
+          @file = file
+          @global = nil
+          @services = []
+        end
 
-      def load file
-        load_configuration_file file
-        @global.validate
-        @data = @global.data.dup
-        @data
-      rescue => e
-        raise ConfigurationError, "#{e.class} \"#{e.message}\" #{e.backtrace.slice(0,5).inspect}"
-      end
-
-      private
-
-      def load_configuration_file file
-        section = nil
-        File.open( file , "r:binary" ) do |f|  # Any character encoding such as UTF-8 is accepted
-          begin
-            while line = f.gets do
-              case line
-              when /\A[#;]/, /\A\s*\Z/  # Comment
-                next
-              when /\A\s*(\w+)\s+(.*?)\s*\Z/  # Parameter
-                # print "PARAMETER: #{$1} #{$2}\n"
-                section or raise ArgumentError, "Section is not yet specified"
-                section.register $1.to_sym, $2
-              when /\A\s*\[\s*(\w+)\s*\]\s*\Z/  # Section header
-                # print "SECTION: #{$1}\n"
-                case $1
-                when 'global'  ; @global = section = GlobalSection.new
-                when 'service' ; @services.push( section = ServiceSection.new )
-                else ; raise NameError, "Unknown section name"
-                end
-              else
-                raise ArgumentError, "Invalid line"
+        def load
+          @global = GlobalSection.new  # defined in a subclass
+          @section = nil  # section will hold a temporal data
+          File.open( @file , "r:binary" ) do |f|  # use a binary mode to accept UTF-8
+            begin
+              while line = f.gets do
+                interprete line
               end
+            rescue NameError, ArgumentError => e
+              raise ConfigurationError, "#{e.message}: #{@file}:#{$.}: #{line.chomp}"
             end
-          rescue => e
-            raise ConfigurationError, "#{e}: #{file}:#{$.}: #{line.chomp}"
+          end
+        end
+
+        def validate
+          @global.validate
+          @services.map { |s| s.validate }
+        end
+
+        def entries
+          @global.data.dup
+        end
+
+        private
+
+        def interprete line
+          debug = false  # turn on if you will need debug messages from this method
+
+          case line
+
+          when /\A[#;]/, /\A\s*\Z/  # Comment
+            return
+
+          when /\A\s*\[\s*(\w+)\s*\]\s*\Z/  # Section header
+            print "SECTION: #{$1}\n" if debug
+            case $1
+            when 'global'  ; @section = @global
+            when 'service' ; @services.push( @section = ServiceSection.new )  # defined in a subclass
+            else ; raise NameError, "Unknown section name"
+            end
+
+          when /\A\s*(\w+)\s+(.*?)\s*\Z/  # Parameter
+            print "PARAMETER: #{$1} #{$2}\n" if debug
+            @section = @global if @section.nil?  # use global if it is not specified to support peer.conf in castoro-1 format
+            @section.register $1.to_sym, $2
+
+          else
+            raise ArgumentError, "Invalid line"
+
           end
         end
       end
@@ -182,28 +167,6 @@ module Castoro
           return false if %w( no false off ).include? value
           raise ArgumentError, "Invalid boolean"
         end
-      end
-
-
-      class GlobalSection < Section
-        def initialize
-          super(
-                :effective_user                             => [ :mandatory, :string ],
-                :basket_basedir                             => [ :mandatory, :string, :path ],
-                :peer_config_file                           => [ :mandatory, :string, :path ],
-                :cmond_maintenance_tcpport                  => [ :mandatory, :number ],
-                :cpeerd_maintenance_tcpport                 => [ :mandatory, :number ],
-                :crepd_maintenance_tcpport                  => [ :mandatory, :number ],
-                :cstartd_comm_tcpport                       => [ :mandatory, :number ],
-                :cagentd_comm_tcpport                       => [ :mandatory, :number ],
-                :cstartd_ps_command                         => [ :mandatory, :string, :path ],
-                :cstartd_ps_options                         => [ :mandatory, :string, :shell_escape ],
-                )
-        end
-      end
-
-
-      class ServiceSection < Section
       end
     end
 
