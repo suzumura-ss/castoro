@@ -49,9 +49,9 @@ module Castoro
           socket.close
           response
         rescue ConnectionTimedoutError => e
-          raise ConnectionTimedoutError, "#{e.message}: An attempt of connecting to #{name} on #{@hostname} failed. Please check #{@hostname} is online and #{name} is running."
+          raise ConnectionTimedoutError, "#{e.message}: An attempt of connecting to #{name} on #{@hostname} failed. Please check if #{@hostname} is online and #{name} is running."
         rescue ConnectionRefusedError => e
-          raise ConnectionRefusedError, "#{e.message}: An attempt of connecting to #{name} on #{@hostname} failed. Please check #{name} is running."
+          raise ConnectionRefusedError, "#{e.message}: An attempt of connecting to #{name} on #{@hostname} failed. Please check if #{name} is running."
         end
 
         def call command, args = {}
