@@ -21,7 +21,7 @@ require 'castoro-pgctl/worker'
 require 'castoro-pgctl/tcp_socket'
 require 'castoro-pgctl/channel'
 require 'castoro-pgctl/process_executor'
-require 'castoro-pgctl/configurations'
+require 'castoro-pgctl/configurations_pgctl'
 require 'castoro-pgctl/log'
 
 module Castoro
@@ -44,7 +44,7 @@ module Castoro
 
     class CstartdTcpServer < Worker
       def initialize
-        port = Configurations.instance.cstartd_comm_tcpport
+        port = Configurations::Pgctl.instance.cstartd_comm_tcpport
         addr = '0.0.0.0'
         backlog = 5
         @server = TcpServer.new addr, port, backlog
@@ -176,8 +176,8 @@ module Castoro
           'manipulatord'  => 'bin/castoro-manipulator',
         }[ target ] or raise ArgumentError, "Unknown target: #{target}"
 
-        command = Configurations.instance.cstartd_ps_command
-        options = Configurations.instance.cstartd_ps_options.split( ' ' )
+        command = Configurations::Pgctl.instance.cstartd_ps_command
+        options = Configurations::Pgctl.instance.cstartd_ps_options.split( ' ' )
 
         status, stdout, stderr = run( [ command, options ].flatten.join( ' ' ) )
         header = stdout.shift

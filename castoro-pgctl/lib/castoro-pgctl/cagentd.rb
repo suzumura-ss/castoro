@@ -27,6 +27,7 @@ end
 require 'castoro-pgctl/main'
 require 'castoro-pgctl/cagentd_workers'
 require 'castoro-pgctl/command_line_options'
+require 'castoro-pgctl/configurations_pgctl'
 
 module Castoro
   module Peer
@@ -38,7 +39,7 @@ module Castoro
       end
 
       def setup
-        super( :effective_user => Configurations.instance.effective_user )
+        super( :effective_user => Configurations::Pgctl.instance.effective_user )
         @w = CagentdWorkers.new
       end
 

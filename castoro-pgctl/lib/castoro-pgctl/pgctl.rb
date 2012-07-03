@@ -32,7 +32,7 @@ require 'castoro-pgctl/barrier'
 require 'castoro-pgctl/component'
 require 'castoro-pgctl/signal_handler'
 require 'castoro-pgctl/exceptions'
-require 'castoro-pgctl/configurations'
+require 'castoro-pgctl/configurations_pgctl'
 
 module Castoro
   module Peer
@@ -401,7 +401,7 @@ module Castoro
             puts "#{@program_name} - Version #{PROGRAM_VERSION}"
             Process.exit 0
           when '--configuration-file'
-            Configurations.file = arg
+            Configurations::Pgctl.file = arg
           end
         end
       end

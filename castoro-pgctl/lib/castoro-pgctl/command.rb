@@ -18,7 +18,7 @@
 #
 
 require 'castoro-pgctl/server_status'
-require 'castoro-pgctl/configurations'
+require 'castoro-pgctl/configurations_pgctl'
 require 'castoro-pgctl/tcp_socket'
 require 'castoro-pgctl/channel'
 
@@ -70,7 +70,7 @@ module Castoro
       class Cstartd < Base
         attr_reader :stdout, :stderr
 
-        def port ; Configurations.instance.cstartd_comm_tcpport ; end
+        def port ; Configurations::Pgctl.instance.cstartd_comm_tcpport ; end
         def name ; :cstartd ; end
 
         def call command, args = {}
@@ -155,7 +155,7 @@ module Castoro
 #      end
 
       class Cagentd < Base
-        def port ; Configurations.instance.cagentd_comm_tcpport ; end
+        def port ; Configurations::Pgctl.instance.cagentd_comm_tcpport ; end
         def name ; :cagentd ; end
       end
 

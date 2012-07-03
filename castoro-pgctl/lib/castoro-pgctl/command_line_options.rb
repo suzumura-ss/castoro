@@ -18,7 +18,7 @@
 #
 
 require 'getoptlong'
-require 'castoro-pgctl/configurations'
+require 'castoro-pgctl/configurations_pgctl'
 
 module Castoro
   module Peer
@@ -50,7 +50,7 @@ module Castoro
           when '--foreground'
             $RUN_AS_DAEMON = false
           when '--configuration-file'
-            Configurations.file = arg
+            Configurations::Pgctl.file = arg
           end
         end
       end

@@ -20,7 +20,7 @@
 require 'castoro-pgctl/pre_threaded_tcp_server'
 require 'castoro-pgctl//tcp_socket'
 require 'castoro-pgctl/channel'
-require 'castoro-pgctl/configurations'
+require 'castoro-pgctl/configurations_pgctl'
 require 'castoro-pgctl/log'
 
 module Castoro
@@ -43,7 +43,7 @@ module Castoro
 
     class CagentdTcpServer < PreThreadedTcpServer
       def initialize
-        port = Configurations.instance.cagentd_comm_tcpport
+        port = Configurations::Pgctl.instance.cagentd_comm_tcpport
         addr = '0.0.0.0'
         number_of_threads = 5
         super port, addr, number_of_threads
@@ -98,9 +98,9 @@ module Castoro
       def do_get_set_prop args, value
         target = args[ 'target' ] or raise ArgumentError, "taget is not specified: #{args.inspect}"
         port = case target
-               when 'cmond'         ; Configurations.instance.cmond_maintenance_tcpport
-               when 'cpeerd'        ; Configurations.instance.cpeerd_maintenance_tcpport
-               when 'crepd'         ; Configurations.instance.crepd_maintenance_tcpport
+               when 'cmond'         ; Configurations::Pgctl.instance.cmond_maintenance_tcpport
+               when 'cpeerd'        ; Configurations::Pgctl.instance.cpeerd_maintenance_tcpport
+               when 'crepd'         ; Configurations::Pgctl.instance.crepd_maintenance_tcpport
                when 'manipulatord'
                  raise ArgumentError, "manipulatord has no control port."
                else
@@ -154,9 +154,9 @@ module Castoro
       def do_status args
         target = args[ 'target' ] or raise ArgumentError, "taget is not specified: #{args.inspect}"
         port = case target
-               when 'cmond'         ; Configurations.instance.cmond_maintenance_tcpport
-               when 'cpeerd'        ; Configurations.instance.cpeerd_maintenance_tcpport
-               when 'crepd'         ; Configurations.instance.crepd_maintenance_tcpport
+               when 'cmond'         ; Configurations::Pgctl.instance.cmond_maintenance_tcpport
+               when 'cpeerd'        ; Configurations::Pgctl.instance.cpeerd_maintenance_tcpport
+               when 'crepd'         ; Configurations::Pgctl.instance.crepd_maintenance_tcpport
                when 'manipulatord'
                  raise ArgumentError, "manipulatord has no control port."
                else
@@ -195,9 +195,9 @@ module Castoro
       def do_mode args
         target = args[ 'target' ] or raise ArgumentError, "taget is not specified: #{args.inspect}"
         port = case target
-               when 'cmond'         ; Configurations.instance.cmond_maintenance_tcpport
-               when 'cpeerd'        ; Configurations.instance.cpeerd_maintenance_tcpport
-               when 'crepd'         ; Configurations.instance.crepd_maintenance_tcpport
+               when 'cmond'         ; Configurations::Pgctl.instance.cmond_maintenance_tcpport
+               when 'cpeerd'        ; Configurations::Pgctl.instance.cpeerd_maintenance_tcpport
+               when 'crepd'         ; Configurations::Pgctl.instance.crepd_maintenance_tcpport
                when 'manipulatord'
                  raise ArgumentError, "manipulatord has no control port."
                else
@@ -229,9 +229,9 @@ module Castoro
       def do_auto args
         target = args[ 'target' ] or raise ArgumentError, "taget is not specified: #{args.inspect}"
         port = case target
-               when 'cmond'         ; Configurations.instance.cmond_maintenance_tcpport
-               when 'cpeerd'        ; Configurations.instance.cpeerd_maintenance_tcpport
-               when 'crepd'         ; Configurations.instance.crepd_maintenance_tcpport
+               when 'cmond'         ; Configurations::Pgctl.instance.cmond_maintenance_tcpport
+               when 'cpeerd'        ; Configurations::Pgctl.instance.cpeerd_maintenance_tcpport
+               when 'crepd'         ; Configurations::Pgctl.instance.crepd_maintenance_tcpport
                when 'manipulatord'
                  raise ArgumentError, "manipulatord has no control port."
                else
