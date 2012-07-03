@@ -73,6 +73,7 @@ module Castoro
         x = ARGV.shift
         x.nil? and raise CommandLineArgumentError, "No sub-command is given."
         case x
+        when 'list'     ; SubCommand::List.new
         when 'ps'       ; SubCommand::Ps.new
         when 'status'   ; SubCommand::Status.new
         when 'startall' ; SubCommand::StartAll.new
@@ -113,6 +114,7 @@ module Castoro
         puts "                  default: /etc/castoro/pgctl.conf"
         puts ""
         puts "  sub commands:"
+        puts "   list       lists peer groups"
         puts "   ps         lists the deamon processes in a 'ps -ef' format"
         puts "   status     shows the status of the deamon processes on the every host"
         puts "   startall   starts deamon processes on every host of the peer group"

@@ -22,6 +22,7 @@ require 'castoro-pgctl/barrier'
 require 'castoro-pgctl/component'
 require 'castoro-pgctl/signal_handler'
 require 'castoro-pgctl/exceptions'
+require 'castoro-pgctl/configurations_peer'
 
 module Castoro
   module Peer
@@ -170,6 +171,20 @@ module Castoro
             do_status_and_print
             @x.verify_mode_less_or_equal 10
             SignalHandler.check ; sleep 2
+          end
+        end
+      end
+
+
+      class List < Base
+        def run
+          title "Peer group list"
+          i = 0
+          Configurations::Peer.instance.StorageGroupsData.each do |x|
+            if 0 < x.size
+              printf "  G%02d = %s\n", i, x.join(' ')
+              i = i + 1
+            end
           end
         end
       end
