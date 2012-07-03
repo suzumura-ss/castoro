@@ -1,0 +1,2 @@
+== castoro-client-lo for localhost only.
+

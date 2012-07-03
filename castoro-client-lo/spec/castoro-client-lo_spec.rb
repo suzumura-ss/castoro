@@ -16,9 +16,8 @@
 #   You should have received a copy of the GNU Lesser General Public License
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
-
+require File.dirname(__FILE__) + '/spec_helper.rb'
 require 'castoro-client'
-require '../lib/castoro-client-lo'
 require 'fileutils'
 
 
