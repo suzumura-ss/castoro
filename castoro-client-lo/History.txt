@@ -1,3 +1,6 @@
+=== 0.6.1
+* Support for rspec and rake.
+
 === 0.6.0
 * Changed the version number from 0.0.6 to 0.6.0
 

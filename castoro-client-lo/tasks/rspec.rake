@@ -17,14 +17,25 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+rspec_version = :new
 begin
   require 'rspec'
 rescue LoadError
-  require 'rubygems' unless ENV['NO_RUBYGEMS']
-  require 'rspec'
+  begin
+    require 'rubygems' unless ENV['NO_RUBYGEMS']
+    require 'rspec'
+  rescue LoadError
+    require 'spec'
+    rspec_version = :old
+  end
 end
+
 begin
-  require 'rspec/core/rake_task'
+  if rspec_version == :new
+    require 'rspec/core/rake_task'
+  else
+    require 'spec/rake/spectask'
+  end
 rescue LoadError
   puts <<-EOS
 To use rspec for testing you must install rspec gem:
@@ -34,8 +45,16 @@ EOS
 end
 
 desc "Run the specs under spec/models"
-RSpec::Core::RakeTask.new do |t|
-  t.pattern = "spec/**/*_spec.rb"
-  t.rspec_opts = "-c -f d"
+if rspec_version == :new then
+  RSpec::Core::RakeTask.new do |t|
+    t.pattern = "spec/**/*_spec.rb"
+    t.rspec_opts = ["-cfs"]
+  end
+else
+  Spec::Rake::SpecTask.new do |t|
+    t.pattern = "spec/**/*_spec.rb"
+    t.spec_opts = ['--options=' "spec/spec.opts"]
+    t.spec_opts = ["-cfs"]
+    end
 end
 
