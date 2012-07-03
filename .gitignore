@@ -1,5 +1,12 @@
-*~
-\#*
+# Object files, shared library files
 *.o
 *.so
+
+# Temporal files
 *.diff
+?
+??
+
+# Backup files of text editor, Emacs
+*~
+\#*
