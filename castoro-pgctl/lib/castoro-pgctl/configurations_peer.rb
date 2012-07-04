@@ -30,7 +30,7 @@ module Castoro
       class Peer < Base
         include Singleton
 
-        @@file = '/etc/castoro/peer.conf'
+        @@file = DEFAULT_FILE = '/etc/castoro/peer.conf'
 
         def self.file= file
           @@file = file

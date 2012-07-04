@@ -27,7 +27,7 @@ module Castoro
       class Pgctl < Base
         include Singleton
 
-        @@file = '/etc/castoro/pgctl.conf'
+        @@file = DEFAULT_FILE = '/etc/castoro/pgctl.conf'
 
         def self.file= file
           @@file = file

@@ -31,6 +31,7 @@ require 'castoro-pgctl/component'
 require 'castoro-pgctl/signal_handler'
 require 'castoro-pgctl/exceptions'
 require 'castoro-pgctl/configurations_pgctl'
+require 'castoro-pgctl/configurations_peer'
 require 'castoro-pgctl/sub_command'
 
 module Castoro
@@ -51,6 +52,7 @@ module Castoro
               [ '--debug',               '-d', GetoptLong::NO_ARGUMENT ],
               [ '--version',             '-V', GetoptLong::NO_ARGUMENT ],
               [ '--configuration-file',  '-c', GetoptLong::REQUIRED_ARGUMENT ],
+              [ '--peer-configuration-file',  '-p', GetoptLong::REQUIRED_ARGUMENT ],
               )
 
         x.each do |opt, arg|
@@ -65,6 +67,8 @@ module Castoro
             Process.exit 0
           when '--configuration-file'
             Configurations::Pgctl.file = arg
+          when '--peer-configuration-file'
+            Configurations::Peer.file = arg
           end
         end
       end
@@ -110,8 +114,10 @@ module Castoro
         puts "   -h, --help     prints this help message and exit."
         puts "   -d, --debug    this command runs with debug messages being printed."
         puts "   -V, --version  shows a version number of this command."
-        puts "   -c file, --configuration-file=file  specifies a configuration file."
-        puts "                  default: /etc/castoro/pgctl.conf"
+        puts "   -c file, --configuration-file=file  specifies a configuration file of pgctl."
+        puts "                  default: #{Configurations::Pgctl::DEFAULT_FILE}"
+        puts "   -p file, --peer-configuration-file=file  specifies a configuration file of peer."
+        puts "                  default: #{Configurations::Peer::DEFAULT_FILE}"
         puts ""
         puts "  sub commands:"
         puts "   list       lists peer groups"
