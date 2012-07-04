@@ -46,7 +46,49 @@ module Castoro
         @program_name = $0.sub( %r{.*/}, '' )  # name of this command
       end
 
-      def parse_command_line_options
+      def usage
+        x = @program_name
+        puts "usage: #{x} [global options...] sub-command [options...] [parameters...] [hostnames..]"
+        puts ""
+        puts "  global options:"
+        puts "   -h, --help     prints this help message and exit."
+        puts "   -d, --debug    this command runs with debug messages being printed."
+        puts "   -V, --version  shows a version number of this command."
+        puts "   -c file, --configuration-file=file  specifies a configuration file of pgctl."
+        puts "                  default: #{Configurations::Pgctl::DEFAULT_FILE}"
+        puts "   -p file, --peer-configuration-file=file  specifies a configuration file of peer."
+        puts "                  default: #{Configurations::Peer::DEFAULT_FILE}"
+        puts ""
+        puts "  sub commands:"
+        puts "   list       lists peer groups"
+        puts "   ps         lists the deamon processes in a 'ps -ef' format"
+        puts "   status     shows the status of the deamon processes on the every host"
+        puts "   startall   starts deamon processes on every host of the peer group"
+        puts "   stopall    stops  daemon processes on every host of the peer group"
+        puts "   start      starts daemon processes on the only target peer host"
+        puts "   stop       stops  daemon processes on the only target peer host"
+        puts ""
+        puts " examples:"
+        puts "   #{x} status peer01 peer02 peer03"
+        puts "        shows the status of peer01, peer02, and peer03."
+        puts ""
+        puts "   #{x} stop peer01 peer02 peer03"
+        puts "        peer01 will be stopped."
+        puts "        peer02 and peer03 will be readonly."
+        puts ""
+        puts "   #{x} start peer01 peer02 peer03"
+        puts "        peer01 will be started, then"
+        puts "        peer01, peer02, and peer03 will be online."
+        puts ""
+        puts "   #{x} stopall peer01 peer02 peer03"
+        puts "        peer01 peer02, and peer03 will be stopped."
+        puts ""
+        puts "   #{x} startall peer01 peer02 peer03"
+        puts "        peer01 peer02, and peer03 will be started, then be online."
+        puts ""
+      end
+
+      def parse_options
         x = GetoptLong.new(
               [ '--help',                '-h', GetoptLong::NO_ARGUMENT ],
               [ '--debug',               '-d', GetoptLong::NO_ARGUMENT ],
@@ -106,50 +148,8 @@ module Castoro
         end
       end
 
-      def usage
-        x = @program_name
-        puts "usage: #{x} [global options...] sub-command [options...] [parameters...] [hostnames..]"
-        puts ""
-        puts "  global options:"
-        puts "   -h, --help     prints this help message and exit."
-        puts "   -d, --debug    this command runs with debug messages being printed."
-        puts "   -V, --version  shows a version number of this command."
-        puts "   -c file, --configuration-file=file  specifies a configuration file of pgctl."
-        puts "                  default: #{Configurations::Pgctl::DEFAULT_FILE}"
-        puts "   -p file, --peer-configuration-file=file  specifies a configuration file of peer."
-        puts "                  default: #{Configurations::Peer::DEFAULT_FILE}"
-        puts ""
-        puts "  sub commands:"
-        puts "   list       lists peer groups"
-        puts "   ps         lists the deamon processes in a 'ps -ef' format"
-        puts "   status     shows the status of the deamon processes on the every host"
-        puts "   startall   starts deamon processes on every host of the peer group"
-        puts "   stopall    stops  daemon processes on every host of the peer group"
-        puts "   start      starts daemon processes on the only target peer host"
-        puts "   stop       stops  daemon processes on the only target peer host"
-        puts ""
-        puts " examples:"
-        puts "   #{x} status peer01 peer02 peer03"
-        puts "        shows the status of peer01, peer02, and peer03."
-        puts ""
-        puts "   #{x} stop peer01 peer02 peer03"
-        puts "        peer01 will be stopped."
-        puts "        peer02 and peer03 will be readonly."
-        puts ""
-        puts "   #{x} start peer01 peer02 peer03"
-        puts "        peer01 will be started, then"
-        puts "        peer01, peer02, and peer03 will be online."
-        puts ""
-        puts "   #{x} stopall peer01 peer02 peer03"
-        puts "        peer01 peer02, and peer03 will be stopped."
-        puts ""
-        puts "   #{x} startall peer01 peer02 peer03"
-        puts "        peer01 peer02, and peer03 will be started, then be online."
-        puts ""
-      end
-
       def parse
-        parse_command_line_options
+        parse_options
         command = parse_sub_command
         hostnames = parse_hostnames
         hostnames.each do |h|  # hostname
