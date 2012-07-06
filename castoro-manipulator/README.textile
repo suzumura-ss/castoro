@@ -126,3 +126,17 @@ h3. manipulator.conf attributes
 |socket|String|/var/castoro/manipulator.sock|fullpath of UNIX socket file.|
 |base_directory|String|/expdsk|manipulate base directory.|
 
+
+h2. Notices
+
+Test environment to run 'rake spec' requires the following settings.
+
+h4. User account Settings
+
+When run 'rake spec', user account change to root.
+
+
+h4. Directory Setting
+
+When run 'rake spec', make directory '/expdsk' and '/var/castoro'.
+
