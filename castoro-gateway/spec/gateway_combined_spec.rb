@@ -51,7 +51,8 @@ end
 
 describe Castoro::Gateway do
   before do
-    @localhost     = "127.0.0.1"
+    # loop-back interface "127.0.0.1" seems not to work with multicast.
+    @localhost     = IPSocket.getaddress( Socket.gethostname )  # Use a real network interface as @localhost.
     @client_port   = 30003
     @key1          = "1.1.1"
     @key2          = "2.1.1"
@@ -77,7 +78,9 @@ describe Castoro::Gateway do
         "watchdog_port" => 30153,
       },
       "peer" => {
-        "multicast_port" => 30152
+        "multicast_port" => 30152,
+        "multicast_addr" => "239.192.1.2",      # The peer mock will join this multicast address
+        "multicast_device_addr" => @localhost,  # The peer mock will listen on this network interface
       }
     }
 
@@ -156,7 +159,11 @@ describe Castoro::Gateway do
   
     it "should be request sent to peers." do
       # mock for peer of multicast receiver.
-      multicast_receiver = Castoro::Receiver::UDP.new(Logger.new(nil), @conf["peer"]["multicast_port"]) { |h, d, p, i|
+      # Use Castoro::Receiver::UDP::Multicast in place of Castoro::Receiver::UDP
+      port = @conf["peer"]["multicast_port"]
+      addr = @conf["peer"]["multicast_addr"]
+      dev  = @conf["peer"]["multicast_device_addr"]
+      multicast_receiver = Castoro::Receiver::UDP::Multicast.new(Logger.new(nil), port, addr, dev) { |h, d, p, i|
         multicast_sender = Castoro::Sender::UDP.new nil
         multicast_sender.start
     
@@ -167,35 +174,54 @@ describe Castoro::Gateway do
     
       get = Castoro::Protocol::Command::Get.new(@key1)
       res = @client.send @udp_header, get
+
+      multicast_receiver.stop  # close sockets before the following confirmation so that sockets get surely closed
+
       res.should be_kind_of(Castoro::Protocol::Response::Get)
       res.basket.to_s.should == @key1
       res.paths.should       == { @peer100 => "response from multicast receiver" }
-    
-      multicast_receiver.stop
     end
   end
   
   context "when received watchdog packets" do
     before do
-      first_packet_sended = nil
+      @mutex = Mutex.new
+      @cv = ConditionVariable.new
+      @ready = false
       @watchdog = Thread.fork {
         begin
           alive = Castoro::Protocol::Command::Alive.new(@peer100, Castoro::Cache::Peer::ACTIVE, 100*1000)
           @peer.send @udp_header, alive, @localhost, @conf["gateway"]["watchdog_port"]
+          sleep 0.1  # be calm
   
           alive = Castoro::Protocol::Command::Alive.new(@peer200, Castoro::Cache::Peer::ACTIVE, 1000*1000)
           @peer.send @udp_header, alive, @localhost, @conf["gateway"]["watchdog_port"]
+          sleep 0.1  # be calm
   
           alive = Castoro::Protocol::Command::Alive.new(@peer300, Castoro::Cache::Peer::READONLY, 0)
           @peer.send @udp_header, alive, @localhost, @conf["gateway"]["watchdog_port"]
+          sleep 0.1  # be calm
   
           alive = Castoro::Protocol::Command::Alive.new(@peer400, Castoro::Cache::Peer::MAINTENANCE, 1000)
           @peer.send @udp_header, alive, @localhost, @conf["gateway"]["watchdog_port"]
+          sleep 0.1  # be calm
   
-          first_packet_sended = true
+          sleep 0.5  # make it sure that the every sent packet has been processed by the Castoro::Gateway thread
+
+          @mutex.synchronize do
+            @ready = true
+          end
+          @cv.signal
+
         end until Thread.current[:dying]
       }
-      until first_packet_sended; end
+
+      @mutex.synchronize do
+        until @ready do
+          @cv.wait @mutex
+          sleep 0.1  # avoid out-of-control
+        end
+      end
     end
       
     it "should be change the status." do
@@ -317,7 +343,11 @@ describe Castoro::Gateway do
               
               it "should be request sent to peers." do
                 # mock for peer of multicast receiver.
-                multicast_receiver = Castoro::Receiver::UDP.new(Logger.new(nil), @conf["peer"]["multicast_port"]) { |h, d, p, i|
+                # Use Castoro::Receiver::UDP::Multicast in place of Castoro::Receiver::UDP
+                port = @conf["peer"]["multicast_port"]
+                addr = @conf["peer"]["multicast_addr"]
+                dev  = @conf["peer"]["multicast_device_addr"]
+                multicast_receiver = Castoro::Receiver::UDP::Multicast.new(Logger.new(nil), port, addr, dev) { |h, d, p, i|
                   multicast_sender = Castoro::Sender::UDP.new nil
                   multicast_sender.start
               
@@ -328,11 +358,12 @@ describe Castoro::Gateway do
               
                 get = Castoro::Protocol::Command::Get.new(@key2)
                 res = @client.send @udp_header, get
+                
+                multicast_receiver.stop  # close sockets before the following confirmation so that sockets get surely closed
+
                 res.should be_kind_of(Castoro::Protocol::Response::Get)
                 res.basket.to_s.should == @key2
                 res.paths.should       == { @peer100 => "response from multicast receiver" }
-              
-                multicast_receiver.stop
               end
   
               it "should be change status." do
