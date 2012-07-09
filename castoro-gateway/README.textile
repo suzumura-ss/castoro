@@ -173,10 +173,10 @@ default:
   gateway_watchdog_udpport_multicast: 30113
   gateway_watchdog_logging: false
   gateway_comm_ipaddr_multicast: 239.192.1.1
-  gateway_comm_device_multicast: eth0
+  gateway_comm_device_addr: 192.168.1.144
   peer_comm_udpport_multicast: 30112
   peer_comm_ipaddr_multicast: 239.192.1.1
-  peer_comm_device_multicast: eth0
+  peer_comm_device_addr: 192.168.1.144 
   cache:
     class:
     replication_count: 3
@@ -252,9 +252,9 @@ h4. gateway_comm_ipaddr_multicast
 Address for multicast. (Peer to Gateway)
 for original and island.
 
-h4. gateway_comm_device_multicast
+h4. gateway_comm_device_addr
 
-Network interface name for gateway_comm_ipaddr_multicast.
+IP Address of interface for gateway_comm_ipaddr_multicast.
 for original and island.
 
 h4. peer_comm_udpport_multicast
@@ -267,9 +267,9 @@ h4. peer_comm_ipaddr_multicast
 Address for multicast. (Gateway to Peer)
 for original and island.
 
-h4. peer_comm_device_multicast
+h4. peer_comm_device_addr
 
-Network interface name for peer_comm_ipaddr_multicast.
+IP Address of interface for peer_comm_ipaddr_multicast.
 for original and island.
 
 h4. master_comm_ipaddr_multicast
@@ -287,9 +287,9 @@ h4. island_comm_ipaddr_multicast
 Multicast address for island.
 for island.
 
-h4. island_comm_device_multicast
+h4. island_comm_device_addr
 
-Network interface name for island_comm_ipaddr_multicast.
+IP Address of interface for island_comm_ipaddr_multicast.
 for master and island.
 
 h4. cache => class
@@ -340,14 +340,14 @@ h3. configurations key list
 |gateway_watchdog_udpport_multicast|Integer|required||required|30113|
 |gateway_watchdog_logging|Boolean|required||required|false|
 |gateway_comm_ipaddr_multicast|String|required||required|239.192.1.1|
-|gateway_comm_device_multicast|String|required||required|eth0|
+|gateway_comm_device_addr|String|required||required|--(A user certainly specifies.)|
 |peer_comm_udpport_multicast|Integer|required||required|30112|
 |peer_comm_ipaddr_multicast|String|required||required|239.192.1.1|
-|peer_comm_device_multicast|String|required||required|eth0|
+|peer_comm_device_addr|String|required||required|--(A user certainly specifies.)|
 |master_comm_ipaddr_multicast|String||required|required|239.192.254.254|
 |island_comm_udpport_broadcast|Integer||required|required|30108|
 |island_comm_ipaddr_multicast|String|||required||
-|island_comm_device_multicast|String||required|required|eth0|
+|island_comm_device_addr|String||required|required|--(A user certainly specifies.)|
 |cache / class|String|required||required||
 |cache / replication_count|Integer|required||required|3|
 |cache / watchdog_limit|Integer|required||required|15|
@@ -362,10 +362,9 @@ h2. Notices
 
 Test environment to run 'rake spec' requires the following settings.
 
-h4. Network settings
+h4. Network Settings
 
-An IP address of test machine must be 192.168.1.x.
-A network interface device 'eth0' must exist.
+When run 'rake spec', use DNS or IP Address and host name which you specifies to gateway.conf are described hosts file (/etc/hosts).
 
 h4. FireWall Settings
 
@@ -374,9 +373,4 @@ and transfered by a mock of Gateway and received by a mock of Peer.
 Every mock running on the test machine is virtually realized by the rspec code.
 A range of port numbers used by the rspec code is 30108 to 30159.
 
-h4. The Number of CPU Cores
-
-Due to some problems on multithreading programming in the rspec codes of this version
- - not in the production codes - a test machine with one-core CPU might find instability of 
-test results. In contrast, a test machine with four-core CPU could not observe such  problems.
 

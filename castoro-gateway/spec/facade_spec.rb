@@ -18,15 +18,24 @@
 #
 
 require File.dirname(__FILE__) + '/spec_helper.rb'
+require 'get_devices.rb'
 
 CONSOLE   = 30150
 UNICAST   = 30151
 MULTICAST = 30159
 WATCHDOG  = 30153
 
+# interface device check
+devices = getDevices
+if devices.length > 0 then
+  addr = devices[0][1]
+else
+  addr = IPSocket::getaddress(Socket::gethostname)
+end    
+
 SETTINGS = Castoro::Gateway::Configuration.new({
   "gateway_comm_ipaddr_multicast" => "239.192.1.1",
-  "gateway_comm_device_multicast" => "eth0",
+  "gateway_comm_device_addr" => addr,
   "gateway_console_tcpport" => CONSOLE,
   "gateway_comm_udpport" => UNICAST,
   "gateway_learning_udpport_multicast" => MULTICAST,
@@ -34,7 +43,8 @@ SETTINGS = Castoro::Gateway::Configuration.new({
   "gateway_watchdog_logging" => false,
   "type" => "original",
   "master_comm_ipaddr_multicast" => "239.192.254.254",
-  "island_comm_device_multicast" =>  "eth0",
+  "island_comm_device_addr" =>  addr,
+  "peer_comm_device_addr" => addr,
 })
 
 describe Castoro::Gateway::Facade do
@@ -115,7 +125,7 @@ describe Castoro::Gateway::Facade do
         @facade.start
       end
 
-      it "UDPSocket#setsockopt should be called 4 times" do
+      it "UDPSocket#setsockopt should be called twice" do
         @udpsock.should_receive(:setsockopt).
           with(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, @facade.instance_variable_get(:@mreqs)[0]).
           exactly(2)

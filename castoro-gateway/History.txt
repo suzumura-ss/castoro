@@ -1,3 +1,16 @@
+=== 2.0.1 2012-07-07
+* Castoro-gateway config parameter changed, Because rspec execution needs -
+"eth0" device exists and "eth0" device's IP Address is "192.168.1.x".
+
+detail:
+- "gateway_comm_device_multicast" => "eth0",
+- "peer_comm_device_multicast" => "eth0",
+- "island_comm_device_multicast" => "eth0",
++ "gateway_comm_device_addr" => "192.168.1.144",
++ "peer_comm_device_addr" => "192.168.1.145",
++ "island_comm_device_addr" => "192.168.1.146",
+
+
 === 2.0.0 2012-06-08
 * Changed the version number from 0.2.0 to 2.0.0
 

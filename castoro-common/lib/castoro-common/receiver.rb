@@ -74,20 +74,25 @@ module Castoro
 
           @threads = (1..@thread_count).map {
             Thread.fork {
-              ThreadGroup::Default.add Thread.current
-              listen_loop
-            }
+              begin
+                ThreadGroup::Default.add Thread.current
+                listen_loop
+              rescue => e
+                print "#{e.class} #{e.message} #{e.backtrace.join("\n")}"
+                Thread.exit
+              end
+             }
           }
-        }
+       }
       end
 
       ##
-      # Stop receiver service.
+     # Stop receiver service.
       #
-      # === Args
+     # === Args
       # 
-      # +stop+::
-      #   When true, force shutdown.
+     # +stop+::
+     #   When true, force shutdown.
       #
       def stop force = false
         @locker.synchronize {
@@ -219,10 +224,15 @@ module Castoro
           set_sock_opt @socket
 
           @thread = Thread.fork {
-            ThreadGroup::Default.add Thread.current
-            listen_loop
-          }
-        }
+            begin
+              ThreadGroup::Default.add Thread.current
+              listen_loop
+            rescue => e
+              print "#{e.class} #{e.message} #{e.backtrace.join("\n")}"
+              Thread.exit
+            end
+           }
+         }
       end
 
       ##

@@ -133,12 +133,14 @@ module Castoro
         @socket.write data.to_s
 
         if IO.select([@socket], nil, nil, expire)
-          unless (res = @socket.recv(1024)).to_s.length == 0
-            yield res
-
-            until (res = @socket.recv(1024)).to_s.length == 0
-              yield res
-            end
+          res = ""
+          loop do
+            x = @socket.read(4096)
+            break if @socket.closed? or x.nil? or x.length == 0
+            res = res + x
+          end
+          if block_given? and 0 < res.length
+             yield res
           end
         end
 

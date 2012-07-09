@@ -18,6 +18,7 @@
 #
 
 require File.dirname(__FILE__) + '/spec_helper.rb'
+require 'get_devices'
 
 describe Castoro::Gateway do
   before do
@@ -26,7 +27,17 @@ describe Castoro::Gateway do
 
   describe "given master configurations" do
     before do
-      config = Castoro::Gateway::Configuration.new "type" => "master"
+      devices = getDevices
+      if devices.length > 0 then
+        device = devices[0][1]
+      else
+        device = "eth0"
+      end    
+
+      config = Castoro::Gateway::Configuration.new({
+       "type" => "master",
+       "island_comm_device_addr" =>  device,
+       })
       @g = Castoro::Gateway.new config, @logger
     end
     

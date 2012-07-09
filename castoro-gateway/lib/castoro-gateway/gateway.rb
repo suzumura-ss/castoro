@@ -95,7 +95,7 @@ module Castoro
                          @facade,
                          @repository,
                          @config["peer_comm_ipaddr_multicast"].to_s,
-                         Castoro::Utils.network_interfaces[@config["peer_comm_device_multicast"]][:ip],
+                         @config["peer_comm_device_addr"],
                          @config["peer_comm_udpport_multicast"].to_i,
                          nil
                      )
@@ -104,8 +104,7 @@ module Castoro
                          @logger,
                          @config["workers"],
                          @facade,
-                         Castoro::Utils.network_interfaces[@config["island_comm_device_multicast"]][:broadcast],
-                         Castoro::Utils.network_interfaces[@config["island_comm_device_multicast"]][:ip],
+                         @config["island_comm_device_addr"],
                          @config["gateway_learning_udpport_multicast"],
                          @config["island_comm_udpport_broadcast"]
                      )
@@ -115,7 +114,7 @@ module Castoro
                          @facade,
                          @repository,
                          @config["peer_comm_ipaddr_multicast"].to_s,
-                         Castoro::Utils.network_interfaces[@config["peer_comm_device_multicast"]][:ip],
+                         @config["peer_comm_device_addr"],
                          @config["peer_comm_udpport_multicast"].to_i,
                          @config["island_comm_ipaddr_multicast"].to_island
                      )
@@ -135,7 +134,7 @@ module Castoro
           @watchdog_sender = @@watchdog_sender_class.new @logger, @repository, @config["island_comm_ipaddr_multicast"],
                                 :dest_port => @config["gateway_learning_udpport_multicast"],
                                 :dest_host => @config["master_comm_ipaddr_multicast"],
-                                :if_addr => Castoro::Utils.network_interfaces[@config["island_comm_device_multicast"]][:ip]
+                                :if_addr => @config["island_comm_device_addr"]
           @watchdog_sender.start
         }
       }

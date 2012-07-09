@@ -18,19 +18,35 @@
 #
 
 require File.dirname(__FILE__) + '/spec_helper.rb'
+require 'get_devices'
 
 describe Castoro::Gateway do
   before do
     @logger = Logger.new nil
+
+    # pick up devices
+    devices = getDevices 
+    if devices.length > 0 then
+      @device_addr = devices[0][1]
+    else
+      @device_addr = ENV['DEVICE'] || IPSocket.getaddress(Socket.gethostname)
+    end    
   end
 
   context "when config argument is omitted" do
     before do
-      @g = Castoro::Gateway.new nil, @logger
+      @g = Castoro::Gateway.new(Castoro::Gateway::Configuration.new({
+        "gateway_comm_device_addr" => @device_addr,   
+        "peer_comm_device_addr" => @device_addr }),
+        @logger
+       )
     end
 
     it "should be set default settings." do
-      default_config = Castoro::Gateway::Configuration.new
+      default_config = Castoro::Gateway::Configuration.new({
+        "gateway_comm_device_addr" => @device_addr,   
+        "peer_comm_device_addr" => @device_addr })
+
       @g.instance_variable_get(:@config).should == default_config
       @g.instance_variable_get(:@logger).should be_kind_of Logger
       @g.instance_variable_get(:@logger).level.should == default_config["loglevel"].to_i
@@ -170,9 +186,10 @@ describe Castoro::Gateway do
         config = Castoro::Gateway::Configuration.new({
           "type" => "island",
           "gateway_comm_ipaddr_multicast"       => "239.192.1.2",
-          "gateway_comm_device_multicast"       => "eth0",
+          "gateway_comm_device_addr"            => @device_addr,
+          "island_comm_device_addr"             => @device_addr,
           "peer_comm_ipaddr_multicast"          => "239.192.1.3",
-          "peer_comm_device_multicast"          => "lo",
+          "peer_comm_device_addr"               => "127.0.0.1",
           "gateway_console_tcpport"             => 30150,
           "gateway_comm_udpport"                => 30151,
           "gateway_learning_udpport_multicast"  => 30149,
@@ -187,9 +204,9 @@ describe Castoro::Gateway do
         @workers.should_receive(:new).
           with(@logger, @g.instance_variable_get(:@config)["workers"],
                @facade, @repository,
-               "239.192.1.3",
-               Castoro::Utils.network_interfaces["lo"][:ip],
-               30152,
+                 "239.192.1.3",
+                 "127.0.0.1",
+                 30152,
                "239.192.254.254".to_island).exactly(1)
         @workers.should_receive(:start)
         @g.start
@@ -200,15 +217,15 @@ describe Castoro::Gateway do
       before do
         test_configs = {
           "gateway_comm_ipaddr_multicast"       => "239.192.1.2",
-          "gateway_comm_device_multicast"       => "eth0",
+          "gateway_comm_device_addr"            => @device_addr,
           "peer_comm_ipaddr_multicast"          => "239.192.1.3",
-          "peer_comm_device_multicast"          => "lo",
+          "peer_comm_device_addr"               => "127.0.0.1",
           "gateway_console_tcpport"             => 30150,
           "gateway_comm_udpport"                => 30151,
           "gateway_learning_udpport_multicast"  => 30149,
           "gateway_watchdog_udpport_multicast"  => 30153,
           "peer_comm_udpport_multicast"         => 30152,
-        }
+         }
         @g = Castoro::Gateway.new test_configs, @logger
       end
 
@@ -233,9 +250,9 @@ describe Castoro::Gateway do
                   .with(
                     @logger, @g.instance_variable_get(:@config)["workers"],
                     @facade, @repository,
-                    "239.192.1.3",
-                    Castoro::Utils.network_interfaces["lo"][:ip],
-                    30152,
+                      "239.192.1.3",
+                      "127.0.0.1",
+                      30152,
                     nil
                   ).exactly(1)
           @workers.should_receive(:start)

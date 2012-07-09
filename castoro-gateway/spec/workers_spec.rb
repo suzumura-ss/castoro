@@ -226,7 +226,7 @@ describe Castoro::Gateway::Workers do
         end
 
         it "should threads empty" do
-          @w.instance_variable_get(:@threads).should be_nil
+	        @w.instance_variable_get(:@threads).should be_nil
         end
       end
 

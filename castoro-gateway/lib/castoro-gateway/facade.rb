@@ -52,9 +52,8 @@ module Castoro
         @watchdog_logging = config["gateway_watchdog_logging"]
         config.is_island_when { @ibp = config["island_comm_udpport_broadcast"].to_i }
 
-        ifs                 = Castoro::Utils.network_interfaces
-        gateway_device_addr = (ifs[config["gateway_comm_device_multicast"]] || {})[:ip]
-        island_device_addr  = (ifs[config["island_comm_device_multicast"]] || {})[:ip]
+        gateway_device_addr = config["gateway_comm_device_addr"]
+        island_device_addr  = config["island_comm_device_addr"]
 
         @mreqs = []
         config.is_original_or_island_when {
@@ -92,7 +91,7 @@ module Castoro
           @mreqs.each { |mreq|
             @multicast.setsockopt(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, mreq)
             @watchdog.setsockopt(Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, mreq)
-          }
+           }
 
           # Thre reception packet is output in the log at #recvfrom.
           audit_sockets = []

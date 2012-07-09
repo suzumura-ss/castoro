@@ -18,12 +18,19 @@
 #
 
 require File.dirname(__FILE__) + '/spec_helper.rb'
+require 'get_devices.rb'
 
 describe Castoro::Gateway::MasterWorkers do
   before(:all) do
+    #pick up devices
+    devices = getDevices 
+    if devices.length > 0 then
+      @device_addr = devices[0][1]
+    else
+      @device_addr    = ENV['DEVICE'] || IPSocket.getaddress(Socket.gethostname)
+    end    
+ 
     @logger = Logger.new(ENV['DEBUG'] ? STDOUT : nil)
-    @broadcast_addr = ENV['BROADCAST'] || '192.168.1.255'
-    @device_addr    = ENV['DEVICE']    || IPSocket.getaddress(Socket.gethostname)
     @port           = ENV['PORT']      || 30109
     @mock_port      = ENV['MOCK_PORT'] || 30110
     @broadcast_port = ENV['BROADCAST_PORT'] || 30108
@@ -33,7 +40,7 @@ describe Castoro::Gateway::MasterWorkers do
   describe "given valid constructor argument" do
     before do
       @w = Castoro::Gateway::MasterWorkers.new @logger, 1,
-        @facade, @broadcast_addr, @device_addr, @port, @broadcast_port
+        @facade, @device_addr, @port, @broadcast_port
     end
 
     it "should be able to start" do

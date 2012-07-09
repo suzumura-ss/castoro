@@ -72,11 +72,16 @@ module Castoro
         on_starting
         @threads = (1..@count).map {
           Thread.fork {
-            ThreadGroup::Default.add Thread.current
-            worker_loop
-          }
-        }
-      }
+            begin
+              ThreadGroup::Default.add Thread.current
+              worker_loop
+            rescue => e
+              print "#{e.class} #{e.message} #{e.backtrace.join("\n")}"
+              Thread.exit
+            end
+           }
+         }
+       }
     end
 
     ##

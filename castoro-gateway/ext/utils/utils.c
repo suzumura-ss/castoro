@@ -3,65 +3,94 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <stdio.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
 
 #include "ruby.h"
 
+
+extern in_addr_t getBcasAddr(in_addr_t ipAddrp); 
 static VALUE rb_mCastoro, rb_mUtils;
 
-VALUE
-rb_castoro_utils_network_interfaces(VALUE self)
+VALUE rb_castoro_utils_get_bcast(VALUE self, VALUE ipValue)
 {
-  VALUE results = rb_hash_new();
+  char* ipStr;
+  struct in_addr ip;
+  char bcastStr[256];
+  in_addr_t bcast;  
 
-  VALUE ip = ID2SYM(rb_intern("ip"));
-  VALUE mask = ID2SYM(rb_intern("mask"));
-  VALUE broadcast = ID2SYM(rb_intern("broadcast"));
+  ipStr = StringValuePtr(ipValue); 
+ 
+  memset(bcastStr, 0, sizeof(bcastStr)); 
+  inet_pton(AF_INET, ipStr, &ip);
+  bcast = getBcasAddr(ip.s_addr);
+  inet_ntop(AF_INET, &bcast, &bcastStr, sizeof(bcastStr));
+  /*printf("result:IP=%d bcast=%d bcastStr=%s\n", ip.s_addr, bcast, bcastStr); */
 
-  struct ifaddrs *ifa_list;
-  struct ifaddrs *ifa;
-  int n;
-  char addrstr[256], netmaskstr[256];
+  return rb_str_new2(bcastStr);
+}
+ 
+#define INT_TO_ADDR(_addr) \
+(_addr & 0xFF), \
+(_addr >> 8 & 0xFF), \
+(_addr >> 16 & 0xFF), \
+(_addr >> 24 & 0xFF)
 
-  n = getifaddrs(&ifa_list);
-  if (n != 0) return results;
+in_addr_t getBcasAddr(in_addr_t ipAddrp)
+{
+  struct ifconf ifc;
+  struct ifreq ifr[10];
+  int sd, ifc_num, i;
 
-  for (ifa = ifa_list; ifa != NULL; ifa = ifa->ifa_next) {
-    memset(addrstr, 0, sizeof(addrstr));
-    memset(netmaskstr, 0, sizeof(netmaskstr));
+  in_addr_t devAddrp; 
+  in_addr_t bcast = 0;
 
-    if (ifa->ifa_addr->sa_family == AF_INET) {
-      inet_ntop(AF_INET, &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr, addrstr, sizeof(addrstr));
-      inet_ntop(AF_INET, &((struct sockaddr_in*)ifa->ifa_netmask)->sin_addr, netmaskstr, sizeof(netmaskstr));
-
-      VALUE nif = rb_hash_new();
-      VALUE a = rb_str_new2(addrstr);
-      VALUE m = rb_str_new2(netmaskstr);
-      VALUE b = rb_funcall(rb_mUtils, rb_intern("broadcast"), 2, a, m);
-
-      rb_hash_aset(nif, ip, a);
-      rb_hash_aset(nif, mask, m);
-      rb_hash_aset(nif, broadcast, b);
-
-      rb_hash_aset(results, rb_str_new2(ifa->ifa_name), nif);
-    }
+  sd = socket(PF_INET, SOCK_DGRAM, 0);
+  if (sd > 0)
+  {
+    ifc.ifc_len = sizeof(ifr);
+    ifc.ifc_ifcu.ifcu_buf = (caddr_t)ifr;
+  
+    /* get interface list */
+    if (ioctl(sd, SIOCGIFCONF, &ifc) == 0)
+    {
+     ifc_num = ifc.ifc_len / sizeof(struct ifreq);
+     for (i = 0; i < ifc_num; ++i)
+      {
+       if (ifr[i].ifr_addr.sa_family != AF_INET)
+        {
+          continue;
+        }
+     
+       /* Retrieve the IP address, broadcast address, and subnet mask. */
+       if (ioctl(sd, SIOCGIFADDR, &ifr[i]) == 0)
+        {
+         /* s_addr is uint32_t */
+         devAddrp = ((struct sockaddr_in *)(&ifr[i].ifr_addr))->sin_addr.s_addr;
+         /* printf("check IP:dev=%d, ip=%d\n", devAddrp, ipAddrp); */
+         if (ipAddrp == devAddrp)
+          {  
+           if (ioctl(sd, SIOCGIFBRDADDR, &ifr[i]) == 0)
+             {
+             bcast = ((struct sockaddr_in *)(&ifr[i].ifr_broadaddr))->sin_addr.s_addr;
+             /* printf("FIX:bcast=%d\n", bcast); */
+             break;
+             }
+          } 
+        }
+      } /* end of for*/ 
+    } 
   }
-
-  freeifaddrs(ifa_list);
-
-  return results;
+  close(sd);
+  return bcast;
 }
 
-void
-Init_utils(void)
+
+void Init_utils(void)
 {
   rb_mCastoro = rb_define_module("Castoro"); 
   rb_mUtils = rb_define_module_under(rb_mCastoro, "Utils");
-
-  rb_define_singleton_method(rb_mUtils, "network_interfaces", rb_castoro_utils_network_interfaces, 0);
-  rb_eval_string(
-    "module Castoro; module Utils; private;def self.broadcast ip, mask;"
-    "ip.split('.').map(&:to_i).zip(mask.split('.').map { |o| ~(o.to_i) & 255 }).map { |i,m| i|m }.join('.');"
-    "end; end; end"
-  );
+  rb_define_singleton_method(rb_mUtils, "get_bcast", rb_castoro_utils_get_bcast, 1);
 }
 

@@ -5,7 +5,7 @@ module Castoro #:nodoc:
       unless defined? MAJOR
         MAJOR  = 2
         MINOR  = 0
-        TINY   = 0
+        TINY   = 1
         PRE    = nil
 
         STRING = [MAJOR, MINOR, TINY, PRE].compact.join('.')

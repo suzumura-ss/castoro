@@ -28,13 +28,15 @@ module Castoro
     #
     class MasterWorkers < Castoro::Workers
 
-      def initialize logger, count, facade, broadcast_addr, device_addr, multicast_port, broadcast_port
+      def initialize logger, count, facade, device_addr, multicast_port, broadcast_port
         super logger, count
         @facade         = facade
-        @addr           = broadcast_addr
         @device         = device_addr
         @multicast_port = multicast_port
         @broadcast_port = broadcast_port
+
+        @addr = Castoro::Utils::get_bcast(@device)
+        @logger.info { "MasterWorkers get BroadcastAddr:#{@addr}" } 
       end
 
       private
@@ -96,7 +98,7 @@ module Castoro
         end
 
         # start island status.
-        #
+         #
         def start
           @locker.synchronize {
             @senders = Hash.new { |h,k|
