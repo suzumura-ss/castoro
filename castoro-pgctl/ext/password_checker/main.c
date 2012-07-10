@@ -22,6 +22,7 @@
 #endif
 
 #include <stdio.h>
+#include <string.h>
 #include <security/pam_appl.h>
 
 #ifdef HAVE_SECURITY_PAM_MISC_H
@@ -34,29 +35,48 @@
 extern int conversation(int num_msg, struct pam_message **msg, struct pam_response **resp, void *appdata_ptr);
 #endif
 
+static int opt_quiet = 0;  /* -q command line option */
 
-int main(int argc, char **argv)
+char *parse(int argc, char *argv[])
 {
   char *program = *argv;
+
+  if (--argc >= 1 && *++argv) {
+    if (strcmp(*argv, "-q") == 0) {
+      opt_quiet = 1;
+      --argc;
+      *++argv;
+    }
+  }
+
+  if (argc != 1) {
+    fprintf(stderr, "usage: %s [-q] username\n", program);
+    exit(2);
+  }
+
+  return *argv;
+}
+
+int main(int argc, char *argv[])
+{
+  char *username = parse(argc, argv);
   struct pam_conv conv = {conversation, NULL};
   pam_handle_t *ph;
   int result;
 
-  if (--argc != 1) {
-    fprintf(stderr, "usage: %s username\n", program);
-    return 2;
-  }
-
-  if ((result = pam_start("passwd", *++argv, &conv, &ph)) == PAM_SUCCESS) {
+  if ((result = pam_start("passwd", username, &conv, &ph)) == PAM_SUCCESS) {
     result = pam_authenticate(ph, 0);
     pam_end(ph, 0);
   }
 
-  if (result != PAM_SUCCESS) {
-    printf("%s: %s\n", program, pam_strerror(ph, result));
+  if (result == PAM_SUCCESS) {
+    if (! opt_quiet)
+      printf("Authentication success\n");
+    return 0;
+  }
+  else {
+    if (! opt_quiet)
+      printf("%s\n", pam_strerror(ph, result));
     return 1;
   }
-
-  printf("%s: Authentication success\n", program);
-  return 0;
 }
