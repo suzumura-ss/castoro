@@ -67,7 +67,7 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am_password_checker_OBJECTS = password_checker.$(OBJEXT)
+am_password_checker_OBJECTS = main.$(OBJEXT) conversation.$(OBJEXT)
 password_checker_OBJECTS = $(am_password_checker_OBJECTS)
 am__DEPENDENCIES_1 =
 password_checker_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -179,7 +179,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-password_checker_SOURCES = password_checker.c
+password_checker_SOURCES = main.c conversation.c
 password_checker_LDADD = -lpam $(LIB_PAM_MISC)
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -269,7 +269,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/password_checker.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/conversation.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -571,8 +572,8 @@ uninstall-am: uninstall-binPROGRAMS
 
 
 install-exec-hook:
-	/bin/chown root:root $(bindir)/password_checker
-	/bin/chmod u+s $(bindir)/password_checker
+	/bin/chown root:root $(bindir)/$(bin_PROGRAMS)
+	/bin/chmod u+s $(bindir)/$(bin_PROGRAMS)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
