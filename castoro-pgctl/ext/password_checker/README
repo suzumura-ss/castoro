@@ -1,0 +1,21 @@
+Source files:
+ main.c
+ conversation.c
+ configure.ac
+ Makefile.am
+
+Additional files:
+ README
+ INSTALL
+ COPYING
+ NEWS
+
+Files produced:
+ configure
+ depcomp
+ install-sh
+ Makefile.in
+ missing
+
+To produce files such as configure, do the following commands:
+ $ aclocal ; autoheader ; automake --add-missing --copy ; autoconf 

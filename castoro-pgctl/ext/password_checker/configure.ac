@@ -17,14 +17,13 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-AC_INIT(password_checker.c)
-#AC_CANONICAL_SYSTEM
+AC_INIT(main.c)
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(password_checker, 1.0)
 AC_PROG_CC
+AC_CHECK_LIB(pam_misc, misc_conv)
 AC_CHECK_LIB(pam_misc, misc_conv, [LIB_PAM_MISC=-lpam_misc])
 AC_SUBST([LIB_PAM_MISC])
-#AC_HEADER_STDC
 AC_CHECK_HEADERS(security/pam_appl.h)
 AC_CHECK_HEADERS(security/pam_misc.h)
 AC_OUTPUT(Makefile)

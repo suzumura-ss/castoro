@@ -17,26 +17,19 @@
    along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include <security/pam_appl.h>
-
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#if HAVE_SECURITY_PAM_MISC_H
-#include <security/pam_misc.h>
+/* -lpam_misc is available in CentOS, not in OpenSolaris */
+#ifndef HAVE_LIBPAM_MISC
 
-/* CentOS has misc_conv() */
-#define conversation misc_conv
-
-#else
-
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <security/pam_appl.h>
 
-/* OpenSolaris does not have misc_conv() */
 int conversation(int num_msg, struct pam_message **msg, struct pam_response **resp, void *appdata_ptr)
 {
   const struct pam_message *m = *msg;
@@ -89,29 +82,3 @@ int conversation(int num_msg, struct pam_message **msg, struct pam_response **re
   return PAM_SUCCESS;
 }
 #endif
-
-
-int main(int argc, char **argv)
-{
-  char *program = *argv;
-  struct pam_conv conv = {conversation, NULL};
-  pam_handle_t *ph;
-  int result;
-
-  if (--argc != 1) {
-    fprintf(stderr, "usage: %s username\n", program);
-    return 2;
-  }
-
-  if ((result = pam_start("passwd", *++argv, &conv, &ph)) == PAM_SUCCESS) {
-    result = pam_authenticate(ph, 0);
-    pam_end(ph, 0);
-  }
-
-  if (result != PAM_SUCCESS) {
-    fprintf(stderr, "%s: %s\n", program, pam_strerror(ph, result));
-    return 1;
-  }
-
-  return 0;
-}

@@ -18,9 +18,9 @@
 #
 
 bin_PROGRAMS = password_checker
-password_checker_SOURCES = password_checker.c
+password_checker_SOURCES = main.c conversation.c
 password_checker_LDADD = -lpam $(LIB_PAM_MISC)
 
 install-exec-hook:
-	/bin/chown root:root $(bindir)/password_checker
-	/bin/chmod u+s $(bindir)/password_checker
+	/bin/chown root:root $(bindir)/$(bin_PROGRAMS)
+	/bin/chmod u+s $(bindir)/$(bin_PROGRAMS)
