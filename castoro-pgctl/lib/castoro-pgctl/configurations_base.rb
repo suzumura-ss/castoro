@@ -26,7 +26,7 @@ module Castoro
       class Base
         def initialize
           @file = get_filename
-          c = ConfigurationFile.new @file  # defined in a subclass
+          c = get_configuration_file_instance @file  # defined in a subclass
           c.load
           c.validate
           @entries = c.entries
@@ -65,7 +65,9 @@ module Castoro
         end
 
         def load
-          @global = GlobalSection.new  # defined in a subclass
+          # print caller.join("\n")
+
+          @global = get_global_section_instance  # defined in a subclass
           @section = nil  # section will hold a temporal data
           File.open( @file , "r:binary" ) do |f|  # use a binary mode to accept UTF-8
             begin
@@ -101,7 +103,7 @@ module Castoro
             print "SECTION: #{$1}\n" if debug
             case $1
             when 'global'  ; @section = @global
-            when 'service' ; @services.push( @section = ServiceSection.new )  # defined in a subclass
+            when 'service' ; @services.push( @section = get_service_section_instance )  # defined in a subclass
             else ; raise NameError, "Unknown section name"
             end
 

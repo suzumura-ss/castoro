@@ -36,34 +36,48 @@ module Castoro
         def configuration_file
           @@file
         end
-      end
 
-
-      class ConfigurationFile < ConfigurationFileBase
-      end
-
-
-      class GlobalSection < Section
-        def initialize
-          super(
-                :effective_user                             => [ :mandatory, :string ],
-                :basket_basedir                             => [ :mandatory, :string, :path ],
-                :peer_config_file                           => [ :mandatory, :string, :path ],
-                :cmond_maintenance_tcpport                  => [ :mandatory, :number ],
-                :cpeerd_maintenance_tcpport                 => [ :mandatory, :number ],
-                :crepd_maintenance_tcpport                  => [ :mandatory, :number ],
-                :cstartd_comm_tcpport                       => [ :mandatory, :number ],
-                :cagentd_comm_tcpport                       => [ :mandatory, :number ],
-                :cstartd_ps_command                         => [ :mandatory, :string, :path ],
-                :cstartd_ps_options                         => [ :mandatory, :string, :shell_escape ],
-                )
+        def get_configuration_file_instance file
+          ConfigurationFile.new file
         end
-      end
 
 
-      class ServiceSection < Section
-        def initialize
-          raise ArgumentError, "section is not allowed in this configration file"
+        class ConfigurationFile < ConfigurationFileBase
+          def get_global_section_instance
+            GlobalSection.new
+          end
+
+          def get_service_section_instance
+            ServiceSection.new
+          end
+
+          private
+          
+        end
+
+
+        class GlobalSection < Section
+          def initialize
+            super(
+                  :effective_user                             => [ :mandatory, :string ],
+                  :basket_basedir                             => [ :mandatory, :string, :optional_path ],
+                  :peer_config_file                           => [ :mandatory, :string, :optional_path ],
+                  :cmond_maintenance_tcpport                  => [ :mandatory, :number ],
+                  :cpeerd_maintenance_tcpport                 => [ :mandatory, :number ],
+                  :crepd_maintenance_tcpport                  => [ :mandatory, :number ],
+                  :cstartd_comm_tcpport                       => [ :mandatory, :number ],
+                  :cagentd_comm_tcpport                       => [ :mandatory, :number ],
+                  :cstartd_ps_command                         => [ :mandatory, :string, :path ],
+                  :cstartd_ps_options                         => [ :mandatory, :string, :shell_escape ],
+                  )
+          end
+        end
+
+
+        class ServiceSection < Section
+          def initialize
+            raise ArgumentError, "section is not allowed in this configration file"
+          end
         end
       end
     end
