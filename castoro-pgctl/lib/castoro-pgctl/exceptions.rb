@@ -55,6 +55,8 @@ module Castoro
       class Alive < Base ; end
     end
 
+    class AuthenticationError < StandardError ; end
+
     class ConnectionError < StandardError ; end
     class ConnectionRefusedError < ConnectionError ; end
     class ConnectionTimedoutError < ConnectionError ; end
