@@ -63,10 +63,10 @@ module Castoro
         puts "   list       lists peer groups"
         puts "   ps         lists the deamon processes in a 'ps -ef' format"
         puts "   status     shows the status of the deamon processes on the every host"
-        puts "   startall   starts deamon processes on every host of the peer group"
-        puts "   stopall    stops  daemon processes on every host of the peer group"
-        puts "   start      starts daemon processes on the only target peer host"
-        puts "   stop       stops  daemon processes on the only target peer host"
+        puts "   gstart     starts deamon processes of every host in the peer group"
+        puts "   gstop      stops  daemon processes of every host in the peer group"
+        puts "   start      starts daemon processes of the only target peer host"
+        puts "   stop       stops  daemon processes of the only target peer host"
         puts ""
         puts " examples:"
         puts "   #{x} status peer01 peer02 peer03"
@@ -80,10 +80,10 @@ module Castoro
         puts "        peer01 will be started, then"
         puts "        peer01, peer02, and peer03 will be online."
         puts ""
-        puts "   #{x} stopall peer01 peer02 peer03"
+        puts "   #{x} gstop G00"
         puts "        peer01 peer02, and peer03 will be stopped."
         puts ""
-        puts "   #{x} startall peer01 peer02 peer03"
+        puts "   #{x} gstart G00"
         puts "        peer01 peer02, and peer03 will be started, then be online."
         puts ""
       end
@@ -122,8 +122,8 @@ module Castoro
         when 'list'     ; SubCommand::List.new
         when 'ps'       ; SubCommand::Ps.new
         when 'status'   ; SubCommand::Status.new
-        when 'startall' ; SubCommand::StartAll.new
-        when 'stopall'  ; SubCommand::StopAll.new
+        when 'gstart'   ; SubCommand::Gstart.new
+        when 'gstop'    ; SubCommand::Gstop.new
         when 'start'    ; SubCommand::Start.new
         when 'stop'     ; SubCommand::Stop.new
         else

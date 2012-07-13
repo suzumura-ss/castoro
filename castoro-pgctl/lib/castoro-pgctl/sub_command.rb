@@ -204,7 +204,7 @@ module Castoro
       end
 
 
-      class StartAll < Base
+      class Gstart < Base
         def run
           do_ps_and_print
           SignalHandler.check
@@ -355,7 +355,7 @@ module Castoro
         end
       end
 
-      class StopAll < Base
+      class Gstop < Base
         def run
           do_ps_and_print
           do_status_and_print
