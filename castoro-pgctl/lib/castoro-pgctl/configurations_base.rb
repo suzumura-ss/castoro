@@ -144,7 +144,7 @@ module Castoro
                            value.to_i
                          when :octal   # deal it as a string. ex. "0777"
                            value.match( /\A0\d+\Z/ ) or raise ArgumentError, "Invalid octal number"
-                           value
+                           value.oct
                          when :boolean
                            evaluate_boolean value
                          end
