@@ -135,6 +135,8 @@ module Castoro
                            case subtype
                            when :path
                              File.exist?( value ) or raise NameError, "The path does not exist"
+                           when :optional_path
+                             value.match( /\A\/[a-zA-Z0-9_.\/-]+\Z/ ) or raise NameError, "The path should begin with / and contain only letters, numbers, underscore, period, minus, or slash."
                            when :shell_escape
                              value.match( %r(\A[a-zA-Z0-9_ /-]+\Z) ) or raise ArgumentError, "Non-alphanumeric letter is included: #{command}"
                            end
