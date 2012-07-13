@@ -170,6 +170,11 @@ module Castoro
         args = ARGV.join(' ')
         command = parse
         SignalHandler.setup
+
+        # Singleton seems not multithread-safe
+        Configurations::Pgctl.instance
+        Configurations::Peer.instance
+
         command.run
         SignalHandler.final_check
         puts "\nSucceeded:\n #{@program_name} #{args}"
