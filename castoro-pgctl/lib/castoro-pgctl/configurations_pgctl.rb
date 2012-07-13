@@ -51,8 +51,26 @@ module Castoro
             ServiceSection.new
           end
 
+          def validate
+            super
+            validate_password_file
+          end
+
           private
           
+          def validate_password_file
+            file = @global.data[ :pgctl_password_file ]
+            back = @global.data[ :pgctl_password_backupfile ]
+
+            file != back or raise ArgumentError, "the password file and password backup file should not equal each other: #{file} #{back}"
+            x = File.dirname file
+            y = File.dirname back
+            x == y or raise ArgumentError, "The directory for the password file and the one for the backup file should be same: #{x} #{y}"
+            File.exists?( x ) or raise ArgumentError, "The directory for the password and backup file does not exist: #{x}"
+            if File.exists?( file )
+              File.readable?( file ) or raise ArgumentError, "The password file exists, but it is not readable: #{file}"
+            end
+          end
         end
 
 
@@ -69,6 +87,10 @@ module Castoro
                   :cagentd_comm_tcpport                       => [ :mandatory, :number ],
                   :cstartd_ps_command                         => [ :mandatory, :string, :path ],
                   :cstartd_ps_options                         => [ :mandatory, :string, :shell_escape ],
+                  :pgctl_password_file                        => [ :mandatory, :string, :optional_path ],
+                  :pgctl_password_filemode                    => [ :mandatory, :octal ],
+                  :pgctl_password_backupfile                  => [ :mandatory, :string, :optional_path ],
+                  :pgctl_password_attemptlimit                => [ :mandatory, :number ],
                   )
           end
         end
