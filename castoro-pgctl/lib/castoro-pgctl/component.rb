@@ -54,9 +54,21 @@ module Castoro
         self.new @@pool
       end
 
+      def self.get_peerlist hostnames
+        entries = Hash.new.tap do |x|
+          hostnames.each do |h|
+            x[ h ] = @@pool[ h ]
+          end
+        end
+        self.new entries
+      end
 
       def initialize entries
         @entries = entries
+      end
+
+      def size
+        @entries.size
       end
 
       def work_on_every_component linefeed = false, &block
@@ -94,23 +106,28 @@ module Castoro
         nil
       end
 
-      def print_ps
+      def print_ps_printf h, t, s
         f = "%-14s%-14s%s\n"  # format
-        printf f, 'HOSTNAME', 'DAEMON', obtain_ps_header
+        s = sprintf f, h, t, s
+        print s.sub( / +\Z/, "" )
+      end
+
+      def print_ps
+        print_ps_printf 'HOSTNAME', 'DAEMON', obtain_ps_header
         work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
           if ( e = x.ps.exception || x.ps.error )
-            printf f, h, t, e
+            print_ps_printf f, h, t, e
           else
             if x.ps.stdout
               if 0 < x.ps.stdout.size
                 x.ps.stdout.each do |y|
-                  printf f, h, t, y
+                  print_ps_printf h, t, y
                 end
               else
-                printf f, h, t, ''  # grep pattern did not match
+                print_ps_printf h, t, ''  # grep pattern did not match
               end
             else
-              printf f, h, t, '(unknown error occured)'
+              print_ps_printf h, t, '(unknown error occured)'
             end
           end
         end
@@ -204,25 +221,30 @@ module Castoro
         end
       end
 
-      def print_status
+      def print_status_printf h, t, r, m, a, d
         f = "%-14s%-14s%-14s%-14s%-14s%-14s\n"  # format
-        printf f, 'HOSTNAME', 'DAEMON', 'ACTIVITY', 'MODE', 'AUTOPILOT', 'DEBUG'
+        s = sprintf f, h, t, r, m, a, d
+        print s.sub( / +\Z/, "" )
+      end
+
+      def print_status
+        print_status_printf 'HOSTNAME', 'DAEMON', 'ACTIVITY', 'MODE', 'AUTOPILOT', 'DEBUG'
         work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
           e = x.ps.exception || x.ps.error
           if e
-            printf f, h, t, e, nil, nil, nil
+            print_status_printf h, t, e, nil, nil, nil
           else
             r = x.ps.status
             s = x.status
             e = s.exception || s.error
             if e
               m = e || ( s.error.match( /Connection refused/ ) ? '(Connection refused)' : s.error )
-              printf f, h, t, r, m, nil, nil
+              print_status_printf h, t, r, m, nil, nil
             else
               m = s.mode ? ServerStatus.status_code_to_s( s.mode ) : ''
               a = s.auto.nil? ? '' : ( s.auto ? 'auto' : 'off' )
               d = s.debug.nil? ? '' : ( s.debug ? 'on' : 'off' )
-              printf f, h, t, r, m, a, d
+              print_status_printf h, t, r, m, a, d
             end
           end
         end
