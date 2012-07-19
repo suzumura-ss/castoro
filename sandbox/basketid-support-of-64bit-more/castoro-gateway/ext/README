@@ -1,0 +1,51 @@
+= cache.so : Castoro Gateway cache module
+
+== ビルド
+$ ruby extconf.rb
+$ make
+
+
+== クラス仕様
+module Castoro
+  class Cache
+    find(content_id, content_type, revision)      # 要素の検索。見つかったNFSパスの配列を返す。見つからない場合は[]。
+    erase(content_id, content_type, revision)     # 要素の削除。削除した要素数を返す。
+    peers                                         # Peerのイテレータを返す。
+    stat(key)                                     # Cacheの統計情報を返す。
+          DSTAT_CACHE_EXPIRE                      #   watchdog_limit で設定した値。
+          DSTAT_CACHE_REQUESTS                    #   findをコールした回数。
+          DSTAT_CACHE_HITS                        #   findをコールしたうち、ヒットした回数。
+          DSTAT_CACHE_COUNT_CLEAR                 #   (HITS*1000)/REQUESTS を返し、REQUESTS, HITSをクリアする。
+          DSTAT_ALLOCATE_PAGES                    #   初期化時に確保したcacheページ数。
+          DSTAT_FREE_PAGES                        #   使用されていないcacheページ数。
+          DSTAT_ACTIVE_PAGES                      #   使用中のcacheページ数。
+          DSTAT_HAVE_STATUS_PEERS                 #   ステータスが登録されているpeer数。
+          DSTAT_ACTIVE_PEERS                      #   書き込み可能なpeer数。
+          DSTAT_READABLE_PEERS                    #   読み出し可能なpeer数。
+    watchdog_limit=                               # watchdogのタイムアウト値(sec)を指定する。デフォルト１５秒。
+    watchdog_limit                                # watchdogのタイムアウト値(sec)を取得する。
+    self.make_nfs_path(p, b, c, t, r)             # p:storage_name, b:base_path, c:content_id, t:content_type, r:revision
+                                                  #   からNFSパスを生成する。
+    class Peers
+      [](storage_name)                            # storage_nameのPeerを返す。
+      find(require_spaces)                        # stat[:status]がACTIVEでstat[:available]がrequire_spaces以上である
+                                                  # storage_idの配列を返す。見つからない場合は[]。
+                                                  # 引数省略時は、認識している全てのstorage_idの配列を返す。
+    end
+
+    class Peer
+      status                                      # Peerステータスを返す。詳細は下記参照のこと。
+      status={hash}                               # Peerステータスを設定する。
+                                                  #   省略した場合は古い値が保持されます。
+                                                  #   :available => ディスク残り容量
+                                                  #   :status => ステータスコード
+          MAINTENANCE                             #     メンテナンス状態のベース値。
+          ACTIVE                                  #     読み書き可能状態のベース値。
+          READONLY                                #     読み出し専用状態のベース値。
+      insert(content_id, content_type, revision, base_path)
+                                                  # 要素の追加。追加された要素数を返す。
+      erase(content_id, content_type, revision)   # Peerに属する要素を削除する。削除した要素数を返す。
+      remove                                      # Peerを削除する。
+    end
+  end
+end
