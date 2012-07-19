@@ -445,6 +445,25 @@ module Castoro
       end
 
 
+      class Wakeup < HostnameOriented
+        def run
+          do_ps_and_print
+          SignalHandler.check
+
+          if @x.alive?
+            puts "The deamons on the peer have already started."
+            return
+          end
+
+          do_start_daemons
+          SignalHandler.check
+          sleep 2
+          do_ps_and_print
+          @x.verify_start
+        end
+      end
+
+
       class Stop < TargethostOriented
         def run
           do_ps_and_print
