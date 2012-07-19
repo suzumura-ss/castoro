@@ -55,6 +55,8 @@ module Castoro
       class Alive < Base ; end
     end
 
+    class ManipulatorPidFileError < StandardError ; end
+
     class AuthenticationError < StandardError ; end
 
     class ConnectionError < StandardError ; end

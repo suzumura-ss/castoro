@@ -23,6 +23,7 @@ require 'castoro-pgctl/channel'
 require 'castoro-pgctl/process_executor'
 require 'castoro-pgctl/configurations_pgctl'
 require 'castoro-pgctl/log'
+require 'castoro-pgctl/exceptions'
 
 module Castoro
   module Peer
@@ -108,6 +109,32 @@ module Castoro
     end
 
 
+    class DealingWithPidFileOfManipulatord
+      # This path is defined in ../../../castoro-manipulator/bin/castoro-manipulator
+      PID_FILE = "/var/castoro/manipulator.pid"
+
+      def initialize
+        @file = PID_FILE
+      end
+
+      def prepare_for_start
+        File.exist?( @file ) or return
+
+        pid = File.open( @file ) do |f|
+          x = f.gets
+          m = x.match( /([0-9]+)/ ) or return
+          m[1]
+        end
+
+        if File.exist? "/proc/#{pid}"
+          raise ManipulatorPidFileError, "A process id file of castoro-manipulator exists and a corresponding process is running: #{@file} #{pid}"
+        else
+          File.unlink @file
+        end
+      end
+    end
+
+
     class CommandProcessor
       def initialize socket
         @socket = socket
@@ -163,6 +190,10 @@ module Castoro
           'crepd'         => '/etc/init.d/crepd',
           'manipulatord'  => '/etc/init.d/castoro-manipulatord',
         }[ target ] or raise ArgumentError, "Unknown target: #{target}"
+
+        if target == 'manipulatord' and options == 'start'
+          DealingWithPidFileOfManipulatord.new.prepare_for_start
+        end
 
         status, stdout, stderr = run command, options
         { :target => target, :status => status, :stdout => stdout, :stderr => stderr }
