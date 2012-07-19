@@ -404,19 +404,22 @@ module Castoro
             raise Failure::OtherHostsNotRunning, "Some of other hosts in the same peer group are not running."
           end
 
-          unless @y.alive?
-            title "Starting the daemon"
-            Barrier.instance.clients = @y.number_of_components + 1
-            @y.do_start
-            Barrier.instance.wait  # let slaves start
-            Barrier.instance.wait  # wait until slaves finish their tasks
-            @y.print_start
-            Exceptions.instance.confirm
-            sleep 2
-            do_ps_and_print
-            @y.verify_start
-            SignalHandler.check
+          if @y.alive?
+            puts "Deamon processes of the specified host are already running."
+            return
           end
+
+          title "Starting the daemon"
+          Barrier.instance.clients = @y.number_of_components + 1
+          @y.do_start
+          Barrier.instance.wait  # let slaves start
+          Barrier.instance.wait  # wait until slaves finish their tasks
+          @y.print_start
+          Exceptions.instance.confirm
+          sleep 2
+          do_ps_and_print
+          @y.verify_start
+          SignalHandler.check
 
           do_status_and_print    ; sleep 2
           SignalHandler.check
