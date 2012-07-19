@@ -40,7 +40,7 @@ module Castoro
 
       def confirm
         if 0 < @exceptions.size
-          raise Failure::Proxy, ( @exceptions.map { |e| e.message } ).join("\n")
+          raise Failure::Proxy, ( @exceptions.map { |e| " #{e.message}\n#{e.backtrace.join("\n")}" } ).join("\n")
         end
       end
     end
@@ -53,6 +53,8 @@ module Castoro
       class Mode  < Base ; end
       class Auto  < Base ; end
       class Alive < Base ; end
+      class NoGroupSpecified < Base ; end
+      class OtherHostsNotRunning < Base ; end
     end
 
     class ManipulatorPidFileError < StandardError ; end

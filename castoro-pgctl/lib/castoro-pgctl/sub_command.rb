@@ -28,57 +28,9 @@ module Castoro
   module Peer
     
     module SubCommand
-      class Base
-        def initialize
-          @options = []
-          parse_arguments
-        end
-
-        def parse_arguments
-          while ( x = ARGV.shift )
-            begin
-              Socket.gethostbyname x  # determine if the parameter is a hostname
-              ARGV.unshift x          # it is a hostname
-              break                   # quit here
-            rescue SocketError => e
-              # intentionally ignored. it is not a hostname
-            end
-            x.match( /\A[a-zA-Z0-9_ -]*\Z/ ) or raise CommandLineArgumentError, "Non-alphanumeric letter is not allowed in the command line: #{x}"
-            @options.push x
-          end
-        end
-
-        def title message
-          puts "[ #{Time.new.to_s}  #{message} ]"
-        end
-
-        def xxxxx &block
-          @x = Component.get_peer_group
-          Barrier.instance.clients = @x.number_of_components + 1
-          if block_given?
-            yield
-          end
-          Barrier.instance.wait  # let slaves start
-          Barrier.instance.wait  # wait until slaves finish their tasks
-          Exceptions.instance.confirm
-        end
-
-        def do_start_daemons
-          title "Starting daemons"
-          xxxxx { @x.do_start }
-          @x.print_start
-          Exceptions.instance.confirm
-        end
-
-        def do_stop_deamons
-          title "Stopping daemons"
-          xxxxx { @x.do_stop }
-          @x.print_stop
-          Exceptions.instance.confirm
-        end
-
+      module PsModule
         def do_ps
-          xxxxx { @x.do_ps }
+          dispatch { @x.do_ps }
           Exceptions.instance.confirm
         end
 
@@ -87,9 +39,12 @@ module Castoro
           do_ps
           @x.print_ps
         end
+      end
 
+
+      module StatusModule
         def do_status
-          xxxxx { @x.do_status }
+          dispatch { @x.do_status }
           Exceptions.instance.confirm
         end
 
@@ -99,10 +54,30 @@ module Castoro
           do_status
           @x.print_status
         end
+      end
 
+
+      module StartStopModule
+        def do_start_daemons
+          title "Starting daemons"
+          dispatch { @x.do_start }
+          @x.print_start
+          Exceptions.instance.confirm
+        end
+
+        def do_stop_deamons
+          title "Stopping daemons"
+          dispatch { @x.do_stop }
+          @x.print_stop
+          Exceptions.instance.confirm
+        end
+      end
+
+
+      module AutopilotModule
         def turn_autopilot_off
           title "Turning the autopilot off"
-          xxxxx { @x.do_auto false }
+          dispatch { @x.do_auto false }
           @x.print_auto
           @x.verify_auto false
           Exceptions.instance.confirm
@@ -110,16 +85,19 @@ module Castoro
 
         def turn_autopilot_on
           title "Turning the autopilot auto"
-          xxxxx { @x.do_auto true }
+          dispatch { @x.do_auto true }
           @x.print_auto
           @x.verify_auto true
           Exceptions.instance.confirm
         end
+      end
 
+
+      module ModeModule
         def ascend_the_mode_to mode
           m = ServerStatus.status_code_to_s( mode )
           title "Ascending the mode to #{m}"
-          xxxxx { @x.ascend_mode mode }
+          dispatch { @x.ascend_mode mode }
           @x.print_mode
           Exceptions.instance.confirm
         end
@@ -127,7 +105,7 @@ module Castoro
         def descend_the_mode_to mode
           m = ServerStatus.status_code_to_s( mode )
           title "Descending the mode to #{m}"
-          xxxxx { @x.descend_mode mode }
+          dispatch { @x.descend_mode mode }
           @x.print_mode
           Exceptions.instance.confirm
         end
@@ -176,36 +154,212 @@ module Castoro
       end
 
 
-      class List < Base
-        def run
-          title "Peer group list"
-          i = 0
-          Configurations::Peer.instance.StorageGroupsData.each do |x|
-            if 0 < x.size
-              printf "  G%02d = %s\n", i, x.join(' ')
-              i = i + 1
+      class Base
+        include PsModule
+        include StatusModule
+        include StartStopModule
+        include AutopilotModule
+        include ModeModule
+
+        def initialize
+          @options = []
+          @hosts = []
+          @groups = []
+          parse_parameters          
+        end
+
+        def title message
+          puts "[ #{Time.new.to_s}  #{message} ]"
+        end
+
+        def dispatch &block
+          Barrier.instance.clients = @x.number_of_components + 1
+          if block_given?
+            yield
+          end
+          Barrier.instance.wait  # let slaves start
+          Barrier.instance.wait  # wait until slaves finish their tasks
+          Exceptions.instance.confirm
+        end
+
+        private
+
+        def determine_type x
+          unless x.match( /\A[a-zA-Z0-9_ -]*\Z/ )
+            raise CommandLineArgumentError, "Non-alphanumeric letter is not allowed: #{x}"
+          end
+
+          if Configurations::Peer.instance.StorageGroups.has_key? x
+            return :group  # it is a group name
+          elsif x.match( /\A-/ )
+            return :option
+          else
+            begin
+              Socket.gethostbyname x  # determine if the parameter is a hostname
+              return :host            # it is a hostname
+            rescue SocketError => e
+              # intentionally ignored. it is not a hostname
+            end
+          end
+          nil
+        end
+
+        def parse_parameters
+          while ( x = ARGV.shift )
+            case determine_type x
+
+            when :group
+              @groups.push x
+              while ( x = ARGV.shift )
+                case determine_type x
+                when :group ; @groups.push x
+                else ; raise CommandLineArgumentError, "Parameters should not mix a group name and host name: #{x}"
+                end
+              end
+                  
+            when :host
+              @hosts.push x
+              while ( x = ARGV.shift )
+                case determine_type x
+                when :host ; @hosts.push x
+                else ; raise CommandLineArgumentError, "Parameters should not mix a group name and host name: #{x}"
+                end
+              end
+
+            when :option
+              @options.push x
+
+            else
+              raise CommandLineArgumentError, "Parameters should be either option, host name, or group name: #{x}"
             end
           end
         end
       end
 
 
-      class Ps < Base
+      # list, ps, status
+      class AnynameAccepted < Base
+        def initialize
+          super
+
+          @hosts.each do |h|  # host name
+            Component.add_peer h
+          end
+
+          @groups.each do |g|  # group name
+            Configurations::Peer.instance.StorageGroups[g].each do |h|  # host name
+              Component.add_peer h
+            end
+          end
+
+          @x = Component.get_peer_group
+        end
+      end
+
+
+      class AtLeastOneNameRequired < AnynameAccepted
+        def initialize
+          super
+          if 0 == @hosts.size && 0 == @groups.size
+            raise CommandLineArgumentError, "Parameters should have at least one host or group name"
+          end
+        end
+      end
+
+      # none
+      class HostnameOriented < AnynameAccepted
+        def initialize
+          super
+          0 < @hosts.size   or raise CommandLineArgumentError, "Parameters should be a single host name or a list of host names"
+          0 == @groups.size or raise CommandLineArgumentError, "Parameters should not include group names"
+        end
+      end
+
+
+      # gstart, gstop
+      class GroupnameOriented < AnynameAccepted
+        def initialize
+          super
+          0 < @groups.size or raise CommandLineArgumentError, "Parameters should be a single group name or a list of group names"
+          0 == @hosts.size or raise CommandLineArgumentError, "Parameters should not include host names"
+        end
+      end
+
+
+      # start, stop
+      class TargethostOriented < HostnameOriented
+        def initialize
+          super
+
+          y = []  # the target hosts
+          z = []  # the rest of hosts
+
+          @hosts.each do |h|
+            Configurations::Peer.instance.StorageGroups.each do |name, hosts|
+              if hosts.include? h
+                y.include?( h ) and raise CommandLineArgumentError, "the hostname is given twice: #{h}"
+                y.push h
+                d = hosts.dup
+                d.delete h
+                ( z & d ).size == 0 or raise CommandLineArgumentError, "Hostnames overwrap: #{z.inspect} #{d.inspect}"
+                d.each do |s|  # host name
+                  Component.add_peer s
+                  z.push s
+                end
+              end
+            end
+          end
+
+          x = y + z   # all hosts
+          @x = Component.get_peerlist x
+          @y = Component.get_peerlist y
+          @z = Component.get_peerlist z
+        end
+      end
+
+
+      class List < AnynameAccepted
+        def run
+          title "Peer group list"
+          @groups.each do |x|
+            printf "  %s = %s\n", x, Configurations::Peer.instance.StorageGroups[x].join(' ')
+          end
+
+          @hosts.each do |x|
+            Configurations::Peer.instance.StorageGroups.each do |name, hosts|
+              printf "  %s = %s\n", name, hosts.join(' ') if hosts.include? x
+            end
+          end
+            
+          if @groups.size == 0 && @hosts.size == 0
+            Configurations::Peer.instance.StorageGroups.each do |name, hosts|
+              printf "  %s = %s\n", name, hosts.join(' ')
+            end
+          end
+        end
+      end
+
+
+      class Ps < AtLeastOneNameRequired
         def run
           do_ps_and_print
         end
       end
 
 
-      class Status < Base
+      class Status < AtLeastOneNameRequired
         def run
           do_status_and_print
         end
       end
 
 
-      class Gstart < Base
+      class Gstart < GroupnameOriented
         def run
+          if 0 == @x.size
+            raise Failure::NoGroupSpecified, "No peer group is specified."
+          end
+
           do_ps_and_print
           SignalHandler.check
 
@@ -241,12 +395,15 @@ module Castoro
       end
 
 
-      class Start < Base
+      class Start < TargethostOriented
         def run
           do_ps_and_print
           SignalHandler.check
 
-          @y = Component.get_the_first_peer
+          unless @z.alive?
+            raise Failure::OtherHostsNotRunning, "Some of other hosts in the same peer group are not running."
+          end
+
           unless @y.alive?
             title "Starting the daemon"
             Barrier.instance.clients = @y.number_of_components + 1
@@ -261,7 +418,6 @@ module Castoro
             SignalHandler.check
           end
 
-          @x = Component.get_peer_group
           do_status_and_print    ; sleep 2
           SignalHandler.check
 
@@ -289,13 +445,12 @@ module Castoro
       end
 
 
-      class Stop < Base
+      class Stop < TargethostOriented
         def run
           do_ps_and_print
           do_status_and_print
           SignalHandler.check
 
-          @y = Component.get_the_first_peer
           if false == @y.alive?
             puts "The deamons on the peer have already stopped."
             return
@@ -332,7 +487,6 @@ module Castoro
           do_ps_and_print
           SignalHandler.check
 
-          @z = Component.get_the_rest_of_peers
           Barrier.instance.clients = @z.number_of_components + 1
           if 0 < @z.number_of_components
             title "Turning the autopilot auto"
@@ -355,8 +509,12 @@ module Castoro
         end
       end
 
-      class Gstop < Base
+      class Gstop < GroupnameOriented
         def run
+          if 0 == @x.size
+            raise Failure::NoGroupSpecified, "No peer group is specified."
+          end
+
           do_ps_and_print
           do_status_and_print
           SignalHandler.check

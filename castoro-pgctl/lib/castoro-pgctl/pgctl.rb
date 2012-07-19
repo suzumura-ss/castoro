@@ -24,7 +24,6 @@ if $0 == __FILE__
   $LOAD_PATH.unshift '..'
 end
 
-require 'socket'
 require 'singleton'
 require 'getoptlong'
 require 'castoro-pgctl/component'
@@ -134,35 +133,13 @@ module Castoro
         end
       end
 
-      def parse_hostnames
-        Array.new.tap do |a|  # array of hostnames
-          ARGV.each do |x|    # argument
-            begin
-              Socket.gethostbyname x  # confirm if the argument can be resolved as a hostname.
-              a.push x  # hostname
-            rescue SocketError => e
-              if e.message.match( /node name .* known/ )  # getaddrinfo: node name or service name not known
-                raise CommandLineArgumentError, "Unknown hostname: #{x}"
-              else
-                raise e
-              end
-            end
-          end
-        end
-      end
-
       def parse
         parse_options
-        command = parse_sub_command
-        hostnames = parse_hostnames
-        hostnames.each do |h|  # hostname
-          Component.add_peer h
-        end
-        command
+        parse_sub_command
       rescue CommandLineArgumentError => e
         STDERR.puts "#{@program_name}: #{e.message}"
         puts ""
-        usage
+        puts "Use \"#{@program_name} -h\" to see the help messages"
         Process.exit 1
       end
 
