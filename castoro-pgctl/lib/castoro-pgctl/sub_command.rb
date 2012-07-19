@@ -534,6 +534,28 @@ module Castoro
           @x.verify_stop
         end
       end
+
+
+      class Kill < HostnameOriented
+        def run
+          do_ps_and_print
+          do_status_and_print
+          SignalHandler.check
+
+          if false == @x.alive?
+            puts "The deamons on the peer have already stopped."
+            return
+          end
+
+          do_stop_deamons
+          SignalHandler.check
+          sleep 2
+
+          do_ps_and_print
+          do_status_and_print
+          @x.verify_stop
+        end
+      end
     end
 
   end

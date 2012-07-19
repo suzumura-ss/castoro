@@ -66,6 +66,7 @@ module Castoro
         puts "   gstop      stops  daemon processes of every host in the peer group"
         puts "   start      starts daemon processes of the only target peer host"
         puts "   stop       stops  daemon processes of the only target peer host"
+        puts "   kill       stops  daemon processes of the specified peer host by force without any check"
         puts ""
         puts " examples:"
         puts "   #{x} list"
@@ -128,6 +129,7 @@ module Castoro
         when 'gstop'    ; SubCommand::Gstop.new
         when 'start'    ; SubCommand::Start.new
         when 'stop'     ; SubCommand::Stop.new
+        when 'kill'     ; SubCommand::Kill.new
         else
           raise CommandLineArgumentError, "Unknown sub-command: #{x}"
         end
