@@ -62,8 +62,10 @@ module Castoro
         puts "   list       lists peer groups"
         puts "   ps         lists the deamon processes in a 'ps -ef' format"
         puts "   status     shows the status of the deamon processes on the every host"
-        puts "   gstart     starts deamon processes of every host in the peer group"
-        puts "   gstop      stops  daemon processes of every host in the peer group"
+        puts ""
+        puts "   g-daemon-up    starts deamon processes of every host in the specified peer group"
+        puts "   g-daemon-down  stops  daemon processes of every host in the specified peer group"
+        puts ""
         puts "   start      starts daemon processes of the only target peer host"
         puts "   stop       stops  daemon processes of the only target peer host"
         puts "   wakeup     starts daemon processes of the specified peer host, but does nothing further"
@@ -72,23 +74,41 @@ module Castoro
         puts " examples:"
         puts "   #{x} list"
         puts "        shows a list of peer groups"
+        puts "       eg:"
+        puts "         G00 = peer01 peer02 peer03"
         puts ""
-        puts "   #{x} status peer01 peer02 peer03"
+        puts "   #{x} ps peer01"
+        puts "        shows the daemon processes of peer01."
+        puts ""
+        puts "   #{x} ps G00"
+        puts "        shows the daemon processes of peer01, peer02, and peer03."
+        puts ""
+        puts "   #{x} status peer01 peer02"
+        puts "        shows the status of peer01 and peer02."
+        puts ""
+        puts "   #{x} status G00"
         puts "        shows the status of peer01, peer02, and peer03."
         puts ""
-        puts "   #{x} stop peer01 peer02 peer03"
-        puts "        peer01 will be stopped."
-        puts "        peer02 and peer03 will be readonly."
+        puts "   #{x} stop peer01"
+        puts "        turns peer01, peer02, and peer03 readonly,"
+        puts "        and then stops peer01."
         puts ""
-        puts "   #{x} start peer01 peer02 peer03"
-        puts "        peer01 will be started, then"
-        puts "        peer01, peer02, and peer03 will be online."
+        puts "   #{x} start peer01"
+        puts "        if peer01 has stopped, starts it, and then"
+        puts "        turns peer01, peer02, and peer03 online."
+        puts "        Both peer02 and peer03 have to be running."
         puts ""
-        puts "   #{x} gstop G00"
-        puts "        peer01 peer02, and peer03 will be stopped."
+        puts "   #{x} g-daemon-down G00"
+        puts "        gracefully stops peer01 peer02, and peer03."
         puts ""
-        puts "   #{x} gstart G00"
-        puts "        peer01 peer02, and peer03 will be started, then be online."
+        puts "   #{x} g-daemon-up G00"
+        puts "        starts peer01 peer02, and peer03, and then turn them online."
+        puts ""
+        puts "   #{x} wakeup peer01"
+        puts "        starts peer01, and then leave it offline."
+        puts ""
+        puts "   #{x} kill peer01"
+        puts "        stops peer01 by force without any check"
         puts ""
       end
 
@@ -126,8 +146,8 @@ module Castoro
         when 'list'     ; SubCommand::List.new
         when 'ps'       ; SubCommand::Ps.new
         when 'status'   ; SubCommand::Status.new
-        when 'gstart'   ; SubCommand::Gstart.new
-        when 'gstop'    ; SubCommand::Gstop.new
+        when 'g-daemon-up'     ; SubCommand::Gstart.new
+        when 'g-daemon-down'   ; SubCommand::Gstop.new
         when 'start'    ; SubCommand::Start.new
         when 'stop'     ; SubCommand::Stop.new
         when 'wakeup'   ; SubCommand::Wakeup.new
