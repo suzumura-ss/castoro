@@ -22,6 +22,11 @@ require 'etc'
 require 'digest/md5'
 require 'castoro-pgctl/configurations_pgctl'
 
+if $0 == __FILE__
+  $LOAD_PATH.unshift '../../ext/password_reader'
+end
+require 'castoro-pgctl/password_reader'  # password_reader.so
+
 module Castoro
   module Peer
 
@@ -70,20 +75,7 @@ module Castoro
       private
 
       def read_password s
-        print s
-
-        # some terminal emulators via ssh remote login has a setting with -echo 
-        # from the beginning. so tries to preserve it.
-        s =`/usr/bin/stty -a`
-        m = s.match /\W(-?echo)\W/
-        c = (m.nil?) ? "echo" : m[1]
-
-        system "stty raw -echo"
-        x = gets
-        puts ""
-        return x.chomp
-      ensure
-        system "stty -raw #{c}"
+        PasswordReader.read_password s
       end
 
 
@@ -169,107 +161,19 @@ module Castoro
   end
 end
 
+
 if $0 == __FILE__
+  # To test this file:
+  #  (cd ../.. ; rake ext)
+  #  ruby -I .. password.rb
   module Castoro
     module Peer
       Configurations::Pgctl.file = "../../etc/castoro/pgctl.conf-sample-en.conf"
-
       Password.instance
-
       p [ "Password.instance.empty?", Password.instance.empty? ]
-
       Password.instance.change
-
+      puts "Try it."
       p Password.instance.authenticate
     end
   end
-  
 end
-
-__END__
-
-
-
-    x = Password.new "./x"
-    a = x.xxx
-    puts ""
-    p a
-
-    end
-
-~
-$ /usr/bin/passwd
-Changing password for user akiyama.
-Changing password for akiyama
-(current) UNIX password: 
-passwd: Authentication token manipulation error
-
-16:28:29 Mon Jul 09  sdbext000  akiyama
-~
-$ /usr/bin/passwd
-Changing password for user akiyama.
-Changing password for akiyama
-(current) UNIX password: 
-New UNIX password: 
-BAD PASSWORD: it is too short
-New UNIX password: 
-BAD PASSWORD: it is WAY too short
-New UNIX password: 
-BAD PASSWORD: it is WAY too short
-passwd: Authentication token manipulation error
-
-16:28:47 Mon Jul 09  sdbext000  akiyama
-~
-$ /usr/bin/passwd
-Changing password for user akiyama.
-Changing password for akiyama
-(current) UNIX password: 
-New UNIX password: 
-BAD PASSWORD: is too similar to the old one
-New UNIX password: 
-Retype new UNIX password: 
-
-
-16:29:36 Mon Jul 09  sdbext000  akiyama
-~
-$ 
-          a = read_password
-~
-$ /usr/bin/passwd
-Changing password for user akiyama.
-Changing password for akiyama
-(current) UNIX password: 
-New UNIX password: 
-Retype new UNIX password: 
-Sorry, passwords do not match.
-New UNIX password: 
-BAD PASSWORD: it is WAY too short
-New UNIX password: 
-Retype new UNIX password: 
-Sorry, passwords do not match.
-passwd: Authentication information cannot be recovered
-
-16:35:18 Mon Jul 09  sdbext000  akiyama
-~
-
-
-$ /usr/bin/sudo /bin/bash
-Password: xxx
-
-Sorry, try again.
-Password: xxx
-
-Sorry, try again.
-Password: xxx
-
-Sorry, try again.
-sudo: 3 incorrect password attempts
-
-$ /usr/bin/ssh stdext000 -l xxx
-Password: xxx
-
-Password: xxx
-
-Password: xx
-
-Permission denied (gssapi-keyex,gssapi-with-mic,publickey,keyboard-interactive).
