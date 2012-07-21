@@ -82,12 +82,13 @@ end
 task :spec => :ext  # :ext will be done before :spec starts
 task :gem => :listing_files
 
-# Prints a list of files which will be included in a gem package
+# Print a list of files which will be included in a gem package
 task :listing_files do
   spec.files.each { |x| puts x }
 end
 
 # Do the rake in the ext directory
+desc "Build ext/password_reader/castoro-pgctl/password_reader.so"
 task :ext do
   sh "cd ext/password_reader ; rake"
 end
