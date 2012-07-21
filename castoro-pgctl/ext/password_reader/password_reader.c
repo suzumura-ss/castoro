@@ -1,0 +1,142 @@
+#include <stdio.h>
+#include <termio.h>
+#include <unistd.h>
+#include <stropts.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <string.h>
+#include <strings.h>
+#include <time.h>
+
+#include "ruby.h"
+
+static char *read_letters(int fd, char *prompt, char *buffer, size_t length)
+{
+  char *p = buffer;
+  int n;
+
+  for (;;) {
+    if ((n = read(fd, p, 1)) == -1) {
+      perror("An attempt of reading a character from /dev/tty in get_password() failed.");
+      return NULL;
+    }
+    else if (n == 0) {
+      struct timespec spec = { 0, 100 * 1000 };  /* 0 second and 100 * 1000 nanoseconds */
+      nanosleep(&spec, NULL);
+    }
+    if (*p == '\n') {
+      break;
+    }
+    if (1 < length) {  /* keeps room for \0 */
+      length--;  /* length is size_t, unsighed, so it cannot be less than zero */
+      p++;
+    }
+  }
+
+  *p = '\0';  /* Replaces the last letter with \0 */
+  return buffer;
+}
+
+
+static char *write_prompt(int fd, char *prompt, char *buffer, size_t length)
+{
+  char *ret;
+  int n;
+
+  /* Wrtites the prompt message */
+  n = write(fd, prompt, strlen(prompt));
+
+  ret = read_letters(fd, prompt, buffer, length);
+
+  n = write(fd, "\n", 1);
+  return ret;
+}
+
+
+static char *suppress_echoing(int fd, char *prompt, char *buffer, size_t length)
+{
+  struct termio old, new;
+  char *ret;
+
+  /* Suppresses echoing letters */
+  ioctl(fd, TCGETA, &old);  /* Gets the current settings of the terminal */
+  bcopy(&old, &new, sizeof(old));
+  new.c_lflag &= ~( ECHO | ECHOE | ECHOK | ECHONL );
+  ioctl(fd, TCSETAF, &new);  /* Suppresses echoing letters */
+
+  ret = write_prompt(fd, prompt, buffer, length);
+
+  /* Restores the previous settings of the terminal */
+  ioctl(fd, TCSETAW, &old);
+
+  return ret;
+}
+
+
+static char *ignore_signals(int fd, char *prompt, char *buffer, size_t length)
+{
+  struct sigaction ignore, sigint, sigtstp;
+  char *ret;
+
+  /* Ignores signals: Ctrl-C and Ctrl-Z */
+  ignore.sa_handler = SIG_IGN;
+  sigemptyset(&ignore.sa_mask);
+  ignore.sa_flags = 0;
+  sigaction(SIGINT,  &ignore, &sigint);
+  sigaction(SIGTSTP, &ignore, &sigtstp);
+
+  ret = suppress_echoing(fd, prompt, buffer, length);
+
+  /* Restores the previous settings of the signals */
+  sigaction(SIGINT, &sigint, NULL);
+  sigaction(SIGTSTP, &sigtstp, NULL);
+
+  return ret;
+}
+
+
+static char *get_password(char *prompt, char *buffer, size_t length)
+{
+  int fd;
+  char *ret;
+
+  if ((fd = open("/dev/tty", O_RDWR)) == -1) {
+    perror("An attempt of opening /dev/tty in get_password() failed.");
+    return NULL;
+  }
+  
+  ret = ignore_signals(fd, prompt, buffer, length);
+
+  close(fd);
+  return ret;
+}
+
+
+VALUE rb_cPasswordReader;
+
+#if defined(RSTRING_PTR)
+#define rstring_ptr RSTRING_PTR
+#elif defined(StringValuePtr)
+#define rstring_ptr StringValuePtr
+#endif
+
+static VALUE rb_get_password(VALUE klass, VALUE prompt)
+{
+  char buffer[256];
+  char *str;
+  
+  if ((str = get_password(rstring_ptr(prompt), buffer, sizeof(buffer))) == NULL) {
+    rb_raise(rb_eArgError, "NULL pointer given");
+  }
+
+  return rb_str_new(str, strlen(str));
+}
+
+void Init_password_reader(void)
+{
+  rb_cPasswordReader = rb_define_class("PasswordReader", rb_cObject);
+  rb_define_singleton_method(rb_cPasswordReader, "get_password", rb_get_password, 1);
+}
+
