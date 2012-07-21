@@ -47,7 +47,7 @@ module Castoro
 
       def usage
         x = @program_name
-        puts "usage: #{x} [global options...] sub-command [options...] [parameters...] [hostnames..]"
+        puts "usage: #{x} [global options] sub-command [host name|group name]..."
         puts ""
         puts "  global options:"
         puts "   -h, --help     prints this help message and exit."
@@ -74,8 +74,8 @@ module Castoro
         puts " examples:"
         puts "   #{x} list"
         puts "        shows a list of peer groups"
-        puts "       eg:"
-        puts "         G00 = peer01 peer02 peer03"
+        puts "       e.g. \"#{x} list G00\" shows:"
+        puts "            G00 = peer01 peer02 peer03"
         puts ""
         puts "   #{x} ps peer01"
         puts "        shows the daemon processes of peer01."
