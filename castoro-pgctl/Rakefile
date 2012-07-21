@@ -17,47 +17,84 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'rubygems'
 require 'rake'
 require 'rake/clean'
-require 'rake/gempackagetask'
-require 'rake/rdoctask'
+require 'rubygems'
+require 'rubygems/package_task'
+require 'rdoc/task'
+
+PKG_VERSION = '0.0.3'
+
+PKG_FILES = Array.new.tap do |a|
+  a.concat %w( README.textile Rakefile History.txt LICENSE )
+  a.concat Dir.glob("bin/**/*")
+  a.concat Dir.glob("etc/**/*")
+  a.concat Dir.glob("lib/**/*").select { |x| x.match /\.rb\Z/ }
+  a.concat %w( extconf.rb password_reader.c Rakefile ).map { |x| "ext/password_reader/#{x}" }
+  a.concat Dir.glob("spec/**/*").select { |x| x.match /\_spec.rb\Z/ }
+  a.delete_if { |x| not File.file? x }
+  a.delete_if { |x| x.match( %r{/[.#]|~\Z} ) }
+  a.delete_if { |x| x.match( %r{/(..?(\..*)?|test[^/]*)\Z} ) }
+end
 
 spec = Gem::Specification.new do |s|
   s.name = 'castoro-pgctl'
-  s.version = '0.0.2'
+  s.summary = "Castoro Peer Group Control Subsystem"
+  s.version = PKG_VERSION
+  s.requirements << 'none'
+  s.require_path = 'lib'
+  s.files = PKG_FILES
+  s.description = <<-EOF
+castoro-pgctl is a subsystem which remotely controls a group of Castoro peers.
+  EOF
   s.has_rdoc = true
   s.extra_rdoc_files = ['README.textile']
-  s.summary = "Remote control subsystem for peer groups of Castoro."
-  s.description = s.summary
   s.executables = Dir.glob("bin/**/*").map { |f| File.basename(f) }
-  f = %w(History.txt LICENSE README.textile Rakefile)
-  f = f + Dir.glob("{bin,ext,lib,spec,etc}/**/*").select{ |x| File.file? x }
-  f = f.select{ |x| not x.match( %r{\A.*/[.#]|~\Z} ) }
-  f = f.select{ |x| not x.match( %r{\A.*/(..?(\..*)?|test[^/]*)\Z} ) }
-  s.files = f
-  s.files.each { |x| puts x }
-  s.require_path = "lib"
   s.bindir = "bin"
+  s.extensions = ["ext/password_reader/extconf.rb"]
   s.authors = ['Castoro project']
+  s.homepage = 'https://github.com/ToshiyukiTerashita/castoro'
+  s.email = ''
 end
 
-Rake::GemPackageTask.new(spec) do |p|
-  p.gem_spec = spec
-  p.need_tar = true
-  p.need_zip = true
+Gem::PackageTask.new(spec) do |pkg|
+  pkg.need_zip = true
+  pkg.need_tar = true
 end
 
-Rake::RDocTask.new do |rdoc|
-  files =['README.textile', 'LICENSE', 'lib/**/*.rb']
-  rdoc.rdoc_files.add(files)
+RDoc::Task.new do |rdoc|
   rdoc.main = "README.textile" # page to start on
+  rdoc.rdoc_files.include('README.textile', 'LICENSE', 'lib/**/*.rb')
   rdoc.title = "castor-pgctl Docs"
-  rdoc.rdoc_dir = 'doc/rdoc' # rdoc output folder
-  rdoc.options << '--line-numbers'
+  rdoc.options << '--all'
 end
 
-Dir['tasks/**/*.rake'].each { |t| load t }
+desc "Run specs"
+task :spec do
+# ruby_opts  = "-d"  # Give -d option to ruby if debug messages is demanded
+  ruby_opts  = ""
+  spec_files = FileList['spec/**/*_spec.rb']
+  spec_opts  = "--format documentation --backtrace"
+  sh "ruby #{ruby_opts} -S rspec #{spec_opts} #{spec_files.join(' ')}"
+end
 
-task :default => [:spec]
+# Prerequisites
+task :spec => :ext  # :ext will be done before :spec starts
+task :gem => :listing_files
 
+# Prints a list of files which will be included in a gem package
+task :listing_files do
+  spec.files.each { |x| puts x }
+end
+
+# Do the rake in the ext directory
+task :ext do
+  sh "cd ext/password_reader ; rake"
+end
+
+task :default => [:usage]
+
+# Print tasks
+task :usage do
+  sh "rake -T"
+end
