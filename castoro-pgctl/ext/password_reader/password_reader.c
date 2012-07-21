@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <termio.h>
+#include <termios.h>
 #include <unistd.h>
 #include <stropts.h>
 #include <sys/types.h>
@@ -57,19 +57,22 @@ static char *write_prompt(int fd, char *prompt, char *buffer, size_t length)
 
 static char *suppress_echoing(int fd, char *prompt, char *buffer, size_t length)
 {
-  struct termio old, new;
+  struct termios old, new;
   char *ret;
 
   /* Suppresses echoing letters */
-  ioctl(fd, TCGETA, &old);  /* Gets the current settings of the terminal */
-  bcopy(&old, &new, sizeof(old));
+  if ( tcgetattr(fd, &old) != 0 ) {  /* Gets the current settings of the terminal */
+    perror("tcgetattr() in suppress_echoing");
+    return NULL;
+  }
+  bcopy(&old, &new, sizeof(new));
   new.c_lflag &= ~( ECHO | ECHOE | ECHOK | ECHONL );
-  ioctl(fd, TCSETAF, &new);  /* Suppresses echoing letters */
+  (void) tcsetattr(fd, TCSAFLUSH, &new);  /* Suppresses echoing letters */
 
   ret = write_prompt(fd, prompt, buffer, length);
 
   /* Restores the previous settings of the terminal */
-  ioctl(fd, TCSETAW, &old);
+  (void) tcsetattr(fd, TCSADRAIN, &old);
 
   return ret;
 }
