@@ -23,6 +23,7 @@ require 'castoro-pgctl/component'
 require 'castoro-pgctl/signal_handler'
 require 'castoro-pgctl/exceptions'
 require 'castoro-pgctl/configurations_peer'
+require 'castoro-pgctl/password'
 
 module Castoro
   module Peer
@@ -257,6 +258,16 @@ module Castoro
       end
 
 
+      class NoNameAccepted < Base
+        def initialize
+          super
+          unless 0 == @hosts.size && 0 == @groups.size
+            raise CommandLineArgumentError, "No parameter is required"
+          end
+        end
+      end
+
+
       class AtLeastOneNameRequired < AnynameAccepted
         def initialize
           super
@@ -350,6 +361,13 @@ module Castoro
       class Status < AtLeastOneNameRequired
         def run
           do_status_and_print
+        end
+      end
+
+
+      class Passwd < NoNameAccepted
+        def run
+          Password.instance.change
         end
       end
 

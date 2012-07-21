@@ -22,6 +22,7 @@ if $0 == __FILE__
     $LOAD_PATH.delete x if x.match %r(/gems/)
   end
   $LOAD_PATH.unshift '..'
+  $LOAD_PATH.unshift '../../ext/password_reader'
 end
 
 require 'singleton'
@@ -71,6 +72,8 @@ module Castoro
         puts "   wakeup     starts daemon processes of the specified peer host, but does nothing further"
         puts "   kill       stops  daemon processes of the specified peer host by force without any check"
         puts ""
+        puts "   passwd     sets a password for the critical sub commands"
+        puts ""
         puts " examples:"
         puts "   #{x} list"
         puts "        shows a list of peer groups"
@@ -109,6 +112,9 @@ module Castoro
         puts ""
         puts "   #{x} kill peer01"
         puts "        stops peer01 by force without any check"
+        puts ""
+        puts "   #{x} passwd"
+        puts "        "
         puts ""
       end
 
@@ -152,6 +158,7 @@ module Castoro
         when 'stop'     ; SubCommand::Stop.new
         when 'wakeup'   ; SubCommand::Wakeup.new
         when 'kill'     ; SubCommand::Kill.new
+        when 'passwd'   ; SubCommand::Passwd.new
         else
           raise CommandLineArgumentError, "Unknown sub-command: #{x}"
         end

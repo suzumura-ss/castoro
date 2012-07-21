@@ -56,10 +56,9 @@ module Castoro
       class NoGroupSpecified < Base ; end
       class OtherHostsNotRunning < Base ; end
     end
+    class AuthenticationError < Failure::Base ; end
 
     class ManipulatorPidFileError < StandardError ; end
-
-    class AuthenticationError < StandardError ; end
 
     class ConnectionError < StandardError ; end
     class ConnectionRefusedError < ConnectionError ; end
