@@ -19,7 +19,7 @@ static char *read_letters(int fd, char *prompt, char *buffer, size_t length)
 
   for (;;) {
     if ((n = read(fd, p, 1)) == -1) {
-      perror("An attempt of reading a character from /dev/tty in get_password() failed.");
+      perror("An attempt of reading a character from /dev/tty in read_password() failed.");
       return NULL;
     }
     else if (n == 0) {
@@ -100,13 +100,13 @@ static char *ignore_signals(int fd, char *prompt, char *buffer, size_t length)
 }
 
 
-static char *get_password(char *prompt, char *buffer, size_t length)
+static char *read_password(char *prompt, char *buffer, size_t length)
 {
   int fd;
   char *ret;
 
   if ((fd = open("/dev/tty", O_RDWR)) == -1) {
-    perror("An attempt of opening /dev/tty in get_password() failed.");
+    perror("An attempt of opening /dev/tty in read_password() failed.");
     return NULL;
   }
   
@@ -125,12 +125,12 @@ VALUE rb_cPasswordReader;
 #define rstring_ptr StringValuePtr
 #endif
 
-static VALUE rb_get_password(VALUE klass, VALUE prompt)
+static VALUE rb_read_password(VALUE klass, VALUE prompt)
 {
   char buffer[256];
   char *str;
   
-  if ((str = get_password(rstring_ptr(prompt), buffer, sizeof(buffer))) == NULL) {
+  if ((str = read_password(rstring_ptr(prompt), buffer, sizeof(buffer))) == NULL) {
     rb_raise(rb_eArgError, "NULL pointer given");
   }
 
@@ -140,6 +140,6 @@ static VALUE rb_get_password(VALUE klass, VALUE prompt)
 void Init_password_reader(void)
 {
   rb_cPasswordReader = rb_define_class("PasswordReader", rb_cObject);
-  rb_define_singleton_method(rb_cPasswordReader, "get_password", rb_get_password, 1);
+  rb_define_singleton_method(rb_cPasswordReader, "read_password", rb_read_password, 1);
 }
 
