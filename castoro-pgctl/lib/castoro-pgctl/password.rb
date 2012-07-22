@@ -52,6 +52,11 @@ module Castoro
 
         @pw.store a
         puts "pgctl password has been successfully changed."
+
+      ensure
+        erase_string x if defined? x
+        erase_string a if defined? a
+        erase_string b if defined? b
       end
 
       def authenticate
@@ -66,6 +71,9 @@ module Castoro
           puts "Sorry, try again."
         end
         false
+
+      ensure
+        erase_string x if defined? x
       end
 
       def empty?
@@ -76,6 +84,12 @@ module Castoro
 
       def read_password s
         PasswordReader.read_password s
+      end
+
+      def erase_string s
+        if s and s.is_a? String
+          PasswordReader.erase_string s  # simlar to s.size.times { |i| s[i] = "\x00" }
+        end
       end
 
 

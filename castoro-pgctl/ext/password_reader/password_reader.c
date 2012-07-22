@@ -119,9 +119,9 @@ static char *read_password(char *prompt, char *buffer, size_t length)
 
 VALUE rb_cPasswordReader;
 
-#if defined(RSTRING_PTR)
+#if defined(RSTRING_PTR)           /* Ruby 1.9.x */
 #define rstring_ptr RSTRING_PTR
-#elif defined(StringValuePtr)
+#elif defined(StringValuePtr)      /* Ruby 1.8.x */
 #define rstring_ptr StringValuePtr
 #endif
 
@@ -139,9 +139,28 @@ static VALUE rb_read_password(VALUE klass, VALUE prompt)
   return ret;
 }
 
+static VALUE rb_erase_string(VALUE klass, VALUE string)
+{
+  char *s;
+
+  switch (TYPE(string)) {
+
+  case T_STRING:
+    s = rstring_ptr(string);
+    bzero(s, strlen(s));
+    break;
+
+  default:
+    rb_raise(rb_eArgError, "the parameter must be a String");
+  }
+
+  return string;
+}
+
 void Init_password_reader(void)
 {
   rb_cPasswordReader = rb_define_class("PasswordReader", rb_cObject);
   rb_define_singleton_method(rb_cPasswordReader, "read_password", rb_read_password, 1);
+  rb_define_singleton_method(rb_cPasswordReader, "erase_string", rb_erase_string, 1);
 }
 
