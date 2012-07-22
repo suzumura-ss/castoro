@@ -548,20 +548,48 @@ module Castoro
 
       class Wakeup < HostnameOriented
         include PasswordProtected
+        include ConfirmationNeeded
 
-        def run
+        def pre_check
+          0 <= @x.size or raise Failure::NoPeerSpecified, "No peer is specified."
+
           do_ps_and_print
           SignalHandler.check
+          do_status_and_print
+          SignalHandler.check
 
+          title "Diagnotice"
           if @x.alive?
-            puts "The deamons on the peer have already started."
-            return
+            puts "All deamon processes in the specified peers are already running."
+          else
+            puts "No or some deamon processes in the specified peers are not running."
           end
 
+          puts ""
+
+          title "Planning"
+          if @x.alive?
+            puts "Nothing is needed."
+            return false
+          else
+            @x.print_plan_for_start
+          end
+
+          true
+        end
+
+
+        def run
           do_start_daemons
           SignalHandler.check
           sleep 2
+        end
+
+        def post_check
           do_ps_and_print
+          SignalHandler.check
+          do_status_and_print
+          SignalHandler.check
           @x.verify_start
         end
       end
