@@ -29,6 +29,17 @@ module Castoro
   module Peer
     
     module SubCommand
+      module PasswordProtected
+        def authenticate
+          unless Password.instance.empty?
+            puts ""
+            puts "This subcommand is password protected."
+            Password.instance.authenticate
+          end
+        end
+      end
+
+
       module PsModule
         def do_ps
           dispatch { @x.do_ps }
@@ -171,6 +182,28 @@ module Castoro
 
         def title message
           puts "[ #{Time.new.to_s}  #{message} ]"
+        end
+
+        def confirm_if_the_plan_is_approved
+          loop do
+            print "Is that OK?  [ YES / no ] "
+            x = gets
+            SignalHandler.check
+            case x.chomp
+
+            when 'YES'
+              puts 'Thank you. Your answer is YES.  Proceeding...'
+              return true
+
+            when 'no'
+              puts 'Thank you. Your answer is no.  Quiting...'
+              return false
+
+            else
+              puts "Please answer YES or no."
+              puts ""
+            end
+          end
         end
 
         def dispatch &block
@@ -342,8 +375,8 @@ module Castoro
             end
           end
             
-          if @groups.size == 0 && @hosts.size == 0
-            Configurations::Peer.instance.StorageGroups.each do |name, hosts|
+          if @groups.size == 0 && @hosts.size == 0  
+          Configurations::Peer.instance.StorageGroups.each do |name, hosts|
               printf "  %s = %s\n", name, hosts.join(' ')
             end
           end
@@ -373,14 +406,55 @@ module Castoro
 
 
       class Gstart < GroupnameOriented
-        def run
+        include PasswordProtected
+
+        def pre_check
           if 0 == @x.size
             raise Failure::NoGroupSpecified, "No peer group is specified."
           end
 
           do_ps_and_print
           SignalHandler.check
+          do_status_and_print
+          SignalHandler.check
 
+          title "Diagnotice"
+          if @x.alive?
+            puts "All deamon processes in the specified groups are already running."
+          else
+            puts "Some deamon processes in the specified groups are not running."
+          end
+
+          if @x.mode == 30
+            puts "All deamon processes in the specified groups are already online."
+          else
+            puts "Some deamon processes in the specified groups are not online."
+          end
+          puts ""
+
+          title "Planning"
+          if @x.alive? && @x.mode == 30
+            puts "Nothing is needed."
+            return false
+
+          else
+            unless @x.alive?
+              @x.print_plan_of_start
+            end
+
+            unless @x.mode == 30
+              @x.print_plan_of_ascend_the_mode_to 30
+            end
+
+            puts "The above plans are about to be carried out."
+            puts ""
+
+          end
+
+          confirm_if_the_plan_is_approved
+        end
+
+        def run
           unless @x.alive?
             do_start_daemons       ; sleep 2
             do_ps_and_print
@@ -401,19 +475,24 @@ module Castoro
 
             turn_autopilot_on      ; sleep 2
           end
+        end
 
+        def post_check
           do_ps_and_print
           do_status_and_print
           @x.verify_mode 30
           sleep 2
 
           do_status_and_print
+          @x.verify_alive
           @x.verify_mode 30
         end
       end
 
 
       class Start < TargethostOriented
+        include PasswordProtected
+
         def run
           do_ps_and_print
           SignalHandler.check
@@ -467,6 +546,8 @@ module Castoro
 
 
       class Wakeup < HostnameOriented
+        include PasswordProtected
+
         def run
           do_ps_and_print
           SignalHandler.check
@@ -486,6 +567,8 @@ module Castoro
 
 
       class Stop < TargethostOriented
+        include PasswordProtected
+
         def run
           do_ps_and_print
           do_status_and_print
@@ -550,6 +633,8 @@ module Castoro
       end
 
       class Gstop < GroupnameOriented
+        include PasswordProtected
+
         def run
           if 0 == @x.size
             raise Failure::NoGroupSpecified, "No peer group is specified."
@@ -577,6 +662,8 @@ module Castoro
 
 
       class Kill < HostnameOriented
+        include PasswordProtected
+
         def run
           do_ps_and_print
           do_status_and_print

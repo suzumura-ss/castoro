@@ -66,7 +66,7 @@ module Castoro
         m = Configurations::Pgctl.instance.pgctl_password_attemptlimit
 
         loop do
-          x = read_password "Password: "
+          x = read_password "pgctl Password: "
           @pw.verify( x ) and return true
           n = n + 1
           n < m or raise AuthenticationError, "Password does not match. Authentication failed."

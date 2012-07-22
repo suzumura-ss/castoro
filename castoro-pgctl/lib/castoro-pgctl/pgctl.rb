@@ -202,15 +202,24 @@ EOT
         Configurations::Pgctl.instance
         Configurations::Peer.instance
 
-        command.run
-        SignalHandler.final_check
-        puts "\nSucceeded:\n #{@program_name} #{args}"
+        x = true
+        x = command.pre_check if command.respond_to? :pre_check
+        if x
+          command.authenticate if command.respond_to? :authenticate
+          command.run
+          SignalHandler.final_check
+          command.post_check if command.respond_to? :post_check
+          puts "\nSucceeded:\n #{@program_name} #{args}"
+        else
+          puts "\nDid nothing:\n #{@program_name} #{args}"
+          Process.exit 2
+        end
       rescue Failure::Base => e
         puts "\nOne or more errors occurred:"
         m = e.message.gsub( %r/\n/, "\n " )
         puts " #{m}"
         puts "\nFailed:\n #{@program_name} #{args}"
-        Process.exit 2
+        Process.exit 3
       end
     end
 

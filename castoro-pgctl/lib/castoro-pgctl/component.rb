@@ -73,11 +73,13 @@ module Castoro
 
       def work_on_every_component linefeed = false, &block
         @entries.each do |h, c|  # hostname, components
+          n = 0
           c.each do |x|  # proxy object
             t = x.target   # component type
-            yield h, t, x  # hostname, component type, proxy object
+            r = yield h, t, x  # hostname, component type, proxy object
+            n = n + 1 if not r.nil? and r
           end
-          puts '' if linefeed
+          puts '' if linefeed && 0 < n
         end
       end
 
@@ -130,6 +132,7 @@ module Castoro
               print_ps_printf h, t, '(unknown error occured)'
             end
           end
+          true
         end
       end
 
@@ -157,12 +160,26 @@ module Castoro
         end
       end
 
+      def print_plan_of_start
+        f = "%-14s%-14s%s\n"  # format
+        printf f, 'HOSTNAME', 'DAEMON', 'PLANS'
+        work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
+          if x.flag = ( x.ps.alive == false )
+            printf f, h, t, "The daemon process will be started."
+            true
+          else
+            false
+          end
+        end
+      end
+
       def print_start
         f = "%-14s%-14s%s\n"  # format
         printf f, 'HOSTNAME', 'DAEMON', 'RESULTS'
         work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
           m = x.flag ? ( x.start.exception || x.start.error || x.start.message ) : '(Did nothing because the daemon process is running.)'
           printf f, h, t, m
+          true
         end
       end
 
@@ -202,6 +219,7 @@ module Castoro
         work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
           m = x.flag ? ( x.stop.exception || x.stop.error || x.stop.message ) : '(Did nothing because the daemon process has stopped.)'
           printf f, h, t, m
+          true
         end
       end
 
@@ -247,6 +265,7 @@ module Castoro
               print_status_printf h, t, r, m, a, d
             end
           end
+          true
         end
       end
 
@@ -266,12 +285,33 @@ module Castoro
           else
             printf f, h, t, x.mode.message
           end
+          true
         end
       end
 
       def ascend_mode mode
         work_on_every_component_simple do |x|  # proxy object
           x.ascend_mode mode
+        end
+      end
+
+      def print_plan_of_ascend_the_mode_to mode
+        f = "%-14s%-14s%s\n"  # format
+        printf f, 'HOSTNAME', 'DAEMON', 'PLANS'
+        work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
+          unless t == :manipulatord
+            s = x.status
+            m = s.mode ? ServerStatus.status_code_to_s( s.mode ) : 'unknown'
+            n = ServerStatus.status_code_to_s( mode )
+            unless m == n
+              printf f, h, t, "The mode will be raised from #{m} to #{n}."
+              true
+            else
+              false
+            end
+          else
+            false
+          end
         end
       end
 
@@ -339,6 +379,7 @@ module Castoro
           else
             printf f, h, t, x.auto.message
           end
+          true
         end
       end
 
