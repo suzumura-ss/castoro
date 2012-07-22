@@ -1,8 +1,22 @@
+=== 0.0.3 2012-07-23
+* Renamed castoro-groupctl with castoro-pgctl; groupctl with pgctl
+* Added a feature to interprete /etc/castoro/peer.conf of both castoro-1 and 2
+* Renamed sub-commands: startall with gstart; stopall with gstop
+* Renamed sub-commands: start with enable; stop with disable
+* Added sub-commands: list, passwd, start, and stop
+* Developed an extension password_reader.so
+* Added a password authentication functionality
+* Added password protection and confirmation for critical subcommands
+* Made it secure by erasing data which stores a typed password
+* Dealing with the remains of PID file produced by the castoro-manipulator
+* Wordaround for a problem that Singleton seems not multithread-safe
+* Moved a version number from Rakefile to lib/castoro-pgctl/version.rb
+* Added a dummy spec
+
 === 0.0.2 2012-05-31
 * Implemented error check
 * Handling a Ctrl-C
 * Refactored class relationship
 
 === 0.0.1.pre1 2012-04-26
-
 * The initial, preliminary release
