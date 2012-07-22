@@ -72,8 +72,8 @@ module Castoro
 
    enable     starts daemon processes of the only target peer host
    disable    stops  daemon processes of the only target peer host
-   wakeup     starts daemon processes of the specified peer host, but does nothing further
-   kill       stops  daemon processes of the specified peer host by force without any check
+   start      starts daemon processes of the specified peer host and leave them offline
+   stop       stops  daemon processes of the specified peer host by force without any check
 
    passwd     sets a password for the critical sub commands
 
@@ -110,10 +110,10 @@ module Castoro
    #{x} gstart G00
         starts peer01 peer02, and peer03, and then turn them online.
 
-   #{x} wakeup peer01
+   #{x} start peer01
         starts peer01, and then leave it offline.
 
-   #{x} kill peer01
+   #{x} stop peer01
         stops peer01 by force without any check
 
    #{x} passwd
@@ -175,8 +175,8 @@ EOT
         when 'gstop'    ; SubCommand::Gstop.new
         when 'enable'   ; SubCommand::Enable.new
         when 'disable'  ; SubCommand::Disable.new
-        when 'wakeup'   ; SubCommand::Wakeup.new
-        when 'kill'     ; SubCommand::Kill.new
+        when 'start'    ; SubCommand::Start.new
+        when 'stop'     ; SubCommand::Stop.new
         when 'passwd'   ; SubCommand::Passwd.new
         else
           raise CommandLineArgumentError, "Unknown sub-command: #{x}"

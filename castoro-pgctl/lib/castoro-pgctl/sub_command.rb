@@ -594,7 +594,7 @@ module Castoro
       end
 
 
-      class Wakeup < HostnameOriented
+      class Start < HostnameOriented
         include PasswordProtected
         include ConfirmationNeeded
 
@@ -803,7 +803,7 @@ module Castoro
       end
 
 
-      class Kill < HostnameOriented
+      class Stop < HostnameOriented
         include PasswordProtected
         include ConfirmationNeeded
 
