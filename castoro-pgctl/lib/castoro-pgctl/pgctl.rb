@@ -44,93 +44,96 @@ module Castoro
 
       def initialize
         @program_name = $0.sub( %r{.*/}, '' )  # name of this command
+        @program_name = $0.sub( %r{\.rb\Z}, '' )
       end
 
       def usage
         x = @program_name
-        puts "usage: #{x} [global options] sub-command [host name|group name]..."
-        puts ""
-        puts "  global options:"
-        puts "   -h, --help     prints this help message and exit."
-        puts "   -d, --debug    this command runs with debug messages being printed."
-        puts "   -V, --version  shows a version number of this command."
-        puts "   -c file, --configuration-file=file  specifies a configuration file of pgctl."
-        puts "                  default: #{Configurations::Pgctl::DEFAULT_FILE}"
-        puts "   -p file, --peer-configuration-file=file  specifies a configuration file of peer."
-        puts "                  default: #{Configurations::Peer::DEFAULT_FILE}"
-        puts ""
-        puts "  sub commands:"
-        puts "   list       lists peer groups"
-        puts "   ps         lists the deamon processes in a 'ps -ef' format"
-        puts "   status     shows the status of the deamon processes on the every host"
-        puts ""
-        puts "   g-daemon-up    starts deamon processes of every host in the specified peer group"
-        puts "   g-daemon-down  stops  daemon processes of every host in the specified peer group"
-        puts ""
-        puts "   start      starts daemon processes of the only target peer host"
-        puts "   stop       stops  daemon processes of the only target peer host"
-        puts "   wakeup     starts daemon processes of the specified peer host, but does nothing further"
-        puts "   kill       stops  daemon processes of the specified peer host by force without any check"
-        puts ""
-        puts "   passwd     sets a password for the critical sub commands"
-        puts ""
-        puts " examples:"
-        puts "   #{x} list"
-        puts "        shows a list of peer groups"
-        puts "       e.g. \"#{x} list G00\" shows:"
-        puts "            G00 = peer01 peer02 peer03"
-        puts ""
-        puts "   #{x} ps peer01"
-        puts "        shows the daemon processes of peer01."
-        puts ""
-        puts "   #{x} ps G00"
-        puts "        shows the daemon processes of peer01, peer02, and peer03."
-        puts ""
-        puts "   #{x} status peer01 peer02"
-        puts "        shows the status of peer01 and peer02."
-        puts ""
-        puts "   #{x} status G00"
-        puts "        shows the status of peer01, peer02, and peer03."
-        puts ""
-        puts "   #{x} stop peer01"
-        puts "        turns peer01, peer02, and peer03 readonly,"
-        puts "        and then stops peer01."
-        puts ""
-        puts "   #{x} start peer01"
-        puts "        if peer01 has stopped, starts it, and then"
-        puts "        turns peer01, peer02, and peer03 online."
-        puts "        Both peer02 and peer03 have to be running."
-        puts ""
-        puts "   #{x} g-daemon-down G00"
-        puts "        gracefully stops peer01 peer02, and peer03."
-        puts ""
-        puts "   #{x} g-daemon-up G00"
-        puts "        starts peer01 peer02, and peer03, and then turn them online."
-        puts ""
-        puts "   #{x} wakeup peer01"
-        puts "        starts peer01, and then leave it offline."
-        puts ""
-        puts "   #{x} kill peer01"
-        puts "        stops peer01 by force without any check"
-        puts ""
-        puts "   #{x} passwd"
-        puts "        To set a new password:"
-        puts "          Setting a password of the command pgctl."
-        puts "          New pgctl password: "
-        puts "          Retype new pgctl password: "
-        puts "        "
-        puts "        To change a password:"
-        puts "          Changing a password of the command pgctl."
-        puts "          (current) pgctl password: "
-        puts "          New pgctl password: "
-        puts "          Retype new pgctl password: "
-        puts "        "
-        puts "        To empty a password:"
-        puts "          Changing a password of the command pgctl."
-        puts "          (current) pgctl password: "
-        puts "          New pgctl password: (just hit an enter key)"
-        puts "          Retype new pgctl password: (just hit an enter key)"
-        puts ""
+        puts <<-EOT
+usage: #{x} [global options] sub-command [host name|group name]...
+
+  global options:
+   -h, --help     prints this help message and exit.
+   -d, --debug    this command runs with debug messages being printed.
+   -V, --version  shows a version number of this command.
+   -c file, --configuration-file=file  specifies a configuration file of pgctl.
+                  default: #{Configurations::Pgctl::DEFAULT_FILE}
+   -p file, --peer-configuration-file=file  specifies a configuration file of peer.
+                  default: #{Configurations::Peer::DEFAULT_FILE}
+
+  sub commands:
+   list       lists peer groups
+   ps         lists the deamon processes in a 'ps -ef' format
+   status     shows the status of the deamon processes on the every host
+
+   g-daemon-up    starts deamon processes of every host in the specified peer group
+   g-daemon-down  stops  daemon processes of every host in the specified peer group
+
+   start      starts daemon processes of the only target peer host
+   stop       stops  daemon processes of the only target peer host
+   wakeup     starts daemon processes of the specified peer host, but does nothing further
+   kill       stops  daemon processes of the specified peer host by force without any check
+
+   passwd     sets a password for the critical sub commands
+
+ examples:
+   #{x} list
+        shows a list of peer groups
+       e.g. \"#{x} list G00\" shows:
+            G00 = peer01 peer02 peer03
+
+   #{x} ps peer01
+        shows the daemon processes of peer01.
+
+   #{x} ps G00
+        shows the daemon processes of peer01, peer02, and peer03.
+
+   #{x} status peer01 peer02
+        shows the status of peer01 and peer02.
+
+   #{x} status G00
+        shows the status of peer01, peer02, and peer03.
+
+   #{x} stop peer01
+        turns peer01, peer02, and peer03 readonly,
+        and then stops peer01.
+
+   #{x} start peer01
+        if peer01 has stopped, starts it, and then
+        turns peer01, peer02, and peer03 online.
+        Both peer02 and peer03 have to be running.
+
+   #{x} g-daemon-down G00
+        gracefully stops peer01 peer02, and peer03.
+
+   #{x} g-daemon-up G00
+        starts peer01 peer02, and peer03, and then turn them online.
+
+   #{x} wakeup peer01
+        starts peer01, and then leave it offline.
+
+   #{x} kill peer01
+        stops peer01 by force without any check
+
+   #{x} passwd
+        To set a new password:
+          Setting a password of the command pgctl.
+          New pgctl password: 
+          Retype new pgctl password: 
+        
+        To change a password:
+          Changing a password of the command pgctl.
+          (current) pgctl password: 
+          New pgctl password: 
+          Retype new pgctl password: 
+        
+        To empty a password:
+          Changing a password of the command pgctl.
+          (current) pgctl password: 
+          New pgctl password: (just hit an enter key)
+          Retype new pgctl password: (just hit an enter key)
+
+EOT
       end
 
       def parse_options
