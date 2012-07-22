@@ -38,10 +38,12 @@ module Castoro
       end
 
       def change
-        puts "Changing password for the command pgctl."
         @pw.changable?
 
-        unless @pw.empty?
+        if @pw.empty?
+          puts "Setting a password of the command pgctl."
+        else
+          puts "Changing a password of the command pgctl."
           x = read_password "(current) pgctl password: "
           @pw.verify( x ) or raise AuthenticationError, "Password does not match. Authentication failed."
         end
