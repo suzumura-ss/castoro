@@ -682,21 +682,44 @@ module Castoro
 
       class Kill < HostnameOriented
         include PasswordProtected
+        include ConfirmationNeeded
 
-        def run
+        def pre_check
+          0 <= @x.size or raise Failure::NoPeerSpecified, "No peer is specified."
+
           do_ps_and_print
+          SignalHandler.check
           do_status_and_print
           SignalHandler.check
 
-          if false == @x.alive?
-            puts "The deamons on the peer have already stopped."
-            return
-          end
+          title "Diagnotice"
 
+          if false == @x.alive?  # alive? could be true, false, or nil for unknown
+            puts "All deamon processes in the specified peers have already stopped."
+          else
+            puts "Some or all deamon processes in the specified peers are still running."
+          end
+            
+          puts ""
+
+          title "Planning"
+          if false == @x.alive?
+            puts "Nothing is needed."
+            return false
+
+          else
+            @x.print_plan_for_stop
+          end
+        end
+
+
+        def run
           do_stop_deamons
           SignalHandler.check
           sleep 2
+        end
 
+        def post_check
           do_ps_and_print
           do_status_and_print
           @x.verify_stop

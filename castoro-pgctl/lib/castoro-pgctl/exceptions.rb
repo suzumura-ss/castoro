@@ -54,6 +54,7 @@ module Castoro
       class Auto  < Base ; end
       class Alive < Base ; end
       class NoGroupSpecified < Base ; end
+      class NoPeerSpecified < Base ; end
       class OtherHostsNotRunning < Base ; end
     end
     class AuthenticationError < Failure::Base ; end
