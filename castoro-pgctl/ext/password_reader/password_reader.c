@@ -129,12 +129,14 @@ static VALUE rb_read_password(VALUE klass, VALUE prompt)
 {
   char buffer[256];
   char *str;
+  VALUE ret;
   
   if ((str = read_password(rstring_ptr(prompt), buffer, sizeof(buffer))) == NULL) {
-    rb_raise(rb_eArgError, "NULL pointer given");
+    rb_raise(rb_eRuntimeError, "Something goes wrong in PasswordReader.read_password");
   }
-
-  return rb_str_new(str, strlen(str));
+  ret = rb_str_new(str, strlen(str));
+  bzero(buffer, sizeof(buffer));  /* make it secure by erasing data in the buffer */
+  return ret;
 }
 
 void Init_password_reader(void)
