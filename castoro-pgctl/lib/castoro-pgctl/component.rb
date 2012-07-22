@@ -118,7 +118,7 @@ module Castoro
         print_ps_printf 'HOSTNAME', 'DAEMON', obtain_ps_header
         work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
           if ( e = x.ps.exception || x.ps.error )
-            print_ps_printf f, h, t, e
+            print_ps_printf h, t, e
           else
             if x.ps.stdout
               if 0 < x.ps.stdout.size
