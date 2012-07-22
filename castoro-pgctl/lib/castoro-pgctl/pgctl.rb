@@ -43,7 +43,6 @@ module Castoro
 
       def initialize
         @program_name = $0.sub( %r{.*/}, '' )  # name of this command
-        @program_name = $0.sub( %r{\.rb\Z}, '' )
       end
 
       def usage
@@ -189,7 +188,7 @@ EOT
       def parse
         parse_options
         parse_sub_command
-      rescue CommandLineArgumentError => e
+      rescue CommandLineArgumentError, GetoptLong::InvalidOption => e
         STDERR.puts "#{@program_name}: #{e.message}"
         puts ""
         puts "Use \"#{@program_name} -h\" to see the help messages"
