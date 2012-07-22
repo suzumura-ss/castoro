@@ -70,8 +70,8 @@ module Castoro
    gstart     starts deamon processes of every host in the specified peer group
    gstop      stops  daemon processes of every host in the specified peer group
 
-   start      starts daemon processes of the only target peer host
-   stop       stops  daemon processes of the only target peer host
+   enable     starts daemon processes of the only target peer host
+   disable    stops  daemon processes of the only target peer host
    wakeup     starts daemon processes of the specified peer host, but does nothing further
    kill       stops  daemon processes of the specified peer host by force without any check
 
@@ -95,11 +95,11 @@ module Castoro
    #{x} status G00
         shows the status of peer01, peer02, and peer03.
 
-   #{x} stop peer01
+   #{x} disable peer01
         turns peer01, peer02, and peer03 readonly,
         and then stops peer01.
 
-   #{x} start peer01
+   #{x} enable peer01
         if peer01 has stopped, starts it, and then
         turns peer01, peer02, and peer03 online.
         Both peer02 and peer03 have to be running.
@@ -173,8 +173,8 @@ EOT
         when 'status'   ; SubCommand::Status.new
         when 'gstart'   ; SubCommand::Gstart.new
         when 'gstop'    ; SubCommand::Gstop.new
-        when 'start'    ; SubCommand::Start.new
-        when 'stop'     ; SubCommand::Stop.new
+        when 'enable'   ; SubCommand::Enable.new
+        when 'disable'  ; SubCommand::Disable.new
         when 'wakeup'   ; SubCommand::Wakeup.new
         when 'kill'     ; SubCommand::Kill.new
         when 'passwd'   ; SubCommand::Passwd.new

@@ -491,7 +491,7 @@ module Castoro
       end
 
 
-      class Start < TargethostOriented
+      class Enable < TargethostOriented
         include PasswordProtected
         include ConfirmationNeeded
 
@@ -643,7 +643,7 @@ module Castoro
       end
 
 
-      class Stop < TargethostOriented
+      class Disable < TargethostOriented
         include PasswordProtected
         include ConfirmationNeeded
 
