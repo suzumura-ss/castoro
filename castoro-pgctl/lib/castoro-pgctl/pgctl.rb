@@ -67,8 +67,8 @@ module Castoro
    ps         lists the deamon processes in a 'ps -ef' format
    status     shows the status of the deamon processes on the every host
 
-   g-daemon-up    starts deamon processes of every host in the specified peer group
-   g-daemon-down  stops  daemon processes of every host in the specified peer group
+   gstart     starts deamon processes of every host in the specified peer group
+   gstop      stops  daemon processes of every host in the specified peer group
 
    start      starts daemon processes of the only target peer host
    stop       stops  daemon processes of the only target peer host
@@ -104,10 +104,10 @@ module Castoro
         turns peer01, peer02, and peer03 online.
         Both peer02 and peer03 have to be running.
 
-   #{x} g-daemon-down G00
+   #{x} gstop G00
         gracefully stops peer01 peer02, and peer03.
 
-   #{x} g-daemon-up G00
+   #{x} gstart G00
         starts peer01 peer02, and peer03, and then turn them online.
 
    #{x} wakeup peer01
@@ -171,8 +171,8 @@ EOT
         when 'list'     ; SubCommand::List.new
         when 'ps'       ; SubCommand::Ps.new
         when 'status'   ; SubCommand::Status.new
-        when 'g-daemon-up'     ; SubCommand::Gstart.new
-        when 'g-daemon-down'   ; SubCommand::Gstop.new
+        when 'gstart'   ; SubCommand::Gstart.new
+        when 'gstop'    ; SubCommand::Gstop.new
         when 'start'    ; SubCommand::Start.new
         when 'stop'     ; SubCommand::Stop.new
         when 'wakeup'   ; SubCommand::Wakeup.new
