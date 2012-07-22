@@ -6,1026 +6,1494 @@ h2. Installation
 
 <pre>
 gem uninstall castoro-pgctl
-gem install --no-rdoc --no-ri castoro-pgctl-0.0.2.gem
-cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.2/etc/init.d
+
+gem install --no-rdoc --no-ri castoro-pgctl-0.0.3.gem
+cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/etc/init.d
 make install
-cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.2/etc/castoro
+
+cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/etc/castoro
 cp pgctl.conf-sample-ja.conf /etc/castoro/pgctl.conf
 vi /etc/castoro/pgctl.conf
-/etc/init.d/cstartd start
-/etc/init.d/cagentd start
+
+/etc/init.d/cstartd start ; /etc/init.d/cagentd start
+</pre>
+
+
+h2. Help Messages
+
+<pre>
+$ pgctl -h
+pgctl - Castoro Peer Group Control command - Version 0.0.3"
+
+ usage: pgctl [global options] subcommand [hostname|groupname]...
+
+  global options:
+   -h, --help     prints this help message and exit.
+   -d, --debug    this command runs with debug messages being printed.
+   -V, --version  shows a version number of this command.
+   -c file, --configuration-file=file  specifies a configuration file of pgctl.
+                  default: /etc/castoro/pgctl.conf
+   -p file, --peer-configuration-file=file  specifies a configuration file of peer.
+                  default: /etc/castoro/peer.conf
+
+  subcommands:
+   pgctl [global options]  list|passwd
+   pgctl [global options]  list|ps|status  hostname|groupname...
+    list     lists peer groups
+    ps       lists the deamon processes in a 'ps -ef' format
+    status   shows the status of the deamon processes on the every host
+    passwd   sets a password for the critical sub commands
+
+   pgctl [global options]  gstart|gstop  groupname...
+    gstart   starts deamon processes of every host in the specified peer group
+    gstop    stops  daemon processes of every host in the specified peer group
+
+   pgctl [global options]  enable|disable|start|stop  hostname...
+    enable   starts daemon processes of the only target peer host
+    disable  stops  daemon processes of the only target peer host
+    start    starts daemon processes of the specified peer host and leave them offline
+    stop     stops  daemon processes of the specified peer host by force without any check
+
+ examples:
+   pgctl list
+        shows a list of peer groups
+       e.g. "pgctl list G00" shows:
+            G00 = peer101 peer102 peer103
+
+   pgctl passwd
+        To set a new password:
+          Setting a password of the command pgctl.
+          New pgctl password: xxxxx 
+          Retype new pgctl password: xxxxx
+        
+        To change a password:
+          Changing a password of the command pgctl.
+          (current) pgctl password: xxxxx
+          New pgctl password: yyyyy
+          Retype new pgctl password: yyyyy
+        
+        To empty a password:
+          Changing a password of the command pgctl.
+          (current) pgctl password: yyyyy
+          New pgctl password: (just hit the enter key)
+          Retype new pgctl password: (just hit the enter key again)
+
+   pgctl ps peer101
+        shows the daemon processes of peer101.
+
+   pgctl ps G00
+        shows the daemon processes of peer101, peer102, and peer103.
+
+   pgctl status peer101 peer102
+        shows the status of peer101 and peer102.
+
+   pgctl status G00
+        shows the status of peer101, peer102, and peer103.
+
+   pgctl disable peer101
+        turns peer101, peer102, and peer103 readonly,
+        and then stops peer101.
+
+   pgctl enable peer101
+        if peer101 has stopped, starts it, and then
+        turns peer101, peer102, and peer103 online.
+        Both peer102 and peer103 have to be running.
+
+   pgctl gstop G00
+        gracefully stops peer101 peer102, and peer103.
+
+   pgctl gstart G00
+        starts peer101 peer102, and peer103, and then turn them online.
+
+   pgctl start peer101
+        starts peer101, and then leave it offline.
+
+   pgctl stop peer101
+        stops peer101 by force without any check
+
 </pre>
 
 
 h2. User Scenarios
 
-h3. Starting every peer of the peer group
+h3. Listing Peer Groups
 
 <pre>
-pgctl startall peer000 peer001 peer002
-[ 2012-05-31 17:28:04 +0900  Daemon processes ]
-HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
-peer000       cmond         
-peer000       cpeerd        
-peer000       crepd         
-peer000       manipulatord  
-
-peer001       cmond         
-peer001       cpeerd        
-peer001       crepd         
-peer001       manipulatord  
-
-peer002       cmond         
-peer002       cpeerd        
-peer002       crepd         
-peer002       manipulatord  
-
-[ 2012-05-31 17:28:05 +0900  Starting daemons ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         status=0 Starting cmond ... OK 
-peer000       cpeerd        status=0 2012-05-31T17:28:08+09:00.530745 peer000 NOTICE Loading configration file: /etc/castoro/peer.conf Starting cpeerd ... OK 
-peer000       crepd         status=0 2012-05-31T17:28:07+09:00.351909 peer000 NOTICE Loading configration file: /etc/castoro/peer.conf Starting crepd ... OK 
-peer000       manipulatord  status=0 Start Castoro-Manipulator ... *** Starting Castoro::Manipulator daemon... *** done.
-
-peer001       cmond         status=0 Starting cmond ... OK Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
-peer001       cpeerd        status=0 2012-05-31T17:28:08+09:00.477060 peer001 NOTICE Loading configration file: /etc/castoro/peer.conf Starting cpeerd ... OK Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
-peer001       crepd         status=0 2012-05-31T17:28:08+09:00.468757 peer001 NOTICE Loading configration file: /etc/castoro/peer.conf Starting crepd ... OK Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
-peer001       manipulatord  status=0 Start Castoro-Manipulator ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z" *** Starting Castoro::Manipulator daemon... *** done.
-
-peer002       cmond         status=0 Starting cmond ... OK Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
-peer002       cpeerd        status=0 2012-05-31T17:28:08+09:00.304384 peer002 NOTICE Loading configration file: /etc/castoro/peer.conf Starting cpeerd ... OK Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
-peer002       crepd         status=0 2012-05-31T17:28:07+09:00.017187 peer002 NOTICE Loading configration file: /etc/castoro/peer.conf Starting crepd ... OK Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
-peer002       manipulatord  status=0 Start Castoro-Manipulator ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z" *** Starting Castoro::Manipulator daemon... *** done.
-
-[ 2012-05-31 17:28:12 +0900  Daemon processes ]
-HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
-peer000       cmond            quanp 16107  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer000       cpeerd           quanp 16117  4604   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer000       crepd            quanp 16098  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer000       manipulatord      root 16096  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer001       cmond            quanp 16101 11545   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer001       cpeerd           quanp 16119 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer001       crepd            quanp 16115 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer001       manipulatord      root 16094 11545   0 17:28:07 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer002       cmond            quanp 16114 11970   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer002       cpeerd           quanp 16108 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer002       crepd            quanp 16103 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer002       manipulatord      root 16100 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-[ 2012-05-31 17:28:15 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       10 offline    auto          off           
-peer000       cpeerd        running       10 offline    auto          off           
-peer000       crepd         running       10 offline    auto          off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       10 offline    auto          off           
-peer001       cpeerd        running       10 offline    auto          off           
-peer001       crepd         running       10 offline    auto          off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       10 offline    auto          off           
-peer002       cpeerd        running       10 offline    auto          off           
-peer002       crepd         running       10 offline    auto          off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:28:16 +0900  Turning the autopilot off ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Autopilot has changed from auto to off
-peer000       cpeerd        Autopilot has changed from auto to off
-peer000       crepd         Autopilot has changed from auto to off
-peer000       manipulatord  
-
-peer001       cmond         Autopilot has changed from auto to off
-peer001       cpeerd        Autopilot has changed from auto to off
-peer001       crepd         Autopilot has changed from auto to off
-peer001       manipulatord  
-
-peer002       cmond         Autopilot has changed from auto to off
-peer002       cpeerd        Autopilot has changed from auto to off
-peer002       crepd         Autopilot has changed from auto to off
-peer002       manipulatord  
-
-[ 2012-05-31 17:28:18 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       10 offline    off           off           
-peer000       cpeerd        running       10 offline    off           off           
-peer000       crepd         running       10 offline    off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       10 offline    off           off           
-peer001       cpeerd        running       10 offline    off           off           
-peer001       crepd         running       10 offline    off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       10 offline    off           off           
-peer002       cpeerd        running       10 offline    off           off           
-peer002       crepd         running       10 offline    off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:28:21 +0900  Ascending the mode to 30 online ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Mode has changed from 10 offline to 30 online
-peer000       cpeerd        Mode has changed from 10 offline to 30 online
-peer000       crepd         Mode has changed from 10 offline to 30 online
-peer000       manipulatord  
-
-peer001       cmond         Mode has changed from 10 offline to 30 online
-peer001       cpeerd        Mode has changed from 10 offline to 30 online
-peer001       crepd         Mode has changed from 10 offline to 30 online
-peer001       manipulatord  
-
-peer002       cmond         Mode has changed from 10 offline to 30 online
-peer002       cpeerd        Mode has changed from 10 offline to 30 online
-peer002       crepd         Mode has changed from 10 offline to 30 online
-peer002       manipulatord  
-
-[ 2012-05-31 17:28:23 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       30 online     off           off           
-peer000       cpeerd        running       30 online     off           off           
-peer000       crepd         running       30 online     off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       30 online     off           off           
-peer001       cpeerd        running       30 online     off           off           
-peer001       crepd         running       30 online     off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       30 online     off           off           
-peer002       cpeerd        running       30 online     off           off           
-peer002       crepd         running       30 online     off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:28:25 +0900  Turning the autopilot auto ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Autopilot has changed from off to auto
-peer000       cpeerd        Autopilot has changed from off to auto
-peer000       crepd         Autopilot has changed from off to auto
-peer000       manipulatord  
-
-peer001       cmond         Autopilot has changed from off to auto
-peer001       cpeerd        Autopilot has changed from off to auto
-peer001       crepd         Autopilot has changed from off to auto
-peer001       manipulatord  
-
-peer002       cmond         Autopilot has changed from off to auto
-peer002       cpeerd        Autopilot has changed from off to auto
-peer002       crepd         Autopilot has changed from off to auto
-peer002       manipulatord  
-
-[ 2012-05-31 17:28:28 +0900  Daemon processes ]
-HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
-peer000       cmond            quanp 16107  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer000       cpeerd           quanp 16117  4604   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer000       crepd            quanp 16098  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer000       manipulatord      root 16096  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer001       cmond            quanp 16101 11545   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer001       cpeerd           quanp 16119 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer001       crepd            quanp 16115 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer001       manipulatord      root 16094 11545   0 17:28:07 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer002       cmond            quanp 16114 11970   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer002       cpeerd           quanp 16108 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer002       crepd            quanp 16103 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer002       manipulatord      root 16100 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-[ 2012-05-31 17:28:28 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       30 online     auto          off           
-peer000       cpeerd        running       30 online     auto          off           
-peer000       crepd         running       30 online     auto          off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       30 online     auto          off           
-peer001       cpeerd        running       30 online     auto          off           
-peer001       crepd         running       30 online     auto          off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       30 online     auto          off           
-peer002       cpeerd        running       30 online     auto          off           
-peer002       crepd         running       30 online     auto          off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:28:31 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       30 online     auto          off           
-peer000       cpeerd        running       30 online     auto          off           
-peer000       crepd         running       30 online     auto          off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       30 online     auto          off           
-peer001       cpeerd        running       30 online     auto          off           
-peer001       crepd         running       30 online     auto          off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       30 online     auto          off           
-peer002       cpeerd        running       30 online     auto          off           
-peer002       crepd         running       30 online     auto          off           
-peer002       manipulatord  running                                                 
-
+$ pgctl list
+[ 2012-07-22 20:10:42 +0900  Peer group list ]
+  G00 = peer100 peer101 peer102
+  G01 = peer103 peer104 peer105
+  G02 = peer106 peer107 peer108
 
 Succeeded:
- pgctl startall peer000 peer001 peer002
-
+ pgctl list
 </pre>
 
-h3. Getting ps command outputs
-
 <pre>
-$ pgctl ps peer000 peer001 peer002
-[ 2012-05-31 17:30:46 +0900  Daemon processes ]
-HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
-peer000       cmond            quanp 16107  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer000       cpeerd           quanp 16117  4604   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer000       crepd            quanp 16098  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer000       manipulatord      root 16096  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer001       cmond            quanp 16101 11545   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer001       cpeerd           quanp 16119 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer001       crepd            quanp 16115 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer001       manipulatord      root 16094 11545   0 17:28:07 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer002       cmond            quanp 16114 11970   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer002       cpeerd           quanp 16108 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer002       crepd            quanp 16103 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer002       manipulatord      root 16100 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
+$ pgctl list G01
+[ 2012-07-22 20:11:00 +0900  Peer group list ]
+  G01 = peer103 peer104 peer105
 
 Succeeded:
- pgctl ps peer000 peer001 peer002
-
+ pgctl list
 </pre>
 
-h3. Getting the status of peer group
-
 <pre>
-$ pgctl status peer000 peer001 peer002
-[ 2012-05-31 17:31:15 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       30 online     auto          off           
-peer000       cpeerd        running       30 online     auto          off           
-peer000       crepd         running       30 online     auto          off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       30 online     auto          off           
-peer001       cpeerd        running       30 online     auto          off           
-peer001       crepd         running       30 online     auto          off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       30 online     auto          off           
-peer002       cpeerd        running       30 online     auto          off           
-peer002       crepd         running       30 online     auto          off           
-peer002       manipulatord  running                                                 
-
+$ pgctl list peer108
+[ 2012-07-22 20:11:10 +0900  Peer group list ]
+  G02 = peer106 peer107 peer108
 
 Succeeded:
- pgctl status peer000 peer001 peer002
-
+ pgctl list
 </pre>
 
-h3. Stopping the only peer
+
+h3. Managing a Password
 
 <pre>
-$ pgctl stop peer000 peer001 peer002
-[ 2012-05-31 17:32:02 +0900  Daemon processes ]
-HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
-peer000       cmond            quanp 16107  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer000       cpeerd           quanp 16117  4604   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer000       crepd            quanp 16098  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer000       manipulatord      root 16096  4604   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer001       cmond            quanp 16101 11545   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer001       cpeerd           quanp 16119 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer001       crepd            quanp 16115 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer001       manipulatord      root 16094 11545   0 17:28:07 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer002       cmond            quanp 16114 11970   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer002       cpeerd           quanp 16108 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer002       crepd            quanp 16103 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer002       manipulatord      root 16100 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-[ 2012-05-31 17:32:03 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       30 online     auto          off           
-peer000       cpeerd        running       30 online     auto          off           
-peer000       crepd         running       30 online     auto          off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       30 online     auto          off           
-peer001       cpeerd        running       30 online     auto          off           
-peer001       crepd         running       30 online     auto          off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       30 online     auto          off           
-peer002       cpeerd        running       30 online     auto          off           
-peer002       crepd         running       30 online     auto          off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:32:04 +0900  Turning the autopilot off ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Autopilot has changed from auto to off
-peer000       cpeerd        Autopilot has changed from auto to off
-peer000       crepd         Autopilot has changed from auto to off
-peer000       manipulatord  
-
-peer001       cmond         Autopilot has changed from auto to off
-peer001       cpeerd        Autopilot has changed from auto to off
-peer001       crepd         Autopilot has changed from auto to off
-peer001       manipulatord  
-
-peer002       cmond         Autopilot has changed from auto to off
-peer002       cpeerd        Autopilot has changed from auto to off
-peer002       crepd         Autopilot has changed from auto to off
-peer002       manipulatord  
-
-[ 2012-05-31 17:32:06 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       30 online     off           off           
-peer000       cpeerd        running       30 online     off           off           
-peer000       crepd         running       30 online     off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       30 online     off           off           
-peer001       cpeerd        running       30 online     off           off           
-peer001       crepd         running       30 online     off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       30 online     off           off           
-peer002       cpeerd        running       30 online     off           off           
-peer002       crepd         running       30 online     off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:32:09 +0900  Descending the mode to 25 fin_rep ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Mode has changed from 30 online to 25 fin_rep
-peer000       cpeerd        Mode has changed from 30 online to 25 fin_rep
-peer000       crepd         Mode has changed from 30 online to 25 fin_rep
-peer000       manipulatord  
-
-peer001       cmond         Mode has changed from 30 online to 25 fin_rep
-peer001       cpeerd        Mode has changed from 30 online to 25 fin_rep
-peer001       crepd         Mode has changed from 30 online to 25 fin_rep
-peer001       manipulatord  
-
-peer002       cmond         Mode has changed from 30 online to 25 fin_rep
-peer002       cpeerd        Mode has changed from 30 online to 25 fin_rep
-peer002       crepd         Mode has changed from 30 online to 25 fin_rep
-peer002       manipulatord  
-
-[ 2012-05-31 17:32:11 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       25 fin_rep    off           off           
-peer000       cpeerd        running       25 fin_rep    off           off           
-peer000       crepd         running       25 fin_rep    off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       25 fin_rep    off           off           
-peer001       cpeerd        running       25 fin_rep    off           off           
-peer001       crepd         running       25 fin_rep    off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       25 fin_rep    off           off           
-peer002       cpeerd        running       25 fin_rep    off           off           
-peer002       crepd         running       25 fin_rep    off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:32:14 +0900  Descending the mode to 23 rep ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Mode has changed from 25 fin_rep to 23 rep
-peer000       cpeerd        Mode has changed from 25 fin_rep to 23 rep
-peer000       crepd         Mode has changed from 25 fin_rep to 23 rep
-peer000       manipulatord  
-
-peer001       cmond         Mode has changed from 25 fin_rep to 23 rep
-peer001       cpeerd        Mode has changed from 25 fin_rep to 23 rep
-peer001       crepd         Mode has changed from 25 fin_rep to 23 rep
-peer001       manipulatord  
-
-peer002       cmond         Mode has changed from 25 fin_rep to 23 rep
-peer002       cpeerd        Mode has changed from 25 fin_rep to 23 rep
-peer002       crepd         Mode has changed from 25 fin_rep to 23 rep
-peer002       manipulatord  
-
-[ 2012-05-31 17:32:16 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       23 rep        off           off           
-peer000       cpeerd        running       23 rep        off           off           
-peer000       crepd         running       23 rep        off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       23 rep        off           off           
-peer001       cpeerd        running       23 rep        off           off           
-peer001       crepd         running       23 rep        off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       23 rep        off           off           
-peer002       cpeerd        running       23 rep        off           off           
-peer002       crepd         running       23 rep        off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:32:19 +0900  Descending the mode to 20 readonly ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Mode has changed from 23 rep to 20 readonly
-peer000       cpeerd        Mode has changed from 23 rep to 20 readonly
-peer000       crepd         Mode has changed from 23 rep to 20 readonly
-peer000       manipulatord  
-
-peer001       cmond         Mode has changed from 23 rep to 20 readonly
-peer001       cpeerd        Mode has changed from 23 rep to 20 readonly
-peer001       crepd         Mode has changed from 23 rep to 20 readonly
-peer001       manipulatord  
-
-peer002       cmond         Mode has changed from 23 rep to 20 readonly
-peer002       cpeerd        Mode has changed from 23 rep to 20 readonly
-peer002       crepd         Mode has changed from 23 rep to 20 readonly
-peer002       manipulatord  
-
-[ 2012-05-31 17:32:21 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       20 readonly   off           off           
-peer000       cpeerd        running       20 readonly   off           off           
-peer000       crepd         running       20 readonly   off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       20 readonly   off           off           
-peer001       cpeerd        running       20 readonly   off           off           
-peer001       crepd         running       20 readonly   off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       20 readonly   off           off           
-peer002       cpeerd        running       20 readonly   off           off           
-peer002       crepd         running       20 readonly   off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:32:26 +0900  Descending the mode to 10 offline ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Mode has changed from 20 readonly to 10 offline
-peer000       cpeerd        Mode has changed from 20 readonly to 10 offline
-peer000       crepd         Mode has changed from 20 readonly to 10 offline
-peer000       manipulatord  
-
-[ 2012-05-31 17:32:26 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       10 offline    off           off           
-peer000       cpeerd        running       10 offline    off           off           
-peer000       crepd         running       10 offline    off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       20 readonly   off           off           
-peer001       cpeerd        running       20 readonly   off           off           
-peer001       crepd         running       20 readonly   off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       20 readonly   off           off           
-peer002       cpeerd        running       20 readonly   off           off           
-peer002       crepd         running       20 readonly   off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:32:29 +0900  Stopping the daemon ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         status=0 peer000 cmond is going to shutdown ... 
-peer000       cpeerd        status=0 peer000 cpeerd is going to shutdown ... 
-peer000       crepd         status=0 peer000 crepd is going to shutdown ... 
-peer000       manipulatord  status=0 Stop Castoro-Manipulator ... *** Stopping Castoro::Manipulator daemon... *** done.
-
-[ 2012-05-31 17:32:32 +0900  Daemon processes ]
-HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
-peer000       cmond         
-peer000       cpeerd        
-peer000       crepd         
-peer000       manipulatord  
-
-peer001       cmond            quanp 16101 11545   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer001       cpeerd           quanp 16119 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer001       crepd            quanp 16115 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer001       manipulatord      root 16094 11545   0 17:28:07 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer002       cmond            quanp 16114 11970   0 17:28:09 ?           0:01 /usr/local/bin/ruby /usr/local/bin/cmond
-peer002       cpeerd           quanp 16108 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer002       crepd            quanp 16103 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer002       manipulatord      root 16100 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-[ 2012-05-31 17:32:33 +0900  Turning the autopilot auto ]
-HOSTNAME      DAEMON        RESULTS
-peer001       cmond         Autopilot has changed from off to auto
-peer001       cpeerd        Autopilot has changed from off to auto
-peer001       crepd         Autopilot has changed from off to auto
-peer001       manipulatord  
-
-peer002       cmond         Autopilot has changed from off to auto
-peer002       cpeerd        Autopilot has changed from off to auto
-peer002       crepd         Autopilot has changed from off to auto
-peer002       manipulatord  
-
-[ 2012-05-31 17:32:35 +0900  Daemon processes ]
-HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
-peer000       cmond         
-peer000       cpeerd        
-peer000       crepd         
-peer000       manipulatord  
-
-peer001       cmond            quanp 16101 11545   0 17:28:08 ?           0:01 /usr/local/bin/ruby /usr/local/bin/cmond
-peer001       cpeerd           quanp 16119 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer001       crepd            quanp 16115 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer001       manipulatord      root 16094 11545   0 17:28:07 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer002       cmond            quanp 16114 11970   0 17:28:09 ?           0:01 /usr/local/bin/ruby /usr/local/bin/cmond
-peer002       cpeerd           quanp 16108 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer002       crepd            quanp 16103 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer002       manipulatord      root 16100 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-[ 2012-05-31 17:32:35 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         stopped       Connection refused or else: errno=146 127.0.0.1:30100                            
-peer000       cpeerd        stopped       Connection refused or else: errno=146 127.0.0.1:30102                            
-peer000       crepd         stopped       Connection refused or else: errno=146 127.0.0.1:30103                            
-peer000       manipulatord  stopped                                                 
-
-peer001       cmond         running       20 readonly   auto          off           
-peer001       cpeerd        running       20 readonly   auto          off           
-peer001       crepd         running       20 readonly   auto          off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       20 readonly   auto          off           
-peer002       cpeerd        running       20 readonly   auto          off           
-peer002       crepd         running       20 readonly   auto          off           
-peer002       manipulatord  running                                                 
-
+$ pgctl passwd
+Setting a password of the command pgctl.
+New pgctl password: xxx                   ... invisible
+Retype new pgctl password: xxx            ... invisible
+pgctl password has been successfully changed.
 
 Succeeded:
- pgctl stop peer000 peer001 peer002
-
+ pgctl passwd
 </pre>
 
-h3. Starting the only peer
-
 <pre>
-$ pgctl start peer000 peer001 peer002
-[ 2012-05-31 17:33:21 +0900  Daemon processes ]
-HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
-peer000       cmond         
-peer000       cpeerd        
-peer000       crepd         
-peer000       manipulatord  
-
-peer001       cmond            quanp 16101 11545   0 17:28:08 ?           0:01 /usr/local/bin/ruby /usr/local/bin/cmond
-peer001       cpeerd           quanp 16119 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer001       crepd            quanp 16115 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer001       manipulatord      root 16094 11545   0 17:28:07 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer002       cmond            quanp 16114 11970   0 17:28:09 ?           0:01 /usr/local/bin/ruby /usr/local/bin/cmond
-peer002       cpeerd           quanp 16108 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer002       crepd            quanp 16103 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer002       manipulatord      root 16100 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-[ 2012-05-31 17:33:21 +0900  Starting the daemon ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         status=0 Starting cmond ... OK 
-peer000       cpeerd        status=0 2012-05-31T17:33:23+09:00.563383 peer000 NOTICE Loading configration file: /etc/castoro/peer.conf Starting cpeerd ... OK 
-peer000       crepd         status=0 2012-05-31T17:33:23+09:00.788873 peer000 NOTICE Loading configration file: /etc/castoro/peer.conf Starting crepd ... OK 
-peer000       manipulatord  status=0 Start Castoro-Manipulator ... *** Starting Castoro::Manipulator daemon... *** done.
-
-[ 2012-05-31 17:33:27 +0900  Daemon processes ]
-HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
-peer000       cmond            quanp 16651  4604   0 17:33:24 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer000       cpeerd           quanp 16654  4604   0 17:33:24 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer000       crepd            quanp 16656  4604   0 17:33:24 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer000       manipulatord      root 16649  4604   0 17:33:23 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer001       cmond            quanp 16101 11545   0 17:28:08 ?           0:01 /usr/local/bin/ruby /usr/local/bin/cmond
-peer001       cpeerd           quanp 16119 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer001       crepd            quanp 16115 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer001       manipulatord      root 16094 11545   0 17:28:07 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer002       cmond            quanp 16114 11970   0 17:28:09 ?           0:01 /usr/local/bin/ruby /usr/local/bin/cmond
-peer002       cpeerd           quanp 16108 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer002       crepd            quanp 16103 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer002       manipulatord      root 16100 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-[ 2012-05-31 17:33:27 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       10 offline    auto          off           
-peer000       cpeerd        running       10 offline    auto          off           
-peer000       crepd         running       10 offline    auto          off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       20 readonly   auto          off           
-peer001       cpeerd        running       20 readonly   auto          off           
-peer001       crepd         running       20 readonly   auto          off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       20 readonly   auto          off           
-peer002       cpeerd        running       20 readonly   auto          off           
-peer002       crepd         running       20 readonly   auto          off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:33:31 +0900  Turning the autopilot off ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Autopilot has changed from auto to off
-peer000       cpeerd        Autopilot has changed from auto to off
-peer000       crepd         Autopilot has changed from auto to off
-peer000       manipulatord  
-
-peer001       cmond         Autopilot has changed from auto to off
-peer001       cpeerd        Autopilot has changed from auto to off
-peer001       crepd         Autopilot has changed from auto to off
-peer001       manipulatord  
-
-peer002       cmond         Autopilot has changed from auto to off
-peer002       cpeerd        Autopilot has changed from auto to off
-peer002       crepd         Autopilot has changed from auto to off
-peer002       manipulatord  
-
-[ 2012-05-31 17:33:33 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       10 offline    off           off           
-peer000       cpeerd        running       10 offline    off           off           
-peer000       crepd         running       10 offline    off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       20 readonly   off           off           
-peer001       cpeerd        running       20 readonly   off           off           
-peer001       crepd         running       20 readonly   off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       20 readonly   off           off           
-peer002       cpeerd        running       20 readonly   off           off           
-peer002       crepd         running       20 readonly   off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:33:36 +0900  Ascending the mode to 30 online ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Mode has changed from 10 offline to 30 online
-peer000       cpeerd        Mode has changed from 10 offline to 30 online
-peer000       crepd         Mode has changed from 10 offline to 30 online
-peer000       manipulatord  
-
-peer001       cmond         Mode has changed from 20 readonly to 30 online
-peer001       cpeerd        Mode has changed from 20 readonly to 30 online
-peer001       crepd         Mode has changed from 20 readonly to 30 online
-peer001       manipulatord  
-
-peer002       cmond         Mode has changed from 20 readonly to 30 online
-peer002       cpeerd        Mode has changed from 20 readonly to 30 online
-peer002       crepd         Mode has changed from 20 readonly to 30 online
-peer002       manipulatord  
-
-[ 2012-05-31 17:33:38 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       30 online     off           off           
-peer000       cpeerd        running       30 online     off           off           
-peer000       crepd         running       30 online     off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       30 online     off           off           
-peer001       cpeerd        running       30 online     off           off           
-peer001       crepd         running       30 online     off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       30 online     off           off           
-peer002       cpeerd        running       30 online     off           off           
-peer002       crepd         running       30 online     off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:33:41 +0900  Turning the autopilot auto ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Autopilot has changed from off to auto
-peer000       cpeerd        Autopilot has changed from off to auto
-peer000       crepd         Autopilot has changed from off to auto
-peer000       manipulatord  
-
-peer001       cmond         Autopilot has changed from off to auto
-peer001       cpeerd        Autopilot has changed from off to auto
-peer001       crepd         Autopilot has changed from off to auto
-peer001       manipulatord  
-
-peer002       cmond         Autopilot has changed from off to auto
-peer002       cpeerd        Autopilot has changed from off to auto
-peer002       crepd         Autopilot has changed from off to auto
-peer002       manipulatord  
-
-[ 2012-05-31 17:33:43 +0900  Daemon processes ]
-HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
-peer000       cmond            quanp 16651  4604   0 17:33:24 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer000       cpeerd           quanp 16654  4604   0 17:33:24 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer000       crepd            quanp 16656  4604   0 17:33:24 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer000       manipulatord      root 16649  4604   0 17:33:23 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer001       cmond            quanp 16101 11545   0 17:28:08 ?           0:01 /usr/local/bin/ruby /usr/local/bin/cmond
-peer001       cpeerd           quanp 16119 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer001       crepd            quanp 16115 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer001       manipulatord      root 16094 11545   0 17:28:07 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-peer002       cmond            quanp 16114 11970   0 17:28:09 ?           0:01 /usr/local/bin/ruby /usr/local/bin/cmond
-peer002       cpeerd           quanp 16108 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer002       crepd            quanp 16103 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer002       manipulatord      root 16100 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
-
-[ 2012-05-31 17:33:43 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       30 online     auto          off           
-peer000       cpeerd        running       30 online     auto          off           
-peer000       crepd         running       30 online     auto          off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       30 online     auto          off           
-peer001       cpeerd        running       30 online     auto          off           
-peer001       crepd         running       30 online     auto          off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       30 online     auto          off           
-peer002       cpeerd        running       30 online     auto          off           
-peer002       crepd         running       30 online     auto          off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:33:46 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       30 online     auto          off           
-peer000       cpeerd        running       30 online     auto          off           
-peer000       crepd         running       30 online     auto          off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       30 online     auto          off           
-peer001       cpeerd        running       30 online     auto          off           
-peer001       crepd         running       30 online     auto          off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       30 online     auto          off           
-peer002       cpeerd        running       30 online     auto          off           
-peer002       crepd         running       30 online     auto          off           
-peer002       manipulatord  running                                                 
-
+$ pgctl passwd
+Changing a password of the command pgctl.
+(current) pgctl password: xxx             ... invisible
+New pgctl password: yyy                   ... invisible
+Retype new pgctl password: yyy            ... invisible
+pgctl password has been successfully changed.
 
 Succeeded:
- pgctl start peer000 peer001 peer002
-
+ pgctl passwd
 </pre>
 
-h3. Stopping every peer of the peer group
+<pre>
+$ pgctl passwd
+Changing a password of the command pgctl.
+(current) pgctl password: yyy             ... invisible
+New pgctl password: 
+Retype new pgctl password: 
+
+pgctl password has been successfully changed.
+
+Succeeded:
+ pgctl passwd
+</pre>
 
 <pre>
-$ pgctl stopall peer000 peer001 peer002
-[ 2012-05-31 17:34:21 +0900  Daemon processes ]
+$ pgctl passwd
+Setting a password of the command pgctl.
+New pgctl password: zzz                   ... invisible
+Retype new pgctl password: zzz            ... invisible
+pgctl password has been successfully changed.
+
+Succeeded:
+ pgctl passwd
+</pre>
+
+h3. Starting Every Peer in a Peer Group
+
+<pre>
+$ pgctl gstart G00
+[ 2012-07-22 21:59:40 +0900  Daemon processes ]
 HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
-peer000       cmond            quanp 16651  4604   0 17:33:24 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer000       cpeerd           quanp 16654  4604   0 17:33:24 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer000       crepd            quanp 16656  4604   0 17:33:24 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer000       manipulatord      root 16649  4604   0 17:33:23 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+peer100       cmond
+peer100       cpeerd
+peer100       crepd
+peer100       manipulatord
 
-peer001       cmond            quanp 16101 11545   0 17:28:08 ?           0:01 /usr/local/bin/ruby /usr/local/bin/cmond
-peer001       cpeerd           quanp 16119 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer001       crepd            quanp 16115 11545   0 17:28:09 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer001       manipulatord      root 16094 11545   0 17:28:07 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+peer101       cmond
+peer101       cpeerd
+peer101       crepd
+peer101       manipulatord
 
-peer002       cmond            quanp 16114 11970   0 17:28:09 ?           0:01 /usr/local/bin/ruby /usr/local/bin/cmond
-peer002       cpeerd           quanp 16108 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer002       crepd            quanp 16103 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer002       manipulatord      root 16100 11970   0 17:28:08 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+peer102       cmond
+peer102       cpeerd
+peer102       crepd
+peer102       manipulatord
 
-[ 2012-05-31 17:34:22 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       30 online     auto          off           
-peer000       cpeerd        running       30 online     auto          off           
-peer000       crepd         running       30 online     auto          off           
-peer000       manipulatord  running                                                 
+[ 2012-07-22 21:59:40 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30100
+peer100       cpeerd        stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30102
+peer100       crepd         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30103
+peer100       manipulatord  stopped
 
-peer001       cmond         running       30 online     auto          off           
-peer001       cpeerd        running       30 online     auto          off           
-peer001       crepd         running       30 online     auto          off           
-peer001       manipulatord  running                                                 
+peer101       cmond         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30100
+peer101       cpeerd        stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30102
+peer101       crepd         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30103
+peer101       manipulatord  stopped
 
-peer002       cmond         running       30 online     auto          off           
-peer002       cpeerd        running       30 online     auto          off           
-peer002       crepd         running       30 online     auto          off           
-peer002       manipulatord  running                                                 
+peer102       cmond         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30100
+peer102       cpeerd        stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30102
+peer102       crepd         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30103
+peer102       manipulatord  stopped
 
-[ 2012-05-31 17:34:23 +0900  Turning the autopilot off ]
+[ 2012-07-22 21:59:41 +0900  Diagnotice ]
+No or some deamon processes in the specified groups are not running.
+No or some deamon processes in the specified groups are not online.
+
+[ 2012-07-22 21:59:41 +0900  Planning ]
+HOSTNAME      DAEMON        PLANS
+peer100       cmond         The daemon process will be started.
+peer100       cpeerd        The daemon process will be started.
+peer100       crepd         The daemon process will be started.
+peer100       manipulatord  The daemon process will be started.
+
+peer101       cmond         The daemon process will be started.
+peer101       cpeerd        The daemon process will be started.
+peer101       crepd         The daemon process will be started.
+peer101       manipulatord  The daemon process will be started.
+
+peer102       cmond         The daemon process will be started.
+peer102       cpeerd        The daemon process will be started.
+peer102       crepd         The daemon process will be started.
+peer102       manipulatord  The daemon process will be started.
+
+HOSTNAME      DAEMON        PLANS
+peer100       cmond         The mode will be raised from unknown to 30 online.
+peer100       cpeerd        The mode will be raised from unknown to 30 online.
+peer100       crepd         The mode will be raised from unknown to 30 online.
+
+peer101       cmond         The mode will be raised from unknown to 30 online.
+peer101       cpeerd        The mode will be raised from unknown to 30 online.
+peer101       crepd         The mode will be raised from unknown to 30 online.
+
+peer102       cmond         The mode will be raised from unknown to 30 online.
+peer102       cpeerd        The mode will be raised from unknown to 30 online.
+peer102       crepd         The mode will be raised from unknown to 30 online.
+
+The above plans are about to be carried out.
+
+Is that OK?  [ YES / no ] y
+Please answer YES or no.
+
+Is that OK?  [ YES / no ] YES
+Thank you. Your answer is YES.  Proceeding...
+
+This subcommand is password protected. Please enter the password.
+pgctl Password: zzz    ... invisible
+
+[ 2012-07-22 21:59:50 +0900  Starting daemons ]
 HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Autopilot has changed from auto to off
-peer000       cpeerd        Autopilot has changed from auto to off
-peer000       crepd         Autopilot has changed from auto to off
-peer000       manipulatord  
+peer100       cmond         status=0 Starting cmond ... OK 
+peer100       cpeerd        status=0 2012-07-22T21:56:56+09:00.544180 peer100 NOTICE Loading configration file: /etc/castoro/peer.conf Starting cpeerd ... OK 
+peer100       crepd         status=0 2012-07-22T21:56:57+09:00.011415 peer100 NOTICE Loading configration file: /etc/castoro/peer.conf Starting crepd ... OK 
+peer100       manipulatord  status=0 Start Castoro-Manipulator ... *** Starting Castoro::Manipulator daemon... *** done.
 
-peer001       cmond         Autopilot has changed from auto to off
-peer001       cpeerd        Autopilot has changed from auto to off
-peer001       crepd         Autopilot has changed from auto to off
-peer001       manipulatord  
+peer101       cmond         status=0 Starting cmond ... OK Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
+peer101       cpeerd        status=0 2012-07-22T21:56:55+09:00.514303 peer101 NOTICE Loading configration file: /etc/castoro/peer.conf Starting cpeerd ... OK Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
+peer101       crepd         status=0 2012-07-22T21:56:56+09:00.895011 peer101 NOTICE Loading configration file: /etc/castoro/peer.conf Starting crepd ... OK Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
+peer101       manipulatord  status=0 Start Castoro-Manipulator ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z" *** Starting Castoro::Manipulator daemon... *** done.
 
-peer002       cmond         Autopilot has changed from auto to off
-peer002       cpeerd        Autopilot has changed from auto to off
-peer002       crepd         Autopilot has changed from auto to off
-peer002       manipulatord  
+peer102       cmond         status=0 Starting cmond ... OK Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
+peer102       cpeerd        status=0 2012-07-22T21:56:55+09:00.752068 peer102 NOTICE Loading configration file: /etc/castoro/peer.conf Starting cpeerd ... OK Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
+peer102       crepd         status=0 2012-07-22T21:56:56+09:00.298448 peer102 NOTICE Loading configration file: /etc/castoro/peer.conf Starting crepd ... OK Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
+peer102       manipulatord  status=0 Start Castoro-Manipulator ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z" *** Starting Castoro::Manipulator daemon... *** done.
 
-[ 2012-05-31 17:34:25 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       30 online     off           off           
-peer000       cpeerd        running       30 online     off           off           
-peer000       crepd         running       30 online     off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       30 online     off           off           
-peer001       cpeerd        running       30 online     off           off           
-peer001       crepd         running       30 online     off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       30 online     off           off           
-peer002       cpeerd        running       30 online     off           off           
-peer002       crepd         running       30 online     off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:34:28 +0900  Descending the mode to 25 fin_rep ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Mode has changed from 30 online to 25 fin_rep
-peer000       cpeerd        Mode has changed from 30 online to 25 fin_rep
-peer000       crepd         Mode has changed from 30 online to 25 fin_rep
-peer000       manipulatord  
-
-peer001       cmond         Mode has changed from 30 online to 25 fin_rep
-peer001       cpeerd        Mode has changed from 30 online to 25 fin_rep
-peer001       crepd         Mode has changed from 30 online to 25 fin_rep
-peer001       manipulatord  
-
-peer002       cmond         Mode has changed from 30 online to 25 fin_rep
-peer002       cpeerd        Mode has changed from 30 online to 25 fin_rep
-peer002       crepd         Mode has changed from 30 online to 25 fin_rep
-peer002       manipulatord  
-
-[ 2012-05-31 17:34:30 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       25 fin_rep    off           off           
-peer000       cpeerd        running       25 fin_rep    off           off           
-peer000       crepd         running       25 fin_rep    off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       25 fin_rep    off           off           
-peer001       cpeerd        running       25 fin_rep    off           off           
-peer001       crepd         running       25 fin_rep    off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       25 fin_rep    off           off           
-peer002       cpeerd        running       25 fin_rep    off           off           
-peer002       crepd         running       25 fin_rep    off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:34:33 +0900  Descending the mode to 23 rep ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Mode has changed from 25 fin_rep to 23 rep
-peer000       cpeerd        Mode has changed from 25 fin_rep to 23 rep
-peer000       crepd         Mode has changed from 25 fin_rep to 23 rep
-peer000       manipulatord  
-
-peer001       cmond         Mode has changed from 25 fin_rep to 23 rep
-peer001       cpeerd        Mode has changed from 25 fin_rep to 23 rep
-peer001       crepd         Mode has changed from 25 fin_rep to 23 rep
-peer001       manipulatord  
-
-peer002       cmond         Mode has changed from 25 fin_rep to 23 rep
-peer002       cpeerd        Mode has changed from 25 fin_rep to 23 rep
-peer002       crepd         Mode has changed from 25 fin_rep to 23 rep
-peer002       manipulatord  
-
-[ 2012-05-31 17:34:35 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       23 rep        off           off           
-peer000       cpeerd        running       23 rep        off           off           
-peer000       crepd         running       23 rep        off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       23 rep        off           off           
-peer001       cpeerd        running       23 rep        off           off           
-peer001       crepd         running       23 rep        off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       23 rep        off           off           
-peer002       cpeerd        running       23 rep        off           off           
-peer002       crepd         running       23 rep        off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:34:38 +0900  Descending the mode to 20 readonly ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Mode has changed from 23 rep to 20 readonly
-peer000       cpeerd        Mode has changed from 23 rep to 20 readonly
-peer000       crepd         Mode has changed from 23 rep to 20 readonly
-peer000       manipulatord  
-
-peer001       cmond         Mode has changed from 23 rep to 20 readonly
-peer001       cpeerd        Mode has changed from 23 rep to 20 readonly
-peer001       crepd         Mode has changed from 23 rep to 20 readonly
-peer001       manipulatord  
-
-peer002       cmond         Mode has changed from 23 rep to 20 readonly
-peer002       cpeerd        Mode has changed from 23 rep to 20 readonly
-peer002       crepd         Mode has changed from 23 rep to 20 readonly
-peer002       manipulatord  
-
-[ 2012-05-31 17:34:40 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       20 readonly   off           off           
-peer000       cpeerd        running       20 readonly   off           off           
-peer000       crepd         running       20 readonly   off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       20 readonly   off           off           
-peer001       cpeerd        running       20 readonly   off           off           
-peer001       crepd         running       20 readonly   off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       20 readonly   off           off           
-peer002       cpeerd        running       20 readonly   off           off           
-peer002       crepd         running       20 readonly   off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:34:45 +0900  Descending the mode to 10 offline ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         Mode has changed from 20 readonly to 10 offline
-peer000       cpeerd        Mode has changed from 20 readonly to 10 offline
-peer000       crepd         Mode has changed from 20 readonly to 10 offline
-peer000       manipulatord  
-
-peer001       cmond         Mode has changed from 20 readonly to 10 offline
-peer001       cpeerd        Mode has changed from 20 readonly to 10 offline
-peer001       crepd         Mode has changed from 20 readonly to 10 offline
-peer001       manipulatord  
-
-peer002       cmond         Mode has changed from 20 readonly to 10 offline
-peer002       cpeerd        Mode has changed from 20 readonly to 10 offline
-peer002       crepd         Mode has changed from 20 readonly to 10 offline
-peer002       manipulatord  
-
-[ 2012-05-31 17:34:47 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         running       10 offline    off           off           
-peer000       cpeerd        running       10 offline    off           off           
-peer000       crepd         running       10 offline    off           off           
-peer000       manipulatord  running                                                 
-
-peer001       cmond         running       10 offline    off           off           
-peer001       cpeerd        running       10 offline    off           off           
-peer001       crepd         running       10 offline    off           off           
-peer001       manipulatord  running                                                 
-
-peer002       cmond         running       10 offline    off           off           
-peer002       cpeerd        running       10 offline    off           off           
-peer002       crepd         running       10 offline    off           off           
-peer002       manipulatord  running                                                 
-
-[ 2012-05-31 17:34:50 +0900  Stopping daemons ]
-HOSTNAME      DAEMON        RESULTS
-peer000       cmond         status=0 peer000 cmond is going to shutdown ... 
-peer000       cpeerd        status=0 peer000 cpeerd is going to shutdown ... 
-peer000       crepd         status=0 peer000 crepd is going to shutdown ... 
-peer000       manipulatord  status=0 Stop Castoro-Manipulator ... *** Stopping Castoro::Manipulator daemon... *** done.
-
-peer001       cmond         status=0 peer001 cmond is going to shutdown ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
-peer001       cpeerd        status=0 peer001 cpeerd is going to shutdown ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
-peer001       crepd         status=0 peer001 crepd is going to shutdown ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
-peer001       manipulatord  status=0 Stop Castoro-Manipulator ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z" *** Stopping Castoro::Manipulator daemon... *** done.
-
-peer002       cmond         status=0 peer002 cmond is going to shutdown ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
-peer002       cpeerd        status=0 peer002 cpeerd is going to shutdown ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
-peer002       crepd         status=0 peer002 crepd is going to shutdown ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
-peer002       manipulatord  status=0 Stop Castoro-Manipulator ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z" *** Stopping Castoro::Manipulator daemon... *** done.
-
-[ 2012-05-31 17:34:55 +0900  Daemon processes ]
+[ 2012-07-22 21:59:57 +0900  Daemon processes ]
 HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
-peer000       cmond         
-peer000       cpeerd        
-peer000       crepd         
-peer000       manipulatord  
+peer100       cmond          castoro  4956  2024   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer100       cpeerd         castoro  4947  2024   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer100       crepd          castoro  4954  2024   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer100       manipulatord      root  4935  2024   0 21:56:56 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
 
-peer001       cmond         
-peer001       cpeerd        
-peer001       crepd         
-peer001       manipulatord  
+peer101       cmond          castoro  4945  2311   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer101       cpeerd         castoro  4932  2311   0 21:56:56 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer101       crepd          castoro  4950  2311   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer101       manipulatord      root  4938  2311   0 21:56:56 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
 
-peer002       cmond         
-peer002       cpeerd        
-peer002       crepd         
-peer002       manipulatord  
+peer102       cmond          castoro  4943  2644   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer102       cpeerd         castoro  4944  2644   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer102       crepd          castoro  4940  2644   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer102       manipulatord      root  4919  2644   0 21:56:55 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
 
-[ 2012-05-31 17:34:56 +0900  Status ]
-HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG         
-peer000       cmond         stopped       Connection refused or else: errno=146 127.0.0.1:30100                            
-peer000       cpeerd        stopped       Connection refused or else: errno=146 127.0.0.1:30102                            
-peer000       crepd         stopped       Connection refused or else: errno=146 127.0.0.1:30103                            
-peer000       manipulatord  stopped                                                 
+[ 2012-07-22 21:59:59 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       10 offline    auto          off
+peer100       cpeerd        running       10 offline    auto          off
+peer100       crepd         running       10 offline    auto          off
+peer100       manipulatord  running
 
-peer001       cmond         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30100                            
-peer001       cpeerd        stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30102                            
-peer001       crepd         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30103                            
-peer001       manipulatord  stopped                                                 
+peer101       cmond         running       10 offline    auto          off
+peer101       cpeerd        running       10 offline    auto          off
+peer101       crepd         running       10 offline    auto          off
+peer101       manipulatord  running
 
-peer002       cmond         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30100                            
-peer002       cpeerd        stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30102                            
-peer002       crepd         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30103                            
-peer002       manipulatord  stopped                                                 
+peer102       cmond         running       10 offline    auto          off
+peer102       cpeerd        running       10 offline    auto          off
+peer102       crepd         running       10 offline    auto          off
+peer102       manipulatord  running
+
+[ 2012-07-22 21:59:59 +0900  Turning the autopilot off ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Autopilot has changed from auto to off
+peer100       cpeerd        Autopilot has changed from auto to off
+peer100       crepd         Autopilot has changed from auto to off
+peer100       manipulatord  
+
+peer101       cmond         Autopilot has changed from auto to off
+peer101       cpeerd        Autopilot has changed from auto to off
+peer101       crepd         Autopilot has changed from auto to off
+peer101       manipulatord  
+
+peer102       cmond         Autopilot has changed from auto to off
+peer102       cpeerd        Autopilot has changed from auto to off
+peer102       crepd         Autopilot has changed from auto to off
+peer102       manipulatord  
+
+[ 2012-07-22 22:00:02 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       10 offline    off           off
+peer100       cpeerd        running       10 offline    off           off
+peer100       crepd         running       10 offline    off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       10 offline    off           off
+peer101       cpeerd        running       10 offline    off           off
+peer101       crepd         running       10 offline    off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       10 offline    off           off
+peer102       cpeerd        running       10 offline    off           off
+peer102       crepd         running       10 offline    off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:00:04 +0900  Ascending the mode to 30 online ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Mode has changed from 10 offline to 30 online
+peer100       cpeerd        Mode has changed from 10 offline to 30 online
+peer100       crepd         Mode has changed from 10 offline to 30 online
+peer100       manipulatord  
+
+peer101       cmond         Mode has changed from 10 offline to 30 online
+peer101       cpeerd        Mode has changed from 10 offline to 30 online
+peer101       crepd         Mode has changed from 10 offline to 30 online
+peer101       manipulatord  
+
+peer102       cmond         Mode has changed from 10 offline to 30 online
+peer102       cpeerd        Mode has changed from 10 offline to 30 online
+peer102       crepd         Mode has changed from 10 offline to 30 online
+peer102       manipulatord  
+
+[ 2012-07-22 22:00:06 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       30 online     off           off
+peer100       cpeerd        running       30 online     off           off
+peer100       crepd         running       30 online     off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       30 online     off           off
+peer101       cpeerd        running       30 online     off           off
+peer101       crepd         running       30 online     off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       30 online     off           off
+peer102       cpeerd        running       30 online     off           off
+peer102       crepd         running       30 online     off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:00:09 +0900  Turning the autopilot auto ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Autopilot has changed from off to auto
+peer100       cpeerd        Autopilot has changed from off to auto
+peer100       crepd         Autopilot has changed from off to auto
+peer100       manipulatord  
+
+peer101       cmond         Autopilot has changed from off to auto
+peer101       cpeerd        Autopilot has changed from off to auto
+peer101       crepd         Autopilot has changed from off to auto
+peer101       manipulatord  
+
+peer102       cmond         Autopilot has changed from off to auto
+peer102       cpeerd        Autopilot has changed from off to auto
+peer102       crepd         Autopilot has changed from off to auto
+peer102       manipulatord  
+
+[ 2012-07-22 22:00:11 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond          castoro  4956  2024   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer100       cpeerd         castoro  4947  2024   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer100       crepd          castoro  4954  2024   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer100       manipulatord      root  4935  2024   0 21:56:56 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer101       cmond          castoro  4945  2311   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer101       cpeerd         castoro  4932  2311   0 21:56:56 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer101       crepd          castoro  4950  2311   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer101       manipulatord      root  4938  2311   0 21:56:56 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer102       cmond          castoro  4943  2644   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer102       cpeerd         castoro  4944  2644   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer102       crepd          castoro  4940  2644   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer102       manipulatord      root  4919  2644   0 21:56:55 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+[ 2012-07-22 22:00:11 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       30 online     auto          off
+peer100       cpeerd        running       30 online     auto          off
+peer100       crepd         running       30 online     auto          off
+peer100       manipulatord  running
+
+peer101       cmond         running       30 online     auto          off
+peer101       cpeerd        running       30 online     auto          off
+peer101       crepd         running       30 online     auto          off
+peer101       manipulatord  running
+
+peer102       cmond         running       30 online     auto          off
+peer102       cpeerd        running       30 online     auto          off
+peer102       crepd         running       30 online     auto          off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:00:14 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       30 online     auto          off
+peer100       cpeerd        running       30 online     auto          off
+peer100       crepd         running       30 online     auto          off
+peer100       manipulatord  running
+
+peer101       cmond         running       30 online     auto          off
+peer101       cpeerd        running       30 online     auto          off
+peer101       crepd         running       30 online     auto          off
+peer101       manipulatord  running
+
+peer102       cmond         running       30 online     auto          off
+peer102       cpeerd        running       30 online     auto          off
+peer102       crepd         running       30 online     auto          off
+peer102       manipulatord  running
 
 
 Succeeded:
- pgctl stopall peer000 peer001 peer002
+ pgctl gstart G00
+</pre>
 
+h3. Getting Outputs of ps Command
+
+<pre>
+$ pgctl ps G00
+[ 2012-07-22 22:01:27 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond          castoro  4956  2024   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer100       cpeerd         castoro  4947  2024   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer100       crepd          castoro  4954  2024   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer100       manipulatord      root  4935  2024   0 21:56:56 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer101       cmond          castoro  4945  2311   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer101       cpeerd         castoro  4932  2311   0 21:56:56 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer101       crepd          castoro  4950  2311   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer101       manipulatord      root  4938  2311   0 21:56:56 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer102       cmond          castoro  4943  2644   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer102       cpeerd         castoro  4944  2644   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer102       crepd          castoro  4940  2644   0 21:56:57 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer102       manipulatord      root  4919  2644   0 21:56:55 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+
+Succeeded:
+ pgctl ps G00
+</pre>
+
+h3. Getting the Status of Peer Group
+
+<pre>
+$ pgctl status G00
+[ 2012-07-22 22:01:47 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       30 online     auto          off
+peer100       cpeerd        running       30 online     auto          off
+peer100       crepd         running       30 online     auto          off
+peer100       manipulatord  running
+
+peer101       cmond         running       30 online     auto          off
+peer101       cpeerd        running       30 online     auto          off
+peer101       crepd         running       30 online     auto          off
+peer101       manipulatord  running
+
+peer102       cmond         running       30 online     auto          off
+peer102       cpeerd        running       30 online     auto          off
+peer102       crepd         running       30 online     auto          off
+peer102       manipulatord  running
+
+
+Succeeded:
+ pgctl status G00
+</pre>
+
+h3. Disabling a Peer and Leaving Other Peers in the Same Group Readonly
+
+<pre>
+$ pgctl disable peer100
+[ 2012-07-22 22:11:42 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond          castoro  4956  2024   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
+peer100       cpeerd         castoro  4947  2024   0 21:56:57 ?           0:02 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer100       crepd          castoro  4954  2024   0 21:56:57 ?           0:02 /usr/local/bin/ruby /usr/local/bin/crepd
+peer100       manipulatord      root  4935  2024   0 21:56:56 ?           0:02 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer101       cmond          castoro  4945  2311   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
+peer101       cpeerd         castoro  4932  2311   0 21:56:56 ?           0:02 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer101       crepd          castoro  4950  2311   0 21:56:57 ?           0:02 /usr/local/bin/ruby /usr/local/bin/crepd
+peer101       manipulatord      root  4938  2311   0 21:56:56 ?           0:02 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer102       cmond          castoro  4943  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
+peer102       cpeerd         castoro  4944  2644   0 21:56:57 ?           0:02 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer102       crepd          castoro  4940  2644   0 21:56:57 ?           0:02 /usr/local/bin/ruby /usr/local/bin/crepd
+peer102       manipulatord      root  4919  2644   0 21:56:55 ?           0:02 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+[ 2012-07-22 22:11:42 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       30 online     auto          off
+peer100       cpeerd        running       30 online     auto          off
+peer100       crepd         running       30 online     auto          off
+peer100       manipulatord  running
+
+peer101       cmond         running       30 online     auto          off
+peer101       cpeerd        running       30 online     auto          off
+peer101       crepd         running       30 online     auto          off
+peer101       manipulatord  running
+
+peer102       cmond         running       30 online     auto          off
+peer102       cpeerd        running       30 online     auto          off
+peer102       crepd         running       30 online     auto          off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:11:43 +0900  Diagnotice ]
+All deamon processes on the target peer are currently running.
+
+All deamon processes on the rest of peers are expectedly running.
+All deamon processes on the rest of peers are 30 online.
+
+[ 2012-07-22 22:11:43 +0900  Planning ]
+HOSTNAME      DAEMON        PLANS
+peer100       cmond         The daemon process will be stopped.
+peer100       cpeerd        The daemon process will be stopped.
+peer100       crepd         The daemon process will be stopped.
+peer100       manipulatord  The daemon process will be stopped.
+
+HOSTNAME      DAEMON        PLANS
+peer101       cmond         The mode will be lowered from 30 online to 20 readonly.
+peer101       cpeerd        The mode will be lowered from 30 online to 20 readonly.
+peer101       crepd         The mode will be lowered from 30 online to 20 readonly.
+
+peer102       cmond         The mode will be lowered from 30 online to 20 readonly.
+peer102       cpeerd        The mode will be lowered from 30 online to 20 readonly.
+peer102       crepd         The mode will be lowered from 30 online to 20 readonly.
+
+The above plans are about to be carried out.
+
+Is that OK?  [ YES / no ] YES
+Thank you. Your answer is YES.  Proceeding...
+
+This subcommand is password protected. Please enter the password.
+pgctl Password: zzz    ... invisible
+
+[ 2012-07-22 22:11:48 +0900  Turning the autopilot off ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Autopilot has changed from auto to off
+peer100       cpeerd        Autopilot has changed from auto to off
+peer100       crepd         Autopilot has changed from auto to off
+peer100       manipulatord  
+
+peer101       cmond         Autopilot has changed from auto to off
+peer101       cpeerd        Autopilot has changed from auto to off
+peer101       crepd         Autopilot has changed from auto to off
+peer101       manipulatord  
+
+peer102       cmond         Autopilot has changed from auto to off
+peer102       cpeerd        Autopilot has changed from auto to off
+peer102       crepd         Autopilot has changed from auto to off
+peer102       manipulatord  
+
+[ 2012-07-22 22:11:50 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       30 online     off           off
+peer100       cpeerd        running       30 online     off           off
+peer100       crepd         running       30 online     off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       30 online     off           off
+peer101       cpeerd        running       30 online     off           off
+peer101       crepd         running       30 online     off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       30 online     off           off
+peer102       cpeerd        running       30 online     off           off
+peer102       crepd         running       30 online     off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:11:52 +0900  Descending the mode to 25 fin_rep ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Mode has changed from 30 online to 25 fin_rep
+peer100       cpeerd        Mode has changed from 30 online to 25 fin_rep
+peer100       crepd         Mode has changed from 30 online to 25 fin_rep
+peer100       manipulatord  
+
+peer101       cmond         Mode has changed from 30 online to 25 fin_rep
+peer101       cpeerd        Mode has changed from 30 online to 25 fin_rep
+peer101       crepd         Mode has changed from 30 online to 25 fin_rep
+peer101       manipulatord  
+
+peer102       cmond         Mode has changed from 30 online to 25 fin_rep
+peer102       cpeerd        Mode has changed from 30 online to 25 fin_rep
+peer102       crepd         Mode has changed from 30 online to 25 fin_rep
+peer102       manipulatord  
+
+[ 2012-07-22 22:11:55 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       25 fin_rep    off           off
+peer100       cpeerd        running       25 fin_rep    off           off
+peer100       crepd         running       25 fin_rep    off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       25 fin_rep    off           off
+peer101       cpeerd        running       25 fin_rep    off           off
+peer101       crepd         running       25 fin_rep    off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       25 fin_rep    off           off
+peer102       cpeerd        running       25 fin_rep    off           off
+peer102       crepd         running       25 fin_rep    off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:11:57 +0900  Descending the mode to 23 rep ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Mode has changed from 25 fin_rep to 23 rep
+peer100       cpeerd        Mode has changed from 25 fin_rep to 23 rep
+peer100       crepd         Mode has changed from 25 fin_rep to 23 rep
+peer100       manipulatord  
+
+peer101       cmond         Mode has changed from 25 fin_rep to 23 rep
+peer101       cpeerd        Mode has changed from 25 fin_rep to 23 rep
+peer101       crepd         Mode has changed from 25 fin_rep to 23 rep
+peer101       manipulatord  
+
+peer102       cmond         Mode has changed from 25 fin_rep to 23 rep
+peer102       cpeerd        Mode has changed from 25 fin_rep to 23 rep
+peer102       crepd         Mode has changed from 25 fin_rep to 23 rep
+peer102       manipulatord  
+
+[ 2012-07-22 22:11:59 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       23 rep        off           off
+peer100       cpeerd        running       23 rep        off           off
+peer100       crepd         running       23 rep        off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       23 rep        off           off
+peer101       cpeerd        running       23 rep        off           off
+peer101       crepd         running       23 rep        off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       23 rep        off           off
+peer102       cpeerd        running       23 rep        off           off
+peer102       crepd         running       23 rep        off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:12:02 +0900  Descending the mode to 20 readonly ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Mode has changed from 23 rep to 20 readonly
+peer100       cpeerd        Mode has changed from 23 rep to 20 readonly
+peer100       crepd         Mode has changed from 23 rep to 20 readonly
+peer100       manipulatord  
+
+peer101       cmond         Mode has changed from 23 rep to 20 readonly
+peer101       cpeerd        Mode has changed from 23 rep to 20 readonly
+peer101       crepd         Mode has changed from 23 rep to 20 readonly
+peer101       manipulatord  
+
+peer102       cmond         Mode has changed from 23 rep to 20 readonly
+peer102       cpeerd        Mode has changed from 23 rep to 20 readonly
+peer102       crepd         Mode has changed from 23 rep to 20 readonly
+peer102       manipulatord  
+
+[ 2012-07-22 22:12:04 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       20 readonly   off           off
+peer100       cpeerd        running       20 readonly   off           off
+peer100       crepd         running       20 readonly   off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       20 readonly   off           off
+peer101       cpeerd        running       20 readonly   off           off
+peer101       crepd         running       20 readonly   off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       20 readonly   off           off
+peer102       cpeerd        running       20 readonly   off           off
+peer102       crepd         running       20 readonly   off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:12:08 +0900  Descending the mode to 10 offline ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Mode has changed from 20 readonly to 10 offline
+peer100       cpeerd        Mode has changed from 20 readonly to 10 offline
+peer100       crepd         Mode has changed from 20 readonly to 10 offline
+peer100       manipulatord  
+
+[ 2012-07-22 22:12:08 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       10 offline    off           off
+peer100       cpeerd        running       10 offline    off           off
+peer100       crepd         running       10 offline    off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       20 readonly   off           off
+peer101       cpeerd        running       20 readonly   off           off
+peer101       crepd         running       20 readonly   off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       20 readonly   off           off
+peer102       cpeerd        running       20 readonly   off           off
+peer102       crepd         running       20 readonly   off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:12:11 +0900  Stopping the daemon ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         status=0 peer100 cmond is going to shutdown ... 
+peer100       cpeerd        status=0 peer100 cpeerd is going to shutdown ... 
+peer100       crepd         status=0 peer100 crepd is going to shutdown ... 
+peer100       manipulatord  status=0 Stop Castoro-Manipulator ... *** Stopping Castoro::Manipulator daemon... *** done.
+
+[ 2012-07-22 22:12:15 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond
+peer100       cpeerd
+peer100       crepd
+peer100       manipulatord
+
+peer101       cmond          castoro  4945  2311   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
+peer101       cpeerd         castoro  4932  2311   0 21:56:56 ?           0:02 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer101       crepd          castoro  4950  2311   0 21:56:57 ?           0:02 /usr/local/bin/ruby /usr/local/bin/crepd
+peer101       manipulatord      root  4938  2311   0 21:56:56 ?           0:02 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer102       cmond          castoro  4943  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
+peer102       cpeerd         castoro  4944  2644   0 21:56:57 ?           0:02 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer102       crepd          castoro  4940  2644   0 21:56:57 ?           0:02 /usr/local/bin/ruby /usr/local/bin/crepd
+peer102       manipulatord      root  4919  2644   0 21:56:55 ?           0:02 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+[ 2012-07-22 22:12:15 +0900  Turning the autopilot auto ]
+HOSTNAME      DAEMON        RESULTS
+peer101       cmond         Autopilot has changed from off to auto
+peer101       cpeerd        Autopilot has changed from off to auto
+peer101       crepd         Autopilot has changed from off to auto
+peer101       manipulatord  
+
+peer102       cmond         Autopilot has changed from off to auto
+peer102       cpeerd        Autopilot has changed from off to auto
+peer102       crepd         Autopilot has changed from off to auto
+peer102       manipulatord  
+
+[ 2012-07-22 22:12:17 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond
+peer100       cpeerd
+peer100       crepd
+peer100       manipulatord
+
+peer101       cmond          castoro  4945  2311   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
+peer101       cpeerd         castoro  4932  2311   0 21:56:56 ?           0:02 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer101       crepd          castoro  4950  2311   0 21:56:57 ?           0:02 /usr/local/bin/ruby /usr/local/bin/crepd
+peer101       manipulatord      root  4938  2311   0 21:56:56 ?           0:02 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer102       cmond          castoro  4943  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
+peer102       cpeerd         castoro  4944  2644   0 21:56:57 ?           0:02 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer102       crepd          castoro  4940  2644   0 21:56:57 ?           0:02 /usr/local/bin/ruby /usr/local/bin/crepd
+peer102       manipulatord      root  4919  2644   0 21:56:55 ?           0:02 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+[ 2012-07-22 22:12:17 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30100
+peer100       cpeerd        stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30102
+peer100       crepd         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30103
+peer100       manipulatord  stopped
+
+peer101       cmond         running       20 readonly   auto          off
+peer101       cpeerd        running       20 readonly   auto          off
+peer101       crepd         running       20 readonly   auto          off
+peer101       manipulatord  running
+
+peer102       cmond         running       20 readonly   auto          off
+peer102       cpeerd        running       20 readonly   auto          off
+peer102       crepd         running       20 readonly   auto          off
+peer102       manipulatord  running
+
+
+Succeeded:
+ pgctl disable peer100
+</pre>
+
+h3. Enabling a Peer and Turning Every peers in the Same Group Online
+
+<pre>
+$ pgctl enable peer100
+[ 2012-07-22 22:14:35 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond
+peer100       cpeerd
+peer100       crepd
+peer100       manipulatord
+
+peer101       cmond          castoro  4945  2311   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
+peer101       cpeerd         castoro  4932  2311   0 21:56:56 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer101       crepd          castoro  4950  2311   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/crepd
+peer101       manipulatord      root  4938  2311   0 21:56:56 ?           0:03 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer102       cmond          castoro  4943  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
+peer102       cpeerd         castoro  4944  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer102       crepd          castoro  4940  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/crepd
+peer102       manipulatord      root  4919  2644   0 21:56:55 ?           0:03 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+[ 2012-07-22 22:14:35 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30100
+peer100       cpeerd        stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30102
+peer100       crepd         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30103
+peer100       manipulatord  stopped
+
+peer101       cmond         running       20 readonly   auto          off
+peer101       cpeerd        running       20 readonly   auto          off
+peer101       crepd         running       20 readonly   auto          off
+peer101       manipulatord  running
+
+peer102       cmond         running       20 readonly   auto          off
+peer102       cpeerd        running       20 readonly   auto          off
+peer102       crepd         running       20 readonly   auto          off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:14:35 +0900  Diagnotice ]
+No or some deamon processes on the target peer are not running.
+No or some deamon processes on the target peer are not online.
+
+All deamon processes on the rest of peers are expectedly running.
+No or some deamon processes on the rest of peers are not online.
+
+[ 2012-07-22 22:14:35 +0900  Planning ]
+HOSTNAME      DAEMON        PLANS
+peer100       cmond         The daemon process will be started.
+peer100       cpeerd        The daemon process will be started.
+peer100       crepd         The daemon process will be started.
+peer100       manipulatord  The daemon process will be started.
+
+HOSTNAME      DAEMON        PLANS
+peer100       cmond         The mode will be raised from unknown to 30 online.
+peer100       cpeerd        The mode will be raised from unknown to 30 online.
+peer100       crepd         The mode will be raised from unknown to 30 online.
+
+peer101       cmond         The mode will be raised from 20 readonly to 30 online.
+peer101       cpeerd        The mode will be raised from 20 readonly to 30 online.
+peer101       crepd         The mode will be raised from 20 readonly to 30 online.
+
+peer102       cmond         The mode will be raised from 20 readonly to 30 online.
+peer102       cpeerd        The mode will be raised from 20 readonly to 30 online.
+peer102       crepd         The mode will be raised from 20 readonly to 30 online.
+
+The above plans are about to be carried out.
+
+Is that OK?  [ YES / no ] YES
+Thank you. Your answer is YES.  Proceeding...
+
+This subcommand is password protected. Please enter the password.
+pgctl Password: zzz    ... invisible
+
+[ 2012-07-22 22:14:39 +0900  Starting the daemon ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         status=0 Starting cmond ... OK 
+peer100       cpeerd        status=0 2012-07-22T22:11:44+09:00.103540 peer100 NOTICE Loading configration file: /etc/castoro/peer.conf Starting cpeerd ... OK 
+peer100       crepd         status=0 2012-07-22T22:11:43+09:00.843353 peer100 NOTICE Loading configration file: /etc/castoro/peer.conf Starting crepd ... OK 
+peer100       manipulatord  status=0 Start Castoro-Manipulator ... *** Starting Castoro::Manipulator daemon... *** done.
+
+[ 2012-07-22 22:14:44 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond          castoro  5865  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer100       cpeerd         castoro  5869  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer100       crepd          castoro  5864  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer100       manipulatord      root  5862  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer101       cmond          castoro  4945  2311   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
+peer101       cpeerd         castoro  4932  2311   0 21:56:56 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer101       crepd          castoro  4950  2311   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/crepd
+peer101       manipulatord      root  4938  2311   0 21:56:56 ?           0:03 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer102       cmond          castoro  4943  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
+peer102       cpeerd         castoro  4944  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer102       crepd          castoro  4940  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/crepd
+peer102       manipulatord      root  4919  2644   0 21:56:55 ?           0:03 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+[ 2012-07-22 22:14:44 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       10 offline    auto          off
+peer100       cpeerd        running       10 offline    auto          off
+peer100       crepd         running       10 offline    auto          off
+peer100       manipulatord  running
+
+peer101       cmond         running       20 readonly   auto          off
+peer101       cpeerd        running       20 readonly   auto          off
+peer101       crepd         running       20 readonly   auto          off
+peer101       manipulatord  running
+
+peer102       cmond         running       20 readonly   auto          off
+peer102       cpeerd        running       20 readonly   auto          off
+peer102       crepd         running       20 readonly   auto          off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:14:47 +0900  Turning the autopilot off ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Autopilot has changed from auto to off
+peer100       cpeerd        Autopilot has changed from auto to off
+peer100       crepd         Autopilot has changed from auto to off
+peer100       manipulatord  
+
+peer101       cmond         Autopilot has changed from auto to off
+peer101       cpeerd        Autopilot has changed from auto to off
+peer101       crepd         Autopilot has changed from auto to off
+peer101       manipulatord  
+
+peer102       cmond         Autopilot has changed from auto to off
+peer102       cpeerd        Autopilot has changed from auto to off
+peer102       crepd         Autopilot has changed from auto to off
+peer102       manipulatord  
+
+[ 2012-07-22 22:14:49 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       10 offline    off           off
+peer100       cpeerd        running       10 offline    off           off
+peer100       crepd         running       10 offline    off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       20 readonly   off           off
+peer101       cpeerd        running       20 readonly   off           off
+peer101       crepd         running       20 readonly   off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       20 readonly   off           off
+peer102       cpeerd        running       20 readonly   off           off
+peer102       crepd         running       20 readonly   off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:14:51 +0900  Ascending the mode to 30 online ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Mode has changed from 10 offline to 30 online
+peer100       cpeerd        Mode has changed from 10 offline to 30 online
+peer100       crepd         Mode has changed from 10 offline to 30 online
+peer100       manipulatord  
+
+peer101       cmond         Mode has changed from 20 readonly to 30 online
+peer101       cpeerd        Mode has changed from 20 readonly to 30 online
+peer101       crepd         Mode has changed from 20 readonly to 30 online
+peer101       manipulatord  
+
+peer102       cmond         Mode has changed from 20 readonly to 30 online
+peer102       cpeerd        Mode has changed from 20 readonly to 30 online
+peer102       crepd         Mode has changed from 20 readonly to 30 online
+peer102       manipulatord  
+
+[ 2012-07-22 22:14:53 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       30 online     off           off
+peer100       cpeerd        running       30 online     off           off
+peer100       crepd         running       30 online     off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       30 online     off           off
+peer101       cpeerd        running       30 online     off           off
+peer101       crepd         running       30 online     off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       30 online     off           off
+peer102       cpeerd        running       30 online     off           off
+peer102       crepd         running       30 online     off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:14:56 +0900  Turning the autopilot auto ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Autopilot has changed from off to auto
+peer100       cpeerd        Autopilot has changed from off to auto
+peer100       crepd         Autopilot has changed from off to auto
+peer100       manipulatord  
+
+peer101       cmond         Autopilot has changed from off to auto
+peer101       cpeerd        Autopilot has changed from off to auto
+peer101       crepd         Autopilot has changed from off to auto
+peer101       manipulatord  
+
+peer102       cmond         Autopilot has changed from off to auto
+peer102       cpeerd        Autopilot has changed from off to auto
+peer102       crepd         Autopilot has changed from off to auto
+peer102       manipulatord  
+
+[ 2012-07-22 22:14:58 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond          castoro  5865  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer100       cpeerd         castoro  5869  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer100       crepd          castoro  5864  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer100       manipulatord      root  5862  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer101       cmond          castoro  4945  2311   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
+peer101       cpeerd         castoro  4932  2311   0 21:56:56 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer101       crepd          castoro  4950  2311   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/crepd
+peer101       manipulatord      root  4938  2311   0 21:56:56 ?           0:03 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer102       cmond          castoro  4943  2644   0 21:56:57 ?           0:04 /usr/local/bin/ruby /usr/local/bin/cmond
+peer102       cpeerd         castoro  4944  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer102       crepd          castoro  4940  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/crepd
+peer102       manipulatord      root  4919  2644   0 21:56:55 ?           0:03 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+[ 2012-07-22 22:14:58 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       30 online     auto          off
+peer100       cpeerd        running       30 online     auto          off
+peer100       crepd         running       30 online     auto          off
+peer100       manipulatord  running
+
+peer101       cmond         running       30 online     auto          off
+peer101       cpeerd        running       30 online     auto          off
+peer101       crepd         running       30 online     auto          off
+peer101       manipulatord  running
+
+peer102       cmond         running       30 online     auto          off
+peer102       cpeerd        running       30 online     auto          off
+peer102       crepd         running       30 online     auto          off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:15:01 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       30 online     auto          off
+peer100       cpeerd        running       30 online     auto          off
+peer100       crepd         running       30 online     auto          off
+peer100       manipulatord  running
+
+peer101       cmond         running       30 online     auto          off
+peer101       cpeerd        running       30 online     auto          off
+peer101       crepd         running       30 online     auto          off
+peer101       manipulatord  running
+
+peer102       cmond         running       30 online     auto          off
+peer102       cpeerd        running       30 online     auto          off
+peer102       crepd         running       30 online     auto          off
+peer102       manipulatord  running
+
+
+Succeeded:
+ pgctl enable peer100
+</pre>
+
+h3. Stopping Every Peer in a Peer Group
+
+<pre>
+$ pgctl gstop G00
+[ 2012-07-22 22:15:54 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond          castoro  5865  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer100       cpeerd         castoro  5869  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer100       crepd          castoro  5864  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer100       manipulatord      root  5862  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer101       cmond          castoro  4945  2311   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
+peer101       cpeerd         castoro  4932  2311   0 21:56:56 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer101       crepd          castoro  4950  2311   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/crepd
+peer101       manipulatord      root  4938  2311   0 21:56:56 ?           0:03 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+peer102       cmond          castoro  4943  2644   0 21:56:57 ?           0:04 /usr/local/bin/ruby /usr/local/bin/cmond
+peer102       cpeerd         castoro  4944  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer102       crepd          castoro  4940  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/crepd
+peer102       manipulatord      root  4919  2644   0 21:56:55 ?           0:03 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+[ 2012-07-22 22:15:54 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       30 online     auto          off
+peer100       cpeerd        running       30 online     auto          off
+peer100       crepd         running       30 online     auto          off
+peer100       manipulatord  running
+
+peer101       cmond         running       30 online     auto          off
+peer101       cpeerd        running       30 online     auto          off
+peer101       crepd         running       30 online     auto          off
+peer101       manipulatord  running
+
+peer102       cmond         running       30 online     auto          off
+peer102       cpeerd        running       30 online     auto          off
+peer102       crepd         running       30 online     auto          off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:15:55 +0900  Diagnotice ]
+Some or all deamon processes in the specified groups are currently running.
+
+[ 2012-07-22 22:15:55 +0900  Planning ]
+HOSTNAME      DAEMON        PLANS
+peer100       cmond         The daemon process will be stopped.
+peer100       cpeerd        The daemon process will be stopped.
+peer100       crepd         The daemon process will be stopped.
+peer100       manipulatord  The daemon process will be stopped.
+
+peer101       cmond         The daemon process will be stopped.
+peer101       cpeerd        The daemon process will be stopped.
+peer101       crepd         The daemon process will be stopped.
+peer101       manipulatord  The daemon process will be stopped.
+
+peer102       cmond         The daemon process will be stopped.
+peer102       cpeerd        The daemon process will be stopped.
+peer102       crepd         The daemon process will be stopped.
+peer102       manipulatord  The daemon process will be stopped.
+
+The above plans are about to be carried out.
+
+Is that OK?  [ YES / no ] YES
+Thank you. Your answer is YES.  Proceeding...
+
+This subcommand is password protected. Please enter the password.
+pgctl Password: zzz    ... invisible
+
+[ 2012-07-22 22:16:01 +0900  Turning the autopilot off ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Autopilot has changed from auto to off
+peer100       cpeerd        Autopilot has changed from auto to off
+peer100       crepd         Autopilot has changed from auto to off
+peer100       manipulatord  
+
+peer101       cmond         Autopilot has changed from auto to off
+peer101       cpeerd        Autopilot has changed from auto to off
+peer101       crepd         Autopilot has changed from auto to off
+peer101       manipulatord  
+
+peer102       cmond         Autopilot has changed from auto to off
+peer102       cpeerd        Autopilot has changed from auto to off
+peer102       crepd         Autopilot has changed from auto to off
+peer102       manipulatord  
+
+[ 2012-07-22 22:16:03 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       30 online     off           off
+peer100       cpeerd        running       30 online     off           off
+peer100       crepd         running       30 online     off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       30 online     off           off
+peer101       cpeerd        running       30 online     off           off
+peer101       crepd         running       30 online     off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       30 online     off           off
+peer102       cpeerd        running       30 online     off           off
+peer102       crepd         running       30 online     off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:16:05 +0900  Descending the mode to 25 fin_rep ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Mode has changed from 30 online to 25 fin_rep
+peer100       cpeerd        Mode has changed from 30 online to 25 fin_rep
+peer100       crepd         Mode has changed from 30 online to 25 fin_rep
+peer100       manipulatord  
+
+peer101       cmond         Mode has changed from 30 online to 25 fin_rep
+peer101       cpeerd        Mode has changed from 30 online to 25 fin_rep
+peer101       crepd         Mode has changed from 30 online to 25 fin_rep
+peer101       manipulatord  
+
+peer102       cmond         Mode has changed from 30 online to 25 fin_rep
+peer102       cpeerd        Mode has changed from 30 online to 25 fin_rep
+peer102       crepd         Mode has changed from 30 online to 25 fin_rep
+peer102       manipulatord  
+
+[ 2012-07-22 22:16:07 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       25 fin_rep    off           off
+peer100       cpeerd        running       25 fin_rep    off           off
+peer100       crepd         running       25 fin_rep    off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       25 fin_rep    off           off
+peer101       cpeerd        running       25 fin_rep    off           off
+peer101       crepd         running       25 fin_rep    off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       25 fin_rep    off           off
+peer102       cpeerd        running       25 fin_rep    off           off
+peer102       crepd         running       25 fin_rep    off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:16:10 +0900  Descending the mode to 23 rep ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Mode has changed from 25 fin_rep to 23 rep
+peer100       cpeerd        Mode has changed from 25 fin_rep to 23 rep
+peer100       crepd         Mode has changed from 25 fin_rep to 23 rep
+peer100       manipulatord  
+
+peer101       cmond         Mode has changed from 25 fin_rep to 23 rep
+peer101       cpeerd        Mode has changed from 25 fin_rep to 23 rep
+peer101       crepd         Mode has changed from 25 fin_rep to 23 rep
+peer101       manipulatord  
+
+peer102       cmond         Mode has changed from 25 fin_rep to 23 rep
+peer102       cpeerd        Mode has changed from 25 fin_rep to 23 rep
+peer102       crepd         Mode has changed from 25 fin_rep to 23 rep
+peer102       manipulatord  
+
+[ 2012-07-22 22:16:12 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       23 rep        off           off
+peer100       cpeerd        running       23 rep        off           off
+peer100       crepd         running       23 rep        off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       23 rep        off           off
+peer101       cpeerd        running       23 rep        off           off
+peer101       crepd         running       23 rep        off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       23 rep        off           off
+peer102       cpeerd        running       23 rep        off           off
+peer102       crepd         running       23 rep        off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:16:15 +0900  Descending the mode to 20 readonly ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Mode has changed from 23 rep to 20 readonly
+peer100       cpeerd        Mode has changed from 23 rep to 20 readonly
+peer100       crepd         Mode has changed from 23 rep to 20 readonly
+peer100       manipulatord  
+
+peer101       cmond         Mode has changed from 23 rep to 20 readonly
+peer101       cpeerd        Mode has changed from 23 rep to 20 readonly
+peer101       crepd         Mode has changed from 23 rep to 20 readonly
+peer101       manipulatord  
+
+peer102       cmond         Mode has changed from 23 rep to 20 readonly
+peer102       cpeerd        Mode has changed from 23 rep to 20 readonly
+peer102       crepd         Mode has changed from 23 rep to 20 readonly
+peer102       manipulatord  
+
+[ 2012-07-22 22:16:17 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       20 readonly   off           off
+peer100       cpeerd        running       20 readonly   off           off
+peer100       crepd         running       20 readonly   off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       20 readonly   off           off
+peer101       cpeerd        running       20 readonly   off           off
+peer101       crepd         running       20 readonly   off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       20 readonly   off           off
+peer102       cpeerd        running       20 readonly   off           off
+peer102       crepd         running       20 readonly   off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:16:21 +0900  Descending the mode to 10 offline ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         Mode has changed from 20 readonly to 10 offline
+peer100       cpeerd        Mode has changed from 20 readonly to 10 offline
+peer100       crepd         Mode has changed from 20 readonly to 10 offline
+peer100       manipulatord  
+
+peer101       cmond         Mode has changed from 20 readonly to 10 offline
+peer101       cpeerd        Mode has changed from 20 readonly to 10 offline
+peer101       crepd         Mode has changed from 20 readonly to 10 offline
+peer101       manipulatord  
+
+peer102       cmond         Mode has changed from 20 readonly to 10 offline
+peer102       cpeerd        Mode has changed from 20 readonly to 10 offline
+peer102       crepd         Mode has changed from 20 readonly to 10 offline
+peer102       manipulatord  
+
+[ 2012-07-22 22:16:23 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       10 offline    off           off
+peer100       cpeerd        running       10 offline    off           off
+peer100       crepd         running       10 offline    off           off
+peer100       manipulatord  running
+
+peer101       cmond         running       10 offline    off           off
+peer101       cpeerd        running       10 offline    off           off
+peer101       crepd         running       10 offline    off           off
+peer101       manipulatord  running
+
+peer102       cmond         running       10 offline    off           off
+peer102       cpeerd        running       10 offline    off           off
+peer102       crepd         running       10 offline    off           off
+peer102       manipulatord  running
+
+[ 2012-07-22 22:16:26 +0900  Stopping daemons ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         status=0 peer100 cmond is going to shutdown ... 
+peer100       cpeerd        status=0 peer100 cpeerd is going to shutdown ... 
+peer100       crepd         status=0 peer100 crepd is going to shutdown ... 
+peer100       manipulatord  status=0 Stop Castoro-Manipulator ... *** Stopping Castoro::Manipulator daemon... *** done.
+
+peer101       cmond         status=0 peer101 cmond is going to shutdown ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
+peer101       cpeerd        status=0 peer101 cpeerd is going to shutdown ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
+peer101       crepd         status=0 peer101 crepd is going to shutdown ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
+peer101       manipulatord  status=0 Stop Castoro-Manipulator ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z" *** Stopping Castoro::Manipulator daemon... *** done.
+
+peer102       cmond         status=0 peer102 cmond is going to shutdown ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
+peer102       cpeerd        status=0 peer102 cpeerd is going to shutdown ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
+peer102       crepd         status=0 peer102 crepd is going to shutdown ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
+peer102       manipulatord  status=0 Stop Castoro-Manipulator ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z" *** Stopping Castoro::Manipulator daemon... *** done.
+
+[ 2012-07-22 22:16:31 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond
+peer100       cpeerd
+peer100       crepd
+peer100       manipulatord
+
+peer101       cmond
+peer101       cpeerd
+peer101       crepd
+peer101       manipulatord
+
+peer102       cmond
+peer102       cpeerd
+peer102       crepd
+peer102       manipulatord
+
+[ 2012-07-22 22:16:31 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30100
+peer100       cpeerd        stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30102
+peer100       crepd         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30103
+peer100       manipulatord  stopped
+
+peer101       cmond         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30100
+peer101       cpeerd        stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30102
+peer101       crepd         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30103
+peer101       manipulatord  stopped
+
+peer102       cmond         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30100
+peer102       cpeerd        stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30102
+peer102       crepd         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30103
+peer102       manipulatord  stopped
+
+
+Succeeded:
+ pgctl gstop G00
+<pre>
+
+h3. Starting a Peer
+
+<pre>
+$ pgctl start peer100
+[ 2012-07-22 22:17:07 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond
+peer100       cpeerd
+peer100       crepd
+peer100       manipulatord
+
+[ 2012-07-22 22:17:07 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30100
+peer100       cpeerd        stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30102
+peer100       crepd         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30103
+peer100       manipulatord  stopped
+
+[ 2012-07-22 22:17:08 +0900  Diagnotice ]
+No or some deamon processes in the specified peers are not running.
+
+[ 2012-07-22 22:17:08 +0900  Planning ]
+HOSTNAME      DAEMON        PLANS
+peer100       cmond         The daemon process will be started.
+peer100       cpeerd        The daemon process will be started.
+peer100       crepd         The daemon process will be started.
+peer100       manipulatord  The daemon process will be started.
+
+The above plans are about to be carried out.
+
+Is that OK?  [ YES / no ] YES
+Thank you. Your answer is YES.  Proceeding...
+
+This subcommand is password protected. Please enter the password.
+pgctl Password: zzz    ... invisible
+
+[ 2012-07-22 22:17:12 +0900  Starting daemons ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         status=0 Starting cmond ... OK 
+peer100       cpeerd        status=0 2012-07-22T22:14:16+09:00.674358 peer100 NOTICE Loading configration file: /etc/castoro/peer.conf Starting cpeerd ... OK 
+peer100       crepd         status=0 2012-07-22T22:14:16+09:00.259344 peer100 NOTICE Loading configration file: /etc/castoro/peer.conf Starting crepd ... OK 
+peer100       manipulatord  status=0 Start Castoro-Manipulator ... *** Starting Castoro::Manipulator daemon... *** done.
+
+[ 2012-07-22 22:17:16 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond          castoro  6337  2024   0 22:14:17 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer100       cpeerd         castoro  6341  2024   0 22:14:17 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer100       crepd          castoro  6333  2024   0 22:14:16 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer100       manipulatord      root  6336  2024   0 22:14:17 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+[ 2012-07-22 22:17:16 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       10 offline    auto          off
+peer100       cpeerd        running       10 offline    auto          off
+peer100       crepd         running       10 offline    auto          off
+peer100       manipulatord  running
+
+
+Succeeded:
+ pgctl start peer100
+<pre>
+
+h3. Stopping a Peer
+
+<pre>
+$ pgctl stop peer100
+[ 2012-07-22 22:17:46 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond          castoro  6337  2024   0 22:14:17 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer100       cpeerd         castoro  6341  2024   0 22:14:17 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer100       crepd          castoro  6333  2024   0 22:14:16 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer100       manipulatord      root  6336  2024   0 22:14:17 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+
+[ 2012-07-22 22:17:46 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         running       10 offline    auto          off
+peer100       cpeerd        running       10 offline    auto          off
+peer100       crepd         running       10 offline    auto          off
+peer100       manipulatord  running
+
+[ 2012-07-22 22:17:46 +0900  Diagnotice ]
+Some or all deamon processes in the specified peers are currently running.
+
+[ 2012-07-22 22:17:46 +0900  Planning ]
+HOSTNAME      DAEMON        PLANS
+peer100       cmond         The daemon process will be stopped.
+peer100       cpeerd        The daemon process will be stopped.
+peer100       crepd         The daemon process will be stopped.
+peer100       manipulatord  The daemon process will be stopped.
+
+The above plans are about to be carried out.
+
+Is that OK?  [ YES / no ] YES
+Thank you. Your answer is YES.  Proceeding...
+
+This subcommand is password protected. Please enter the password.
+pgctl Password: zzz    ... invisible
+
+[ 2012-07-22 22:17:51 +0900  Stopping daemons ]
+HOSTNAME      DAEMON        RESULTS
+peer100       cmond         status=0 peer100 cmond is going to shutdown ... 
+peer100       cpeerd        status=0 peer100 cpeerd is going to shutdown ... 
+peer100       crepd         status=0 peer100 crepd is going to shutdown ... 
+peer100       manipulatord  status=0 Stop Castoro-Manipulator ... *** Stopping Castoro::Manipulator daemon... *** done.
+
+[ 2012-07-22 22:17:55 +0900  Daemon processes ]
+HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
+peer100       cmond
+peer100       cpeerd
+peer100       crepd
+peer100       manipulatord
+
+[ 2012-07-22 22:17:55 +0900  Status ]
+HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
+peer100       cmond         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30100
+peer100       cpeerd        stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30102
+peer100       crepd         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30103
+peer100       manipulatord  stopped
+
+
+Succeeded:
+ pgctl stop peer100
 <pre>
