@@ -334,6 +334,26 @@ module Castoro
         end
       end
 
+      def print_plan_for_descending_the_mode_to mode
+        f = "%-14s%-14s%s\n"  # format
+        printf f, 'HOSTNAME', 'DAEMON', 'PLANS'
+        work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
+          unless t == :manipulatord
+            s = x.status
+            m = s.mode ? ServerStatus.status_code_to_s( s.mode ) : 'unknown'
+            n = ServerStatus.status_code_to_s( mode )
+            unless m == n
+              printf f, h, t, "The mode will be lowered from #{m} to #{n}."
+              true
+            else
+              false
+            end
+          else
+            false
+          end
+        end
+      end
+
       def mode
         r = nil
         work_on_every_component_simple do |x|  # proxy object

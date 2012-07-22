@@ -256,7 +256,7 @@ module Castoro
                 else ; raise CommandLineArgumentError, "Parameters should not mix a group name and host name: #{x}"
                 end
               end
-                  
+              
             when :host
               @hosts.push x
               while ( x = ARGV.shift )
@@ -380,9 +380,9 @@ module Castoro
               printf "  %s = %s\n", name, hosts.join(' ') if hosts.include? x
             end
           end
-            
+          
           if @groups.size == 0 && @hosts.size == 0  
-          Configurations::Peer.instance.StorageGroups.each do |name, hosts|
+            Configurations::Peer.instance.StorageGroups.each do |name, hosts|
               printf "  %s = %s\n", name, hosts.join(' ')
             end
           end
@@ -493,20 +493,65 @@ module Castoro
 
       class Start < TargethostOriented
         include PasswordProtected
+        include ConfirmationNeeded
 
-        def run
+        def pre_check
+          0 <= @y.size or raise Failure::NoPeerSpecified, "No target peer is specified."
+          0 <= @z.size or raise Failure::NoPeerSpecified, "Other peers are not specified."
+
           do_ps_and_print
           SignalHandler.check
+          do_status_and_print
+          SignalHandler.check
 
-          unless @z.alive?
-            raise Failure::OtherHostsNotRunning, "Some of other hosts in the same peer group are not running."
-          end
-
+          title "Diagnotice"
           if @y.alive?
-            puts "Deamon processes of the specified host are already running."
-            return
+            puts "All deamon processes on the target peer are already running."
+          else
+            puts "No or some deamon processes on the target peer are not running."
           end
 
+          if @y.mode == 30
+            puts "All deamon processes on the target peer are already online."
+          else
+            puts "No or some deamon processes on the target peer are not online."
+          end
+
+          puts ""
+
+          if @z.alive?
+            puts "All deamon processes on the rest of peers are expectedly running."
+          else
+            raise Failure::OtherHostsNotRunning, "No or some deamon processes on the rest of peer are not running."
+          end
+
+          if @z.mode == 30
+            puts "All deamon processes on the rest of peers are already online."
+          else
+            puts "No or some deamon processes on the rest of peers are not online."
+          end
+
+          puts ""
+
+          title "Planning"
+          if @y.alive? && @y.mode == 30
+            puts "Nothing is needed."
+            return false
+
+          else
+            unless @y.alive?
+              @y.print_plan_for_start
+            end
+
+            unless @x.mode == 30
+              @x.print_plan_for_ascending_the_mode_to 30
+            end
+          end
+
+          true
+        end
+
+        def run
           title "Starting the daemon"
           Barrier.instance.clients = @y.number_of_components + 1
           @y.do_start
@@ -534,11 +579,14 @@ module Castoro
             @x.verify_mode_more_or_equal 30 ; sleep 2
             turn_autopilot_on      ; sleep 2
           end
+        end
 
+        def post_check
           do_ps_and_print
           do_status_and_print
           @x.verify_mode 30
           sleep 2
+          SignalHandler.check
 
           do_status_and_print
           @x.verify_mode 30
@@ -597,17 +645,62 @@ module Castoro
 
       class Stop < TargethostOriented
         include PasswordProtected
+        include ConfirmationNeeded
 
-        def run
+        def pre_check
+          0 <= @y.size or raise Failure::NoPeerSpecified, "No target peer is specified."
+          0 <= @z.size or raise Failure::NoPeerSpecified, "Other peers are not specified."
+
           do_ps_and_print
+          SignalHandler.check
           do_status_and_print
           SignalHandler.check
 
-          if false == @y.alive?
-            puts "The deamons on the peer have already stopped."
-            return
+          title "Diagnotice"
+          if @y.alive?
+            puts "All deamon processes on the target peer are currently running."
+          elsif false == @y.alive?
+            puts "All deamon processes on the target peer have already stopped."
+          else
+            puts "Some deamon processes on the target peer are currently running."
           end
 
+          puts ""
+
+          if @z.alive?
+            puts "All deamon processes on the rest of peers are expectedly running."
+          else
+            raise Failure::OtherHostsNotRunning, "No or some deamon processes on the rest of peer are not running."
+          end
+
+          @z.verify_mode_more_or_equal 20
+          mode = @z.mode
+          if mode.nil?
+            puts "The mode of some deamon processes on the rest of peers are unknown."
+          else
+            m = ServerStatus.status_code_to_s( mode )
+            puts "All deamon processes on the rest of peers are #{m}."
+          end
+
+          puts ""
+
+          title "Planning"
+          if false == @y.alive?
+            puts "Nothing is needed."
+            return false
+
+          else
+            @y.print_plan_for_stop
+
+            unless @z.mode == 20
+              @z.print_plan_for_descending_the_mode_to 20
+            end
+          end
+
+          true
+        end
+
+        def run
           descend_the_mode_to_readonly
 
           mode = 10
@@ -653,7 +746,9 @@ module Castoro
             do_ps_and_print
             SignalHandler.check
           end
+        end
 
+        def post_check
           do_status_and_print
           @y.verify_stop
           @z.verify_alive
@@ -678,9 +773,9 @@ module Castoro
           if false == @x.alive?  # alive? could be true, false, or nil for unknown
             puts "All deamon processes in the specified groups have already stopped."
           else
-            puts "Some or all deamon processes in the specified groups are still running."
+            puts "Some or all deamon processes in the specified groups are currently running."
           end
-            
+          
           puts ""
 
           title "Planning"
@@ -725,9 +820,9 @@ module Castoro
           if false == @x.alive?  # alive? could be true, false, or nil for unknown
             puts "All deamon processes in the specified peers have already stopped."
           else
-            puts "Some or all deamon processes in the specified peers are still running."
+            puts "Some or all deamon processes in the specified peers are currently running."
           end
-            
+          
           puts ""
 
           title "Planning"
