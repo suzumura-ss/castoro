@@ -22,8 +22,9 @@ require 'rake/clean'
 require 'rubygems'
 require 'rubygems/package_task'
 require 'rdoc/task'
+require 'lib/castoro-pgctl/version'
 
-PKG_VERSION = '0.0.3'
+PKG_VERSION = Castoro::Peer::PKG_VERSION
 
 PKG_FILES = Array.new.tap do |a|
   a.concat %w( README.textile Rakefile History.txt LICENSE )

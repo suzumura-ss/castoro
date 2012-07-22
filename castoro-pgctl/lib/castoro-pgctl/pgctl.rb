@@ -27,6 +27,7 @@ end
 
 require 'singleton'
 require 'getoptlong'
+require 'castoro-pgctl/version'
 require 'castoro-pgctl/component'
 require 'castoro-pgctl/signal_handler'
 require 'castoro-pgctl/exceptions'
@@ -37,8 +38,6 @@ require 'castoro-pgctl/sub_command'
 module Castoro
   module Peer
     
-    PROGRAM_VERSION = "0.0.2 - 2012-05-31"
-
     class PgctlMain
       include Singleton
 
@@ -50,7 +49,9 @@ module Castoro
       def usage
         x = @program_name
         puts <<-EOT
-usage: #{x} [global options] sub-command [host name|group name]...
+#{@program_name} - Castoro Peer Group Control command - Version #{PKG_VERSION}"
+
+ usage: #{x} [global options] sub-command [host name|group name]...
 
   global options:
    -h, --help     prints this help message and exit.
@@ -153,7 +154,7 @@ EOT
           when '--debug'
             $DEBUG = true
           when '--version'
-            puts "#{@program_name} - Version #{PROGRAM_VERSION}"
+            puts "#{@program_name} - Version #{PKG_VERSION}"
             Process.exit 0
           when '--configuration-file'
             Configurations::Pgctl.file = arg
