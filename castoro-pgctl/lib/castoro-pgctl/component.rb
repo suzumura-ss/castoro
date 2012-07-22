@@ -160,7 +160,7 @@ module Castoro
         end
       end
 
-      def print_plan_of_start
+      def print_plan_for_start
         f = "%-14s%-14s%s\n"  # format
         printf f, 'HOSTNAME', 'DAEMON', 'PLANS'
         work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
@@ -209,6 +209,19 @@ module Castoro
             x.do_stop
           else
             x.do_dummy
+          end
+        end
+      end
+
+      def print_plan_for_stop
+        f = "%-14s%-14s%s\n"  # format
+        printf f, 'HOSTNAME', 'DAEMON', 'PLANS'
+        work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object
+          if x.flag = ( x.ps.alive == true )
+            printf f, h, t, "The daemon process will be stopped."
+            true
+          else
+            false
           end
         end
       end
@@ -295,7 +308,7 @@ module Castoro
         end
       end
 
-      def print_plan_of_ascend_the_mode_to mode
+      def print_plan_for_ascending_the_mode_to mode
         f = "%-14s%-14s%s\n"  # format
         printf f, 'HOSTNAME', 'DAEMON', 'PLANS'
         work_on_every_component( true ) do |h, t, x|  # hostname, component type, proxy object

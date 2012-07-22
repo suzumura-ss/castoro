@@ -205,6 +205,9 @@ EOT
         x = true
         x = command.pre_check if command.respond_to? :pre_check
         if x
+          x = command.confirm_if_the_plan_is_approved if command.respond_to? :confirm_if_the_plan_is_approved
+        end
+        if x
           command.authenticate if command.respond_to? :authenticate
           command.run
           SignalHandler.final_check

@@ -33,8 +33,36 @@ module Castoro
         def authenticate
           unless Password.instance.empty?
             puts ""
-            puts "This subcommand is password protected."
+            puts "This subcommand is password protected. Please enter the password."
             Password.instance.authenticate
+          end
+        end
+      end
+
+
+      module ConfirmationNeeded
+        def confirm_if_the_plan_is_approved
+          puts "The above plans are about to be carried out."
+          puts ""
+
+          loop do
+            print "Is that OK?  [ YES / no ] "
+            x = gets
+            SignalHandler.check
+            case x.chomp
+
+            when 'YES'
+              puts 'Thank you. Your answer is YES.  Proceeding...'
+              return true
+
+            when 'no'
+              puts 'Thank you. Your answer is no.  Quiting...'
+              return false
+
+            else
+              puts "Please answer YES or no."
+              puts ""
+            end
           end
         end
       end
@@ -182,28 +210,6 @@ module Castoro
 
         def title message
           puts "[ #{Time.new.to_s}  #{message} ]"
-        end
-
-        def confirm_if_the_plan_is_approved
-          loop do
-            print "Is that OK?  [ YES / no ] "
-            x = gets
-            SignalHandler.check
-            case x.chomp
-
-            when 'YES'
-              puts 'Thank you. Your answer is YES.  Proceeding...'
-              return true
-
-            when 'no'
-              puts 'Thank you. Your answer is no.  Quiting...'
-              return false
-
-            else
-              puts "Please answer YES or no."
-              puts ""
-            end
-          end
         end
 
         def dispatch &block
@@ -407,11 +413,10 @@ module Castoro
 
       class Gstart < GroupnameOriented
         include PasswordProtected
+        include ConfirmationNeeded
 
         def pre_check
-          if 0 == @x.size
-            raise Failure::NoGroupSpecified, "No peer group is specified."
-          end
+          0 <= @x.size or raise Failure::NoGroupSpecified, "No peer group is specified."
 
           do_ps_and_print
           SignalHandler.check
@@ -422,13 +427,13 @@ module Castoro
           if @x.alive?
             puts "All deamon processes in the specified groups are already running."
           else
-            puts "Some deamon processes in the specified groups are not running."
+            puts "No or some deamon processes in the specified groups are not running."
           end
 
           if @x.mode == 30
             puts "All deamon processes in the specified groups are already online."
           else
-            puts "Some deamon processes in the specified groups are not online."
+            puts "No or some deamon processes in the specified groups are not online."
           end
           puts ""
 
@@ -439,19 +444,15 @@ module Castoro
 
           else
             unless @x.alive?
-              @x.print_plan_of_start
+              @x.print_plan_for_start
             end
 
             unless @x.mode == 30
-              @x.print_plan_of_ascend_the_mode_to 30
+              @x.print_plan_for_ascending_the_mode_to 30
             end
-
-            puts "The above plans are about to be carried out."
-            puts ""
-
           end
 
-          confirm_if_the_plan_is_approved
+          true
         end
 
         def run
@@ -634,26 +635,44 @@ module Castoro
 
       class Gstop < GroupnameOriented
         include PasswordProtected
+        include ConfirmationNeeded
 
-        def run
-          if 0 == @x.size
-            raise Failure::NoGroupSpecified, "No peer group is specified."
-          end
+        def pre_check
+          0 <= @x.size or raise Failure::NoGroupSpecified, "No peer group is specified."
 
           do_ps_and_print
+          SignalHandler.check
           do_status_and_print
           SignalHandler.check
 
-          if false == @x.alive?
-            puts "All deamons on every peer have already stopped."
-            return
-          end
+          title "Diagnotice"
 
+          if false == @x.alive?  # alive? could be true, false, or nil for unknown
+            puts "All deamon processes in the specified groups have already stopped."
+          else
+            puts "Some or all deamon processes in the specified groups are still running."
+          end
+            
+          puts ""
+
+          title "Planning"
+          if false == @x.alive?
+            puts "Nothing is needed."
+            return false
+
+          else
+            @x.print_plan_for_stop
+          end
+        end
+
+        def run
           descend_the_mode_to_offline
           do_stop_deamons
           SignalHandler.check
           sleep 2
+        end
 
+        def post_check
           do_ps_and_print
           do_status_and_print
           @x.verify_stop
