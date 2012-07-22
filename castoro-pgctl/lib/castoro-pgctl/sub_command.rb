@@ -71,13 +71,13 @@ module Castoro
       module PsModule
         def do_ps
           dispatch { @x.do_ps }
-          Exceptions.instance.confirm
         end
 
         def do_ps_and_print
           title "Daemon processes"
           do_ps
           @x.print_ps
+          Exceptions.instance.confirm
         end
       end
 
@@ -85,7 +85,6 @@ module Castoro
       module StatusModule
         def do_status
           dispatch { @x.do_status }
-          Exceptions.instance.confirm
         end
 
         def do_status_and_print
@@ -93,6 +92,7 @@ module Castoro
           do_ps
           do_status
           @x.print_status
+          Exceptions.instance.confirm
         end
       end
 
@@ -219,7 +219,6 @@ module Castoro
           end
           Barrier.instance.wait  # let slaves start
           Barrier.instance.wait  # wait until slaves finish their tasks
-          Exceptions.instance.confirm
         end
 
         private
