@@ -51,7 +51,7 @@ module Castoro
         puts <<-EOT
 #{@program_name} - Castoro Peer Group Control command - Version #{PKG_VERSION}"
 
- usage: #{x} [global options] sub-command [host name|group name]...
+ usage: #{x} [global options] subcommand [hostname|groupname]...
 
   global options:
    -h, --help     prints this help message and exit.
@@ -62,77 +62,80 @@ module Castoro
    -p file, --peer-configuration-file=file  specifies a configuration file of peer.
                   default: #{Configurations::Peer::DEFAULT_FILE}
 
-  sub commands:
-   list       lists peer groups
-   ps         lists the deamon processes in a 'ps -ef' format
-   status     shows the status of the deamon processes on the every host
+  subcommands:
+  #{x} [global options]  list|passwd
+  #{x} [global options]  list|ps|status  hostname|groupname...
+    list     lists peer groups
+    ps       lists the deamon processes in a 'ps -ef' format
+    status   shows the status of the deamon processes on the every host
+    passwd   sets a password for the critical sub commands
 
-   gstart     starts deamon processes of every host in the specified peer group
-   gstop      stops  daemon processes of every host in the specified peer group
+  #{x} [global options]  gstart|gstop  groupname...
+    gstart   starts deamon processes of every host in the specified peer group
+    gstop    stops  daemon processes of every host in the specified peer group
 
-   enable     starts daemon processes of the only target peer host
-   disable    stops  daemon processes of the only target peer host
-   start      starts daemon processes of the specified peer host and leave them offline
-   stop       stops  daemon processes of the specified peer host by force without any check
-
-   passwd     sets a password for the critical sub commands
+  #{x} [global options]  enable|disable|start|stop  hostname...
+    enable   starts daemon processes of the only target peer host
+    disable  stops  daemon processes of the only target peer host
+    start    starts daemon processes of the specified peer host and leave them offline
+    stop     stops  daemon processes of the specified peer host by force without any check
 
  examples:
    #{x} list
         shows a list of peer groups
        e.g. \"#{x} list G00\" shows:
-            G00 = peer01 peer02 peer03
-
-   #{x} ps peer01
-        shows the daemon processes of peer01.
-
-   #{x} ps G00
-        shows the daemon processes of peer01, peer02, and peer03.
-
-   #{x} status peer01 peer02
-        shows the status of peer01 and peer02.
-
-   #{x} status G00
-        shows the status of peer01, peer02, and peer03.
-
-   #{x} disable peer01
-        turns peer01, peer02, and peer03 readonly,
-        and then stops peer01.
-
-   #{x} enable peer01
-        if peer01 has stopped, starts it, and then
-        turns peer01, peer02, and peer03 online.
-        Both peer02 and peer03 have to be running.
-
-   #{x} gstop G00
-        gracefully stops peer01 peer02, and peer03.
-
-   #{x} gstart G00
-        starts peer01 peer02, and peer03, and then turn them online.
-
-   #{x} start peer01
-        starts peer01, and then leave it offline.
-
-   #{x} stop peer01
-        stops peer01 by force without any check
+            G00 = peer101 peer102 peer103
 
    #{x} passwd
         To set a new password:
           Setting a password of the command pgctl.
-          New pgctl password: 
-          Retype new pgctl password: 
+          New pgctl password: xxxxx 
+          Retype new pgctl password: xxxxx
         
         To change a password:
           Changing a password of the command pgctl.
-          (current) pgctl password: 
-          New pgctl password: 
-          Retype new pgctl password: 
+          (current) pgctl password: xxxxx
+          New pgctl password: yyyyy
+          Retype new pgctl password: yyyyy
         
         To empty a password:
           Changing a password of the command pgctl.
-          (current) pgctl password: 
-          New pgctl password: (just hit an enter key)
-          Retype new pgctl password: (just hit an enter key)
+          (current) pgctl password: yyyyy
+          New pgctl password: (just hit the enter key)
+          Retype new pgctl password: (just hit the enter key again)
+
+   #{x} ps peer101
+        shows the daemon processes of peer101.
+
+   #{x} ps G00
+        shows the daemon processes of peer101, peer102, and peer103.
+
+   #{x} status peer101 peer102
+        shows the status of peer101 and peer102.
+
+   #{x} status G00
+        shows the status of peer101, peer102, and peer103.
+
+   #{x} disable peer101
+        turns peer101, peer102, and peer103 readonly,
+        and then stops peer101.
+
+   #{x} enable peer101
+        if peer101 has stopped, starts it, and then
+        turns peer101, peer102, and peer103 online.
+        Both peer102 and peer103 have to be running.
+
+   #{x} gstop G00
+        gracefully stops peer101 peer102, and peer103.
+
+   #{x} gstart G00
+        starts peer101 peer102, and peer103, and then turn them online.
+
+   #{x} start peer101
+        starts peer101, and then leave it offline.
+
+   #{x} stop peer101
+        stops peer101 by force without any check
 
 EOT
       end
