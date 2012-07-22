@@ -62,18 +62,18 @@ module Castoro
                   default: #{Configurations::Peer::DEFAULT_FILE}
 
   subcommands:
-  #{x} [global options]  list|passwd
-  #{x} [global options]  list|ps|status  hostname|groupname...
+   #{x} [global options]  list|passwd
+   #{x} [global options]  list|ps|status  hostname|groupname...
     list     lists peer groups
     ps       lists the deamon processes in a 'ps -ef' format
     status   shows the status of the deamon processes on the every host
     passwd   sets a password for the critical sub commands
 
-  #{x} [global options]  gstart|gstop  groupname...
+   #{x} [global options]  gstart|gstop  groupname...
     gstart   starts deamon processes of every host in the specified peer group
     gstop    stops  daemon processes of every host in the specified peer group
 
-  #{x} [global options]  enable|disable|start|stop  hostname...
+   #{x} [global options]  enable|disable|start|stop  hostname...
     enable   starts daemon processes of the only target peer host
     disable  stops  daemon processes of the only target peer host
     start    starts daemon processes of the specified peer host and leave them offline
