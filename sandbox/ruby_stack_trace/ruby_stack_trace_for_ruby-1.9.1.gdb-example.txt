@@ -97,34 +97,6 @@ Thread 8 (Thread 0x41a5a940 (LWP 4226)):
 517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
 #9  0x00000000004ce770 in vm_exec_core (th=0x1e7ffef0, initial=<value optimized out>) at insns.def:999
 999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#10 0x00000000004d21ca in vm_exec (th=0x1e7ffef0) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e7ffef0, block=0x2aaaab5bff18, self=511867552, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#12 0x00000000004d2f38 in vm_yield () at vm.c:554
-554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
-#13 rb_yield_0 () at vm_eval.c:505
-505	    return vm_yield(GET_THREAD(), argc, argv);
-#14 loop_i () at vm_eval.c:563
-563		rb_yield_0(0, 0);
-#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
-583		result = (*b_proc) (data1);
-#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
-587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
-#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e7ffef0, reg_cfp=0x2aaaab5bfef0, num=0, id=2760, oid=2760, recv=511867552, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaab5bff18) at vm_insnhelper.c:384
-384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
-#18 0x00000000004cc020 in vm_call_method (th=0x1e7ffef0, cfp=0x2aaaab5bfef0, num=0, blockptr=0x2aaaab5bff18, flag=8, id=2760, mn=0x1e488ce8, recv=511867552) at vm_insnhelper.c:517
-517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
-#19 0x00000000004ce770 in vm_exec_core (th=0x1e7ffef0, initial=<value optimized out>) at insns.def:999
-999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#20 0x00000000004d21ca in vm_exec (th=0x1e7ffef0) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#21 0x00000000004d27bc in invoke_block_from_c (th=0x1e7ffef0, block=0x1e8731f0, self=511867552, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#22 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e7ffef0, proc=0x1e8731f0, self=511867552, argc=0, argv=0x1e66a0f8, blockptr=0x0) at vm.c:571
-571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
-#23 0x00000000004dc6ce in thread_start_func_2 (th=0x1e7ffef0, stack_start=0x41a5a130) at thread.c:391
-391		    SAVE_ROOT_JMPBUF(th, {
 
 [Current thread is 8 (Thread 0x41a5a940 (LWP 4226))]
 #0  CFUNC  :sleep
@@ -155,34 +127,6 @@ Thread 7 (Thread 0x40f1d940 (LWP 4227)):
 517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
 #7  0x00000000004ce770 in vm_exec_core (th=0x1e802c80, initial=<value optimized out>) at insns.def:999
 999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#8  0x00000000004d21ca in vm_exec (th=0x1e802c80) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#9  0x00000000004d27bc in invoke_block_from_c (th=0x1e802c80, block=0x2aaaac6efeb8, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#10 0x00000000004d2f38 in vm_yield () at vm.c:554
-554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
-#11 rb_yield_0 () at vm_eval.c:505
-505	    return vm_yield(GET_THREAD(), argc, argv);
-#12 loop_i () at vm_eval.c:563
-563		rb_yield_0(0, 0);
-#13 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
-583		result = (*b_proc) (data1);
-#14 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
-587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
-#15 0x00000000004cb000 in vm_call_cfunc (th=0x1e802c80, reg_cfp=0x2aaaac6efe90, num=0, id=2760, oid=2760, recv=510039936, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaac6efeb8) at vm_insnhelper.c:384
-384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
-#16 0x00000000004cc020 in vm_call_method (th=0x1e802c80, cfp=0x2aaaac6efe90, num=0, blockptr=0x2aaaac6efeb8, flag=8, id=2760, mn=0x1e488ce8, recv=510039936) at vm_insnhelper.c:517
-517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
-#17 0x00000000004ce770 in vm_exec_core (th=0x1e802c80, initial=<value optimized out>) at insns.def:999
-999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#18 0x00000000004d21ca in vm_exec (th=0x1e802c80) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#19 0x00000000004d27bc in invoke_block_from_c (th=0x1e802c80, block=0x1e803020, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#20 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e802c80, proc=0x1e803020, self=510039936, argc=0, argv=0x1e669480, blockptr=0x0) at vm.c:571
-571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
-#21 0x00000000004dc6ce in thread_start_func_2 (th=0x1e802c80, stack_start=0x40f1d130) at thread.c:391
-391		    SAVE_ROOT_JMPBUF(th, {
 
 [Current thread is 7 (Thread 0x40f1d940 (LWP 4227))]
 #0  CFUNC  :accept
@@ -214,34 +158,6 @@ Thread 6 (Thread 0x417c0940 (LWP 4228)):
 517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
 #9  0x00000000004ce770 in vm_exec_core (th=0x1e803190, initial=<value optimized out>) at insns.def:999
 999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#10 0x00000000004d21ca in vm_exec (th=0x1e803190) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e803190, block=0x2aaaac7f0eb8, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#12 0x00000000004d2f38 in vm_yield () at vm.c:554
-554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
-#13 rb_yield_0 () at vm_eval.c:505
-505	    return vm_yield(GET_THREAD(), argc, argv);
-#14 loop_i () at vm_eval.c:563
-563		rb_yield_0(0, 0);
-#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
-583		result = (*b_proc) (data1);
-#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
-587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
-#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e803190, reg_cfp=0x2aaaac7f0e90, num=0, id=2760, oid=2760, recv=510039936, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaac7f0eb8) at vm_insnhelper.c:384
-384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
-#18 0x00000000004cc020 in vm_call_method (th=0x1e803190, cfp=0x2aaaac7f0e90, num=0, blockptr=0x2aaaac7f0eb8, flag=8, id=2760, mn=0x1e488ce8, recv=510039936) at vm_insnhelper.c:517
-517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
-#19 0x00000000004ce770 in vm_exec_core (th=0x1e803190, initial=<value optimized out>) at insns.def:999
-999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#20 0x00000000004d21ca in vm_exec (th=0x1e803190) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#21 0x00000000004d27bc in invoke_block_from_c (th=0x1e803190, block=0x1e803580, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#22 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e803190, proc=0x1e803580, self=510039936, argc=0, argv=0x1e669368, blockptr=0x0) at vm.c:571
-571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
-#23 0x00000000004dc6ce in thread_start_func_2 (th=0x1e803190, stack_start=0x417c0130) at thread.c:391
-391		    SAVE_ROOT_JMPBUF(th, {
 
 [Current thread is 6 (Thread 0x417c0940 (LWP 4228))]
 #0  CFUNC  :sleep
@@ -276,34 +192,6 @@ Thread 5 (Thread 0x4044a940 (LWP 4229)):
 517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
 #9  0x00000000004ce770 in vm_exec_core (th=0x1e8036f0, initial=<value optimized out>) at insns.def:999
 999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#10 0x00000000004d21ca in vm_exec (th=0x1e8036f0) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e8036f0, block=0x2aaaac8f1eb8, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#12 0x00000000004d2f38 in vm_yield () at vm.c:554
-554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
-#13 rb_yield_0 () at vm_eval.c:505
-505	    return vm_yield(GET_THREAD(), argc, argv);
-#14 loop_i () at vm_eval.c:563
-563		rb_yield_0(0, 0);
-#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
-583		result = (*b_proc) (data1);
-#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
-587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
-#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e8036f0, reg_cfp=0x2aaaac8f1e90, num=0, id=2760, oid=2760, recv=510039936, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaac8f1eb8) at vm_insnhelper.c:384
-384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
-#18 0x00000000004cc020 in vm_call_method (th=0x1e8036f0, cfp=0x2aaaac8f1e90, num=0, blockptr=0x2aaaac8f1eb8, flag=8, id=2760, mn=0x1e488ce8, recv=510039936) at vm_insnhelper.c:517
-517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
-#19 0x00000000004ce770 in vm_exec_core (th=0x1e8036f0, initial=<value optimized out>) at insns.def:999
-999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#20 0x00000000004d21ca in vm_exec (th=0x1e8036f0) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#21 0x00000000004d27bc in invoke_block_from_c (th=0x1e8036f0, block=0x1e803ae0, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#22 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e8036f0, proc=0x1e803ae0, self=510039936, argc=0, argv=0x1e669218, blockptr=0x0) at vm.c:571
-571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
-#23 0x00000000004dc6ce in thread_start_func_2 (th=0x1e8036f0, stack_start=0x4044a130) at thread.c:391
-391		    SAVE_ROOT_JMPBUF(th, {
 
 [Current thread is 5 (Thread 0x4044a940 (LWP 4229))]
 #0  CFUNC  :sleep
@@ -338,34 +226,6 @@ Thread 4 (Thread 0x41ea2940 (LWP 4230)):
 517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
 #9  0x00000000004ce770 in vm_exec_core (th=0x1e803c50, initial=<value optimized out>) at insns.def:999
 999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#10 0x00000000004d21ca in vm_exec (th=0x1e803c50) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e803c50, block=0x2aaaac9f2eb8, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#12 0x00000000004d2f38 in vm_yield () at vm.c:554
-554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
-#13 rb_yield_0 () at vm_eval.c:505
-505	    return vm_yield(GET_THREAD(), argc, argv);
-#14 loop_i () at vm_eval.c:563
-563		rb_yield_0(0, 0);
-#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
-583		result = (*b_proc) (data1);
-#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
-587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
-#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e803c50, reg_cfp=0x2aaaac9f2e90, num=0, id=2760, oid=2760, recv=510039936, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaac9f2eb8) at vm_insnhelper.c:384
-384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
-#18 0x00000000004cc020 in vm_call_method (th=0x1e803c50, cfp=0x2aaaac9f2e90, num=0, blockptr=0x2aaaac9f2eb8, flag=8, id=2760, mn=0x1e488ce8, recv=510039936) at vm_insnhelper.c:517
-517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
-#19 0x00000000004ce770 in vm_exec_core (th=0x1e803c50, initial=<value optimized out>) at insns.def:999
-999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#20 0x00000000004d21ca in vm_exec (th=0x1e803c50) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#21 0x00000000004d27bc in invoke_block_from_c (th=0x1e803c50, block=0x1e804040, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#22 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e803c50, proc=0x1e804040, self=510039936, argc=0, argv=0x1e669138, blockptr=0x0) at vm.c:571
-571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
-#23 0x00000000004dc6ce in thread_start_func_2 (th=0x1e803c50, stack_start=0x41ea2130) at thread.c:391
-391		    SAVE_ROOT_JMPBUF(th, {
 
 [Current thread is 4 (Thread 0x41ea2940 (LWP 4230))]
 #0  CFUNC  :sleep
@@ -400,34 +260,6 @@ Thread 3 (Thread 0x40747940 (LWP 4231)):
 517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
 #9  0x00000000004ce770 in vm_exec_core (th=0x1e804330, initial=<value optimized out>) at insns.def:999
 999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#10 0x00000000004d21ca in vm_exec (th=0x1e804330) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e804330, block=0x2aaaacaf3eb8, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#12 0x00000000004d2f38 in vm_yield () at vm.c:554
-554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
-#13 rb_yield_0 () at vm_eval.c:505
-505	    return vm_yield(GET_THREAD(), argc, argv);
-#14 loop_i () at vm_eval.c:563
-563		rb_yield_0(0, 0);
-#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
-583		result = (*b_proc) (data1);
-#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
-587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
-#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e804330, reg_cfp=0x2aaaacaf3e90, num=0, id=2760, oid=2760, recv=510039936, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaacaf3eb8) at vm_insnhelper.c:384
-384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
-#18 0x00000000004cc020 in vm_call_method (th=0x1e804330, cfp=0x2aaaacaf3e90, num=0, blockptr=0x2aaaacaf3eb8, flag=8, id=2760, mn=0x1e488ce8, recv=510039936) at vm_insnhelper.c:517
-517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
-#19 0x00000000004ce770 in vm_exec_core (th=0x1e804330, initial=<value optimized out>) at insns.def:999
-999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#20 0x00000000004d21ca in vm_exec (th=0x1e804330) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#21 0x00000000004d27bc in invoke_block_from_c (th=0x1e804330, block=0x1e804720, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#22 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e804330, proc=0x1e804720, self=510039936, argc=0, argv=0x1e669058, blockptr=0x0) at vm.c:571
-571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
-#23 0x00000000004dc6ce in thread_start_func_2 (th=0x1e804330, stack_start=0x40747130) at thread.c:391
-391		    SAVE_ROOT_JMPBUF(th, {
 
 [Current thread is 3 (Thread 0x40747940 (LWP 4231))]
 #0  CFUNC  :sleep
@@ -462,34 +294,6 @@ Thread 2 (Thread 0x41215940 (LWP 4232)):
 517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
 #9  0x00000000004ce770 in vm_exec_core (th=0x1e804970, initial=<value optimized out>) at insns.def:999
 999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#10 0x00000000004d21ca in vm_exec (th=0x1e804970) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e804970, block=0x2aaaacbf4eb8, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#12 0x00000000004d2f38 in vm_yield () at vm.c:554
-554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
-#13 rb_yield_0 () at vm_eval.c:505
-505	    return vm_yield(GET_THREAD(), argc, argv);
-#14 loop_i () at vm_eval.c:563
-563		rb_yield_0(0, 0);
-#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
-583		result = (*b_proc) (data1);
-#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
-587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
-#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e804970, reg_cfp=0x2aaaacbf4e90, num=0, id=2760, oid=2760, recv=510039936, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaacbf4eb8) at vm_insnhelper.c:384
-384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
-#18 0x00000000004cc020 in vm_call_method (th=0x1e804970, cfp=0x2aaaacbf4e90, num=0, blockptr=0x2aaaacbf4eb8, flag=8, id=2760, mn=0x1e488ce8, recv=510039936) at vm_insnhelper.c:517
-517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
-#19 0x00000000004ce770 in vm_exec_core (th=0x1e804970, initial=<value optimized out>) at insns.def:999
-999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#20 0x00000000004d21ca in vm_exec (th=0x1e804970) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#21 0x00000000004d27bc in invoke_block_from_c (th=0x1e804970, block=0x1e804d60, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#22 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e804970, proc=0x1e804d60, self=510039936, argc=0, argv=0x1e668f78, blockptr=0x0) at vm.c:571
-571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
-#23 0x00000000004dc6ce in thread_start_func_2 (th=0x1e804970, stack_start=0x41215130) at thread.c:391
-391		    SAVE_ROOT_JMPBUF(th, {
 
 [Current thread is 2 (Thread 0x41215940 (LWP 4232))]
 #0  CFUNC  :sleep
@@ -524,69 +328,21 @@ Thread 1 (Thread 0x2b0d8e570240 (LWP 4221)):
 517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
 #9  0x00000000004ce770 in vm_exec_core (th=0x1e415410, initial=<value optimized out>) at insns.def:999
 999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#10 0x00000000004d21ca in vm_exec (th=0x1e415410) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e415410, block=0x2b0d91c4dd38, self=510123320, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
-524		return vm_exec(th);
-#12 0x00000000004d2f38 in vm_yield () at vm.c:554
-554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
-#13 rb_yield_0 () at vm_eval.c:505
-505	    return vm_yield(GET_THREAD(), argc, argv);
-#14 loop_i () at vm_eval.c:563
-563		rb_yield_0(0, 0);
-#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
-583		result = (*b_proc) (data1);
-#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
-587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
-#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e415410, reg_cfp=0x2b0d91c4dd10, num=0, id=2760, oid=2760, recv=510123320, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2b0d91c4dd38) at vm_insnhelper.c:384
-384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
-#18 0x00000000004cc020 in vm_call_method (th=0x1e415410, cfp=0x2b0d91c4dd10, num=0, blockptr=0x2b0d91c4dd38, flag=8, id=2760, mn=0x1e488ce8, recv=510123320) at vm_insnhelper.c:517
-517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
-#19 0x00000000004ce770 in vm_exec_core (th=0x1e415410, initial=<value optimized out>) at insns.def:999
-999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#20 0x00000000004d21ca in vm_exec (th=0x1e415410) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#21 0x00000000004d24a1 in rb_iseq_eval (iseqval=509159952) at vm.c:1290
-1290	    val = vm_exec(th);
-#22 0x00000000005051a5 in rb_load (fname=507600296, wrap=<value optimized out>) at load.c:302
-302		rb_iseq_eval(iseq);
-#23 0x00000000005052c3 in rb_f_load (argc=<value optimized out>, argv=<value optimized out>) at load.c:361
-361	    rb_load(fname, RTEST(wrap));
-#24 0x00000000004cb000 in vm_call_cfunc (th=0x1e415410, reg_cfp=0x2b0d91c4def0, num=1, id=5552, oid=5552, recv=508127984, klass=508152568, flag=8, mn=0x1e44b8b0, blockptr=0x0) at vm_insnhelper.c:384
-384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
-#25 0x00000000004cc020 in vm_call_method (th=0x1e415410, cfp=0x2b0d91c4def0, num=1, blockptr=0x0, flag=8, id=5552, mn=0x1e44b878, recv=508127984) at vm_insnhelper.c:517
-517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
-#26 0x00000000004ce770 in vm_exec_core (th=0x1e415410, initial=<value optimized out>) at insns.def:999
-999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
-#27 0x00000000004d21ca in vm_exec (th=0x1e415410) at vm.c:1080
-1080		result = vm_exec_core(th, initial);
-#28 0x00000000004d235b in rb_iseq_eval_main (iseqval=507615752) at vm.c:1304
-1304	    val = vm_exec(th);
-#29 0x0000000000416b5c in ruby_exec_node (n=0x1e419a08, file=<value optimized out>) at eval.c:206
-206		SAVE_ROOT_JMPBUF(th, {
-#30 0x0000000000417cf3 in ruby_run_node (n=0x1e419a08) at eval.c:234
-234	    return ruby_cleanup(ruby_exec_node(n, 0));
-#31 0x00000000004156cd in main (argc=2, argv=0x7fff2f81ab78) at main.c:35
-35		return ruby_run_node(ruby_options(argc, argv));
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
-#0  0x0000000000000000 in ?? ()
 
 [Current thread is 1 (Thread 0x2b0d8e570240 (LWP 4221))]
-This frame seems not to contain a ruby stack.
+#0  CFUNC  :sleep
+#1  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/custom_condition_variable.rb:44 Castoro::Peer::CustomConditionVariable
+#2  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/main.rb:114 Object
+#3  METHOD <internal:prelude>:8 Mutex
+#4  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/main.rb:112 Object
+#5  FINISH 
+#6  CFUNC  :loop
+#7  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/main.rb:111 Castoro::Peer::Main
+#8  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/main.rb:130 Castoro::Peer::Main
+#9  TOP    /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/bin/cagentd:24 Object
+#10 FINISH 
+#11 CFUNC  :load
+#12 EVAL    /usr/local/bin/cagentd:19 Object
+#13 FINISH 
+#14 TOP    <main>:0 Object
 (gdb) 

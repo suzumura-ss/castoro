@@ -1,11 +1,13 @@
 define ruby_stack_trace
- # Version 0.0.1 - 2012-07-25
+ # Version 0.0.2 - 2012-07-25
  # First, move_down_to_the_frame_of_thread_start_func_2
+ set $a = vm_exec_core
+ set $b = vm_exec
  set $f = 0
  set $found = 0
  while $f < 50
   frame $f
-  if thread_start_func_2 <= $pc && $pc <= thread_start_func_1
+  if $a <= $pc && $pc <= $b
    set $found = 1
    loop_break
   end
