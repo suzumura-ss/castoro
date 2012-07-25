@@ -1,0 +1,592 @@
+# pid=`ps -ef | grep ruby | grep cagentd | grep -v grep | awk '{print $2}'` ; echo $pid ; ps -f -p $pid -w
+4221
+UID        PID  PPID  C STIME TTY          TIME CMD
+test      4221     1  0 00:22 ?        00:00:00 /usr/local/bin/ruby /usr/local/bin/cagentd
+
+# gdb /usr/local/bin/ruby $pid
+...
+
+(gdb) info threads
+  9 Thread 0x4023a940 (LWP 4224)  0x00000030f360b150 in pthread_cond_timedwait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+  8 Thread 0x41a5a940 (LWP 4226)  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+  7 Thread 0x40f1d940 (LWP 4227)  0x00000030f2acd372 in select () from /lib64/libc.so.6
+  6 Thread 0x417c0940 (LWP 4228)  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+  5 Thread 0x4044a940 (LWP 4229)  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+  4 Thread 0x41ea2940 (LWP 4230)  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+  3 Thread 0x40747940 (LWP 4231)  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+  2 Thread 0x41215940 (LWP 4232)  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+* 1 Thread 0x2b0d8e570240 (LWP 4221)  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+
+
+(gdb) thread apply all ruby_stack_trace
+
+Thread 9 (Thread 0x4023a940 (LWP 4224)):
+#0  0x00000030f360b150 in pthread_cond_timedwait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x00000000004d9686 in native_cond_timedwait (dummy=<value optimized out>) at thread_pthread.c:122
+122	    return pthread_cond_timedwait(cond, mutex, ts);
+#2  thread_timer (dummy=<value optimized out>) at thread_pthread.c:753
+753		int err = WAIT_FOR_10MS();
+#3  0x00000030f360673d in start_thread () from /lib64/libpthread.so.0
+#4  0x00000030f2ad40cd in clone () from /lib64/libc.so.6
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+
+[Current thread is 9 (Thread 0x4023a940 (LWP 4224))]
+This frame seems not to contain a ruby stack.
+
+Thread 8 (Thread 0x41a5a940 (LWP 4226)):
+#0  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x00000000004daa29 in native_sleep (th=0x1e7ffef0, tv=0x0) at thread_pthread.c:614
+614			r = pthread_cond_wait(&th->native_thread_data.sleep_cond,
+#2  0x00000000004dc15c in sleep_forever (th=0x1e7ffef0, deadlockable=1) at thread.c:774
+774		native_sleep(th, 0);
+#3  0x00000000004dc1db in rb_mutex_sleep_forever (time=511704964) at thread.c:3196
+3196	    rb_thread_sleep_deadly();
+#4  0x0000000000415fc4 in rb_ensure (b_proc=0x4dc1d0 <rb_mutex_sleep_forever>, data1=4, e_proc=0x4dbdc0 <rb_mutex_lock>, data2=511867272) at eval.c:680
+680		result = (*b_proc) (data1);
+#5  0x00000000004dadd6 in rb_mutex_sleep (self=511867272, timeout=<value optimized out>) at thread.c:3220
+3220		rb_ensure(rb_mutex_sleep_forever, Qnil, rb_mutex_lock, self);
+#6  0x00000000004dae06 in mutex_sleep (argc=<value optimized out>, argv=<value optimized out>, self=511867272) at thread.c:3243
+3243	    return rb_mutex_sleep(self, timeout);
+#7  0x00000000004cb000 in vm_call_cfunc (th=0x1e7ffef0, reg_cfp=0x2aaaab5bfc50, num=0, id=7600, oid=7600, recv=511867272, klass=507764824, flag=0, mn=0x1e43daa8, blockptr=0x0) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#8  0x00000000004cc020 in vm_call_method (th=0x1e7ffef0, cfp=0x2aaaab5bfc50, num=0, blockptr=0x0, flag=0, id=7600, mn=0x1e43da70, recv=511867272) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#9  0x00000000004ce770 in vm_exec_core (th=0x1e7ffef0, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#10 0x00000000004d21ca in vm_exec (th=0x1e7ffef0) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e7ffef0, block=0x2aaaab5bff18, self=511867552, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#12 0x00000000004d2f38 in vm_yield () at vm.c:554
+554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
+#13 rb_yield_0 () at vm_eval.c:505
+505	    return vm_yield(GET_THREAD(), argc, argv);
+#14 loop_i () at vm_eval.c:563
+563		rb_yield_0(0, 0);
+#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
+583		result = (*b_proc) (data1);
+#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
+587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
+#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e7ffef0, reg_cfp=0x2aaaab5bfef0, num=0, id=2760, oid=2760, recv=511867552, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaab5bff18) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#18 0x00000000004cc020 in vm_call_method (th=0x1e7ffef0, cfp=0x2aaaab5bfef0, num=0, blockptr=0x2aaaab5bff18, flag=8, id=2760, mn=0x1e488ce8, recv=511867552) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#19 0x00000000004ce770 in vm_exec_core (th=0x1e7ffef0, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#20 0x00000000004d21ca in vm_exec (th=0x1e7ffef0) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#21 0x00000000004d27bc in invoke_block_from_c (th=0x1e7ffef0, block=0x1e8731f0, self=511867552, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#22 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e7ffef0, proc=0x1e8731f0, self=511867552, argc=0, argv=0x1e66a0f8, blockptr=0x0) at vm.c:571
+571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
+#23 0x00000000004dc6ce in thread_start_func_2 (th=0x1e7ffef0, stack_start=0x41a5a130) at thread.c:391
+391		    SAVE_ROOT_JMPBUF(th, {
+
+[Current thread is 8 (Thread 0x41a5a940 (LWP 4226))]
+#0  CFUNC  :sleep
+#1  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pipeline.rb:57 Object
+#2  METHOD <internal:prelude>:8 Mutex
+#3  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pipeline.rb:54 Castoro::Peer::Pipeline
+#4  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/log.rb:81 Class
+#5  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/log.rb:56 Object
+#6  FINISH 
+#7  CFUNC  :loop
+#8  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/log.rb:54 Object
+#9  FINISH 
+#10 TOP    
+
+Thread 7 (Thread 0x40f1d940 (LWP 4227)):
+#0  0x00000030f2acd372 in select () from /lib64/libc.so.6
+#1  0x00000000004dd8e0 in do_select (n=5, read=0x1e85adc0, write=0x0, except=0x0, timeout=0x0) at thread.c:2424
+2424	    BLOCKING_REGION({
+#2  0x00000000004ddc64 in rb_thread_wait_fd_rw (fd=4, read=1) at thread.c:2475
+2475		    result = do_select(fd + 1, rb_fd_ptr(&set), 0, 0, 0);
+#3  0x00002aaaab0b64c8 in s_accept (klass=511375144, fd=4, sockaddr=0x40f1bc80, len=<value optimized out>) at socket.c:1561
+1561	    rb_thread_wait_fd(fd);
+#4  0x00002aaaab0b6612 in sock_accept (sock=<value optimized out>) at socket.c:2973
+2973	    sock2 = s_accept(rb_cSocket,fptr->fd,(struct sockaddr*)buf,&len);
+#5  0x00000000004cb000 in vm_call_cfunc (th=0x1e802c80, reg_cfp=0x2aaaac6efd70, num=0, id=14384, oid=14384, recv=510039712, klass=511375144, flag=0, mn=0x1e7af338, blockptr=0x0) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#6  0x00000000004cc020 in vm_call_method (th=0x1e802c80, cfp=0x2aaaac6efd70, num=0, blockptr=0x0, flag=0, id=14384, mn=0x1e7af300, recv=510039712) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#7  0x00000000004ce770 in vm_exec_core (th=0x1e802c80, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#8  0x00000000004d21ca in vm_exec (th=0x1e802c80) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#9  0x00000000004d27bc in invoke_block_from_c (th=0x1e802c80, block=0x2aaaac6efeb8, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#10 0x00000000004d2f38 in vm_yield () at vm.c:554
+554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
+#11 rb_yield_0 () at vm_eval.c:505
+505	    return vm_yield(GET_THREAD(), argc, argv);
+#12 loop_i () at vm_eval.c:563
+563		rb_yield_0(0, 0);
+#13 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
+583		result = (*b_proc) (data1);
+#14 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
+587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
+#15 0x00000000004cb000 in vm_call_cfunc (th=0x1e802c80, reg_cfp=0x2aaaac6efe90, num=0, id=2760, oid=2760, recv=510039936, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaac6efeb8) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#16 0x00000000004cc020 in vm_call_method (th=0x1e802c80, cfp=0x2aaaac6efe90, num=0, blockptr=0x2aaaac6efeb8, flag=8, id=2760, mn=0x1e488ce8, recv=510039936) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#17 0x00000000004ce770 in vm_exec_core (th=0x1e802c80, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#18 0x00000000004d21ca in vm_exec (th=0x1e802c80) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#19 0x00000000004d27bc in invoke_block_from_c (th=0x1e802c80, block=0x1e803020, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#20 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e802c80, proc=0x1e803020, self=510039936, argc=0, argv=0x1e669480, blockptr=0x0) at vm.c:571
+571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
+#21 0x00000000004dc6ce in thread_start_func_2 (th=0x1e802c80, stack_start=0x40f1d130) at thread.c:391
+391		    SAVE_ROOT_JMPBUF(th, {
+
+[Current thread is 7 (Thread 0x40f1d940 (LWP 4227))]
+#0  CFUNC  :accept
+#1  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:79 Object
+#2  FINISH 
+#3  CFUNC  :loop
+#4  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:76 Castoro::Peer::PreThreadedTcpServer
+#5  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:66 Object
+#6  FINISH 
+#7  TOP    
+
+Thread 6 (Thread 0x417c0940 (LWP 4228)):
+#0  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x00000000004daa29 in native_sleep (th=0x1e803190, tv=0x0) at thread_pthread.c:614
+614			r = pthread_cond_wait(&th->native_thread_data.sleep_cond,
+#2  0x00000000004dc15c in sleep_forever (th=0x1e803190, deadlockable=1) at thread.c:774
+774		native_sleep(th, 0);
+#3  0x00000000004dc1db in rb_mutex_sleep_forever (time=511717924) at thread.c:3196
+3196	    rb_thread_sleep_deadly();
+#4  0x0000000000415fc4 in rb_ensure (b_proc=0x4dc1d0 <rb_mutex_sleep_forever>, data1=4, e_proc=0x4dbdc0 <rb_mutex_lock>, data2=510039544) at eval.c:680
+680		result = (*b_proc) (data1);
+#5  0x00000000004dadd6 in rb_mutex_sleep (self=510039544, timeout=<value optimized out>) at thread.c:3220
+3220		rb_ensure(rb_mutex_sleep_forever, Qnil, rb_mutex_lock, self);
+#6  0x00000000004dae06 in mutex_sleep (argc=<value optimized out>, argv=<value optimized out>, self=510039544) at thread.c:3243
+3243	    return rb_mutex_sleep(self, timeout);
+#7  0x00000000004cb000 in vm_call_cfunc (th=0x1e803190, reg_cfp=0x2aaaac7f0c50, num=0, id=7600, oid=7600, recv=510039544, klass=507764824, flag=0, mn=0x1e43daa8, blockptr=0x0) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#8  0x00000000004cc020 in vm_call_method (th=0x1e803190, cfp=0x2aaaac7f0c50, num=0, blockptr=0x0, flag=0, id=7600, mn=0x1e43da70, recv=510039544) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#9  0x00000000004ce770 in vm_exec_core (th=0x1e803190, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#10 0x00000000004d21ca in vm_exec (th=0x1e803190) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e803190, block=0x2aaaac7f0eb8, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#12 0x00000000004d2f38 in vm_yield () at vm.c:554
+554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
+#13 rb_yield_0 () at vm_eval.c:505
+505	    return vm_yield(GET_THREAD(), argc, argv);
+#14 loop_i () at vm_eval.c:563
+563		rb_yield_0(0, 0);
+#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
+583		result = (*b_proc) (data1);
+#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
+587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
+#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e803190, reg_cfp=0x2aaaac7f0e90, num=0, id=2760, oid=2760, recv=510039936, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaac7f0eb8) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#18 0x00000000004cc020 in vm_call_method (th=0x1e803190, cfp=0x2aaaac7f0e90, num=0, blockptr=0x2aaaac7f0eb8, flag=8, id=2760, mn=0x1e488ce8, recv=510039936) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#19 0x00000000004ce770 in vm_exec_core (th=0x1e803190, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#20 0x00000000004d21ca in vm_exec (th=0x1e803190) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#21 0x00000000004d27bc in invoke_block_from_c (th=0x1e803190, block=0x1e803580, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#22 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e803190, proc=0x1e803580, self=510039936, argc=0, argv=0x1e669368, blockptr=0x0) at vm.c:571
+571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
+#23 0x00000000004dc6ce in thread_start_func_2 (th=0x1e803190, stack_start=0x417c0130) at thread.c:391
+391		    SAVE_ROOT_JMPBUF(th, {
+
+[Current thread is 6 (Thread 0x417c0940 (LWP 4228))]
+#0  CFUNC  :sleep
+#1  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pipeline.rb:115 Object
+#2  METHOD <internal:prelude>:8 Mutex
+#3  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pipeline.rb:112 Castoro::Peer::SizedPipeline
+#4  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:99 Object
+#5  FINISH 
+#6  CFUNC  :loop
+#7  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:96 Castoro::Peer::PreThreadedTcpServer
+#8  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:70 Object
+#9  FINISH 
+#10 TOP    
+
+Thread 5 (Thread 0x4044a940 (LWP 4229)):
+#0  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x00000000004daa29 in native_sleep (th=0x1e8036f0, tv=0x0) at thread_pthread.c:614
+614			r = pthread_cond_wait(&th->native_thread_data.sleep_cond,
+#2  0x00000000004dc15c in sleep_forever (th=0x1e8036f0, deadlockable=1) at thread.c:774
+774		native_sleep(th, 0);
+#3  0x00000000004dc1db in rb_mutex_sleep_forever (time=511719300) at thread.c:3196
+3196	    rb_thread_sleep_deadly();
+#4  0x0000000000415fc4 in rb_ensure (b_proc=0x4dc1d0 <rb_mutex_sleep_forever>, data1=4, e_proc=0x4dbdc0 <rb_mutex_lock>, data2=510039544) at eval.c:680
+680		result = (*b_proc) (data1);
+#5  0x00000000004dadd6 in rb_mutex_sleep (self=510039544, timeout=<value optimized out>) at thread.c:3220
+3220		rb_ensure(rb_mutex_sleep_forever, Qnil, rb_mutex_lock, self);
+#6  0x00000000004dae06 in mutex_sleep (argc=<value optimized out>, argv=<value optimized out>, self=510039544) at thread.c:3243
+3243	    return rb_mutex_sleep(self, timeout);
+#7  0x00000000004cb000 in vm_call_cfunc (th=0x1e8036f0, reg_cfp=0x2aaaac8f1c50, num=0, id=7600, oid=7600, recv=510039544, klass=507764824, flag=0, mn=0x1e43daa8, blockptr=0x0) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#8  0x00000000004cc020 in vm_call_method (th=0x1e8036f0, cfp=0x2aaaac8f1c50, num=0, blockptr=0x0, flag=0, id=7600, mn=0x1e43da70, recv=510039544) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#9  0x00000000004ce770 in vm_exec_core (th=0x1e8036f0, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#10 0x00000000004d21ca in vm_exec (th=0x1e8036f0) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e8036f0, block=0x2aaaac8f1eb8, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#12 0x00000000004d2f38 in vm_yield () at vm.c:554
+554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
+#13 rb_yield_0 () at vm_eval.c:505
+505	    return vm_yield(GET_THREAD(), argc, argv);
+#14 loop_i () at vm_eval.c:563
+563		rb_yield_0(0, 0);
+#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
+583		result = (*b_proc) (data1);
+#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
+587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
+#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e8036f0, reg_cfp=0x2aaaac8f1e90, num=0, id=2760, oid=2760, recv=510039936, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaac8f1eb8) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#18 0x00000000004cc020 in vm_call_method (th=0x1e8036f0, cfp=0x2aaaac8f1e90, num=0, blockptr=0x2aaaac8f1eb8, flag=8, id=2760, mn=0x1e488ce8, recv=510039936) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#19 0x00000000004ce770 in vm_exec_core (th=0x1e8036f0, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#20 0x00000000004d21ca in vm_exec (th=0x1e8036f0) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#21 0x00000000004d27bc in invoke_block_from_c (th=0x1e8036f0, block=0x1e803ae0, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#22 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e8036f0, proc=0x1e803ae0, self=510039936, argc=0, argv=0x1e669218, blockptr=0x0) at vm.c:571
+571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
+#23 0x00000000004dc6ce in thread_start_func_2 (th=0x1e8036f0, stack_start=0x4044a130) at thread.c:391
+391		    SAVE_ROOT_JMPBUF(th, {
+
+[Current thread is 5 (Thread 0x4044a940 (LWP 4229))]
+#0  CFUNC  :sleep
+#1  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pipeline.rb:115 Object
+#2  METHOD <internal:prelude>:8 Mutex
+#3  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pipeline.rb:112 Castoro::Peer::SizedPipeline
+#4  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:99 Object
+#5  FINISH 
+#6  CFUNC  :loop
+#7  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:96 Castoro::Peer::PreThreadedTcpServer
+#8  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:70 Object
+#9  FINISH 
+#10 TOP    
+
+Thread 4 (Thread 0x41ea2940 (LWP 4230)):
+#0  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x00000000004daa29 in native_sleep (th=0x1e803c50, tv=0x0) at thread_pthread.c:614
+614			r = pthread_cond_wait(&th->native_thread_data.sleep_cond,
+#2  0x00000000004dc15c in sleep_forever (th=0x1e803c50, deadlockable=1) at thread.c:774
+774		native_sleep(th, 0);
+#3  0x00000000004dc1db in rb_mutex_sleep_forever (time=511720676) at thread.c:3196
+3196	    rb_thread_sleep_deadly();
+#4  0x0000000000415fc4 in rb_ensure (b_proc=0x4dc1d0 <rb_mutex_sleep_forever>, data1=4, e_proc=0x4dbdc0 <rb_mutex_lock>, data2=510039544) at eval.c:680
+680		result = (*b_proc) (data1);
+#5  0x00000000004dadd6 in rb_mutex_sleep (self=510039544, timeout=<value optimized out>) at thread.c:3220
+3220		rb_ensure(rb_mutex_sleep_forever, Qnil, rb_mutex_lock, self);
+#6  0x00000000004dae06 in mutex_sleep (argc=<value optimized out>, argv=<value optimized out>, self=510039544) at thread.c:3243
+3243	    return rb_mutex_sleep(self, timeout);
+#7  0x00000000004cb000 in vm_call_cfunc (th=0x1e803c50, reg_cfp=0x2aaaac9f2c50, num=0, id=7600, oid=7600, recv=510039544, klass=507764824, flag=0, mn=0x1e43daa8, blockptr=0x0) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#8  0x00000000004cc020 in vm_call_method (th=0x1e803c50, cfp=0x2aaaac9f2c50, num=0, blockptr=0x0, flag=0, id=7600, mn=0x1e43da70, recv=510039544) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#9  0x00000000004ce770 in vm_exec_core (th=0x1e803c50, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#10 0x00000000004d21ca in vm_exec (th=0x1e803c50) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e803c50, block=0x2aaaac9f2eb8, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#12 0x00000000004d2f38 in vm_yield () at vm.c:554
+554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
+#13 rb_yield_0 () at vm_eval.c:505
+505	    return vm_yield(GET_THREAD(), argc, argv);
+#14 loop_i () at vm_eval.c:563
+563		rb_yield_0(0, 0);
+#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
+583		result = (*b_proc) (data1);
+#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
+587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
+#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e803c50, reg_cfp=0x2aaaac9f2e90, num=0, id=2760, oid=2760, recv=510039936, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaac9f2eb8) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#18 0x00000000004cc020 in vm_call_method (th=0x1e803c50, cfp=0x2aaaac9f2e90, num=0, blockptr=0x2aaaac9f2eb8, flag=8, id=2760, mn=0x1e488ce8, recv=510039936) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#19 0x00000000004ce770 in vm_exec_core (th=0x1e803c50, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#20 0x00000000004d21ca in vm_exec (th=0x1e803c50) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#21 0x00000000004d27bc in invoke_block_from_c (th=0x1e803c50, block=0x1e804040, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#22 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e803c50, proc=0x1e804040, self=510039936, argc=0, argv=0x1e669138, blockptr=0x0) at vm.c:571
+571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
+#23 0x00000000004dc6ce in thread_start_func_2 (th=0x1e803c50, stack_start=0x41ea2130) at thread.c:391
+391		    SAVE_ROOT_JMPBUF(th, {
+
+[Current thread is 4 (Thread 0x41ea2940 (LWP 4230))]
+#0  CFUNC  :sleep
+#1  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pipeline.rb:115 Object
+#2  METHOD <internal:prelude>:8 Mutex
+#3  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pipeline.rb:112 Castoro::Peer::SizedPipeline
+#4  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:99 Object
+#5  FINISH 
+#6  CFUNC  :loop
+#7  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:96 Castoro::Peer::PreThreadedTcpServer
+#8  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:70 Object
+#9  FINISH 
+#10 TOP    
+
+Thread 3 (Thread 0x40747940 (LWP 4231)):
+#0  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x00000000004daa29 in native_sleep (th=0x1e804330, tv=0x0) at thread_pthread.c:614
+614			r = pthread_cond_wait(&th->native_thread_data.sleep_cond,
+#2  0x00000000004dc15c in sleep_forever (th=0x1e804330, deadlockable=1) at thread.c:774
+774		native_sleep(th, 0);
+#3  0x00000000004dc1db in rb_mutex_sleep_forever (time=511722436) at thread.c:3196
+3196	    rb_thread_sleep_deadly();
+#4  0x0000000000415fc4 in rb_ensure (b_proc=0x4dc1d0 <rb_mutex_sleep_forever>, data1=4, e_proc=0x4dbdc0 <rb_mutex_lock>, data2=510039544) at eval.c:680
+680		result = (*b_proc) (data1);
+#5  0x00000000004dadd6 in rb_mutex_sleep (self=510039544, timeout=<value optimized out>) at thread.c:3220
+3220		rb_ensure(rb_mutex_sleep_forever, Qnil, rb_mutex_lock, self);
+#6  0x00000000004dae06 in mutex_sleep (argc=<value optimized out>, argv=<value optimized out>, self=510039544) at thread.c:3243
+3243	    return rb_mutex_sleep(self, timeout);
+#7  0x00000000004cb000 in vm_call_cfunc (th=0x1e804330, reg_cfp=0x2aaaacaf3c50, num=0, id=7600, oid=7600, recv=510039544, klass=507764824, flag=0, mn=0x1e43daa8, blockptr=0x0) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#8  0x00000000004cc020 in vm_call_method (th=0x1e804330, cfp=0x2aaaacaf3c50, num=0, blockptr=0x0, flag=0, id=7600, mn=0x1e43da70, recv=510039544) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#9  0x00000000004ce770 in vm_exec_core (th=0x1e804330, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#10 0x00000000004d21ca in vm_exec (th=0x1e804330) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e804330, block=0x2aaaacaf3eb8, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#12 0x00000000004d2f38 in vm_yield () at vm.c:554
+554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
+#13 rb_yield_0 () at vm_eval.c:505
+505	    return vm_yield(GET_THREAD(), argc, argv);
+#14 loop_i () at vm_eval.c:563
+563		rb_yield_0(0, 0);
+#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
+583		result = (*b_proc) (data1);
+#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
+587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
+#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e804330, reg_cfp=0x2aaaacaf3e90, num=0, id=2760, oid=2760, recv=510039936, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaacaf3eb8) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#18 0x00000000004cc020 in vm_call_method (th=0x1e804330, cfp=0x2aaaacaf3e90, num=0, blockptr=0x2aaaacaf3eb8, flag=8, id=2760, mn=0x1e488ce8, recv=510039936) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#19 0x00000000004ce770 in vm_exec_core (th=0x1e804330, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#20 0x00000000004d21ca in vm_exec (th=0x1e804330) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#21 0x00000000004d27bc in invoke_block_from_c (th=0x1e804330, block=0x1e804720, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#22 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e804330, proc=0x1e804720, self=510039936, argc=0, argv=0x1e669058, blockptr=0x0) at vm.c:571
+571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
+#23 0x00000000004dc6ce in thread_start_func_2 (th=0x1e804330, stack_start=0x40747130) at thread.c:391
+391		    SAVE_ROOT_JMPBUF(th, {
+
+[Current thread is 3 (Thread 0x40747940 (LWP 4231))]
+#0  CFUNC  :sleep
+#1  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pipeline.rb:115 Object
+#2  METHOD <internal:prelude>:8 Mutex
+#3  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pipeline.rb:112 Castoro::Peer::SizedPipeline
+#4  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:99 Object
+#5  FINISH 
+#6  CFUNC  :loop
+#7  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:96 Castoro::Peer::PreThreadedTcpServer
+#8  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:70 Object
+#9  FINISH 
+#10 TOP    
+
+Thread 2 (Thread 0x41215940 (LWP 4232)):
+#0  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x00000000004daa29 in native_sleep (th=0x1e804970, tv=0x0) at thread_pthread.c:614
+614			r = pthread_cond_wait(&th->native_thread_data.sleep_cond,
+#2  0x00000000004dc15c in sleep_forever (th=0x1e804970, deadlockable=1) at thread.c:774
+774		native_sleep(th, 0);
+#3  0x00000000004dc1db in rb_mutex_sleep_forever (time=511724036) at thread.c:3196
+3196	    rb_thread_sleep_deadly();
+#4  0x0000000000415fc4 in rb_ensure (b_proc=0x4dc1d0 <rb_mutex_sleep_forever>, data1=4, e_proc=0x4dbdc0 <rb_mutex_lock>, data2=510039544) at eval.c:680
+680		result = (*b_proc) (data1);
+#5  0x00000000004dadd6 in rb_mutex_sleep (self=510039544, timeout=<value optimized out>) at thread.c:3220
+3220		rb_ensure(rb_mutex_sleep_forever, Qnil, rb_mutex_lock, self);
+#6  0x00000000004dae06 in mutex_sleep (argc=<value optimized out>, argv=<value optimized out>, self=510039544) at thread.c:3243
+3243	    return rb_mutex_sleep(self, timeout);
+#7  0x00000000004cb000 in vm_call_cfunc (th=0x1e804970, reg_cfp=0x2aaaacbf4c50, num=0, id=7600, oid=7600, recv=510039544, klass=507764824, flag=0, mn=0x1e43daa8, blockptr=0x0) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#8  0x00000000004cc020 in vm_call_method (th=0x1e804970, cfp=0x2aaaacbf4c50, num=0, blockptr=0x0, flag=0, id=7600, mn=0x1e43da70, recv=510039544) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#9  0x00000000004ce770 in vm_exec_core (th=0x1e804970, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#10 0x00000000004d21ca in vm_exec (th=0x1e804970) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e804970, block=0x2aaaacbf4eb8, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#12 0x00000000004d2f38 in vm_yield () at vm.c:554
+554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
+#13 rb_yield_0 () at vm_eval.c:505
+505	    return vm_yield(GET_THREAD(), argc, argv);
+#14 loop_i () at vm_eval.c:563
+563		rb_yield_0(0, 0);
+#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
+583		result = (*b_proc) (data1);
+#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
+587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
+#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e804970, reg_cfp=0x2aaaacbf4e90, num=0, id=2760, oid=2760, recv=510039936, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2aaaacbf4eb8) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#18 0x00000000004cc020 in vm_call_method (th=0x1e804970, cfp=0x2aaaacbf4e90, num=0, blockptr=0x2aaaacbf4eb8, flag=8, id=2760, mn=0x1e488ce8, recv=510039936) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#19 0x00000000004ce770 in vm_exec_core (th=0x1e804970, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#20 0x00000000004d21ca in vm_exec (th=0x1e804970) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#21 0x00000000004d27bc in invoke_block_from_c (th=0x1e804970, block=0x1e804d60, self=510039936, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#22 0x00000000004d2c72 in rb_vm_invoke_proc (th=0x1e804970, proc=0x1e804d60, self=510039936, argc=0, argv=0x1e668f78, blockptr=0x0) at vm.c:571
+571		val = invoke_block_from_c(th, &proc->block, self, argc, argv, blockptr, 0);
+#23 0x00000000004dc6ce in thread_start_func_2 (th=0x1e804970, stack_start=0x41215130) at thread.c:391
+391		    SAVE_ROOT_JMPBUF(th, {
+
+[Current thread is 2 (Thread 0x41215940 (LWP 4232))]
+#0  CFUNC  :sleep
+#1  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pipeline.rb:115 Object
+#2  METHOD <internal:prelude>:8 Mutex
+#3  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pipeline.rb:112 Castoro::Peer::SizedPipeline
+#4  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:99 Object
+#5  FINISH 
+#6  CFUNC  :loop
+#7  METHOD /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:96 Castoro::Peer::PreThreadedTcpServer
+#8  BLOCK  /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/lib/castoro-pgctl/pre_threaded_tcp_server.rb:70 Object
+#9  FINISH 
+#10 TOP    
+
+Thread 1 (Thread 0x2b0d8e570240 (LWP 4221)):
+#0  0x00000030f360aee9 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x00000000004daa29 in native_sleep (th=0x1e415410, tv=0x0) at thread_pthread.c:614
+614			r = pthread_cond_wait(&th->native_thread_data.sleep_cond,
+#2  0x00000000004dc15c in sleep_forever (th=0x1e415410, deadlockable=1) at thread.c:774
+774		native_sleep(th, 0);
+#3  0x00000000004dc1db in rb_mutex_sleep_forever (time=507597988) at thread.c:3196
+3196	    rb_thread_sleep_deadly();
+#4  0x0000000000415fc4 in rb_ensure (b_proc=0x4dc1d0 <rb_mutex_sleep_forever>, data1=4, e_proc=0x4dbdc0 <rb_mutex_lock>, data2=510041112) at eval.c:680
+680		result = (*b_proc) (data1);
+#5  0x00000000004dadd6 in rb_mutex_sleep (self=510041112, timeout=<value optimized out>) at thread.c:3220
+3220		rb_ensure(rb_mutex_sleep_forever, Qnil, rb_mutex_lock, self);
+#6  0x00000000004dae06 in mutex_sleep (argc=<value optimized out>, argv=<value optimized out>, self=510041112) at thread.c:3243
+3243	    return rb_mutex_sleep(self, timeout);
+#7  0x00000000004cb000 in vm_call_cfunc (th=0x1e415410, reg_cfp=0x2b0d91c4dad0, num=0, id=7600, oid=7600, recv=510041112, klass=507764824, flag=0, mn=0x1e43daa8, blockptr=0x0) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#8  0x00000000004cc020 in vm_call_method (th=0x1e415410, cfp=0x2b0d91c4dad0, num=0, blockptr=0x0, flag=0, id=7600, mn=0x1e43da70, recv=510041112) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#9  0x00000000004ce770 in vm_exec_core (th=0x1e415410, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#10 0x00000000004d21ca in vm_exec (th=0x1e415410) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#11 0x00000000004d27bc in invoke_block_from_c (th=0x1e415410, block=0x2b0d91c4dd38, self=510123320, argc=0, argv=0x0, blockptr=0x0, cref=0x0) at vm.c:524
+524		return vm_exec(th);
+#12 0x00000000004d2f38 in vm_yield () at vm.c:554
+554	    return invoke_block_from_c(th, blockptr, blockptr->self, argc, argv, 0, 0);
+#13 rb_yield_0 () at vm_eval.c:505
+505	    return vm_yield(GET_THREAD(), argc, argv);
+#14 loop_i () at vm_eval.c:563
+563		rb_yield_0(0, 0);
+#15 0x0000000000416399 in rb_rescue2 (b_proc=0x4d2f00 <loop_i>, data1=0, r_proc=0, data2=0) at eval.c:583
+583		result = (*b_proc) (data1);
+#16 0x00000000004caa50 in rb_f_loop () at vm_eval.c:587
+587	    rb_rescue2(loop_i, (VALUE)0, 0, 0, rb_eStopIteration, (VALUE)0);
+#17 0x00000000004cb000 in vm_call_cfunc (th=0x1e415410, reg_cfp=0x2b0d91c4dd10, num=0, id=2760, oid=2760, recv=510123320, klass=508152568, flag=8, mn=0x1e488d58, blockptr=0x2b0d91c4dd38) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#18 0x00000000004cc020 in vm_call_method (th=0x1e415410, cfp=0x2b0d91c4dd10, num=0, blockptr=0x2b0d91c4dd38, flag=8, id=2760, mn=0x1e488ce8, recv=510123320) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#19 0x00000000004ce770 in vm_exec_core (th=0x1e415410, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#20 0x00000000004d21ca in vm_exec (th=0x1e415410) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#21 0x00000000004d24a1 in rb_iseq_eval (iseqval=509159952) at vm.c:1290
+1290	    val = vm_exec(th);
+#22 0x00000000005051a5 in rb_load (fname=507600296, wrap=<value optimized out>) at load.c:302
+302		rb_iseq_eval(iseq);
+#23 0x00000000005052c3 in rb_f_load (argc=<value optimized out>, argv=<value optimized out>) at load.c:361
+361	    rb_load(fname, RTEST(wrap));
+#24 0x00000000004cb000 in vm_call_cfunc (th=0x1e415410, reg_cfp=0x2b0d91c4def0, num=1, id=5552, oid=5552, recv=508127984, klass=508152568, flag=8, mn=0x1e44b8b0, blockptr=0x0) at vm_insnhelper.c:384
+384		val = call_cfunc(mn->nd_cfnc, recv, mn->nd_argc, num, reg_cfp->sp + 1);
+#25 0x00000000004cc020 in vm_call_method (th=0x1e415410, cfp=0x2b0d91c4def0, num=1, blockptr=0x0, flag=8, id=5552, mn=0x1e44b878, recv=508127984) at vm_insnhelper.c:517
+517			val = vm_call_cfunc(th, cfp, num, id, (ID)mn->nd_file, recv, mn->nd_clss, flag, node, blockptr);
+#26 0x00000000004ce770 in vm_exec_core (th=0x1e415410, initial=<value optimized out>) at insns.def:999
+999	    CALL_METHOD(num, blockptr, flag, id, mn, recv);
+#27 0x00000000004d21ca in vm_exec (th=0x1e415410) at vm.c:1080
+1080		result = vm_exec_core(th, initial);
+#28 0x00000000004d235b in rb_iseq_eval_main (iseqval=507615752) at vm.c:1304
+1304	    val = vm_exec(th);
+#29 0x0000000000416b5c in ruby_exec_node (n=0x1e419a08, file=<value optimized out>) at eval.c:206
+206		SAVE_ROOT_JMPBUF(th, {
+#30 0x0000000000417cf3 in ruby_run_node (n=0x1e419a08) at eval.c:234
+234	    return ruby_cleanup(ruby_exec_node(n, 0));
+#31 0x00000000004156cd in main (argc=2, argv=0x7fff2f81ab78) at main.c:35
+35		return ruby_run_node(ruby_options(argc, argv));
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+#0  0x0000000000000000 in ?? ()
+
+[Current thread is 1 (Thread 0x2b0d8e570240 (LWP 4221))]
+This frame seems not to contain a ruby stack.
+(gdb) 
