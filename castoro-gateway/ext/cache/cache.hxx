@@ -45,7 +45,6 @@ public:
   };
 };
 
-
  
 //
 // Castoro::Gateway::Database wrapper
@@ -75,7 +74,8 @@ public:
   };
   inline void remove(uint64_t c, uint32_t t, uint32_t r, ID p) { m_db->remove(c, t, r, p); };
 
-  // peer handlings.
+  // Peer handlings.
+  // These method is called by Peer class. 
   inline void set_status(ID p, const PeerStatus& s) { m_db->set_status(p, s); };
   inline bool get_status(ID p, PeerStatus& s) { return m_db->get_status(p, s); };
   inline void find(ArrayOfId& a) { m_db->find(a); };
@@ -106,7 +106,11 @@ private:
   static VALUE rb_get_peer_status(VALUE self, VALUE _p);
   static VALUE rb_set_peer_status(VALUE self, VALUE _p, VALUE _s);
   static VALUE rb_make_nfs_path(VALUE self, VALUE _p, VALUE _b, VALUE _c, VALUE _t, VALUE _r);
+  static VALUE rb_get_peers_info(VALUE self);
 
+  //  
+  // these method is internal to
+  // 
   static VALUE synchronize(VALUE self);
   static VALUE find_internal(VALUE block_arg, VALUE data, VALUE self);
   static VALUE get_expire_internal(VALUE block_arg, VALUE data, VALUE self);
@@ -118,8 +122,8 @@ private:
   static VALUE erase_element_internal(VALUE block_arg, VALUE data, VALUE self);
   static VALUE get_peer_status_internal(VALUE block_arg, VALUE data, VALUE self);
   static VALUE set_peer_status_internal(VALUE block_arg, VALUE data, VALUE self);
+  static VALUE get_peers_info_internal(VALUE block_arg, VALUE data, VALUE self);
 };
-
 
 
 // Ruby Castoro::Gateway::Peers
@@ -139,7 +143,6 @@ public:
   static VALUE rb_find(int argc, VALUE* argv, VALUE self);
   static VALUE rb_alloc_peer(VALUE self, VALUE _p);
 };
-
 
 
 // Ruby Castoro::Gateway::Peer
@@ -163,8 +166,6 @@ public:
   static VALUE rb_get_status(VALUE self);
   static VALUE rb_unlink(VALUE self);
 };
-
-
 }
 }
 

@@ -142,6 +142,23 @@ module Castoro
       }
     end
 
+    ##
+    # The status of hash representation is returned.
+    #
+    def peersStatus
+      @logger.info { "peers info request accepted." }
+
+      result = [];
+      peerInfo = @cache.get_peers_info();
+      
+      i = 0
+      while i < peerInfo.length do
+         peer = [ peerInfo[i], peerInfo[i + 1], peerInfo[i + 2] ]
+         result.push peer
+         i += 3
+      end
+      result
+    end
 
     ##
     # cache records is dumped.

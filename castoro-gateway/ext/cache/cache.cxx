@@ -61,122 +61,15 @@ static void check_ruby_version()
 namespace Castoro {
 namespace Gateway {
 
-
+////////////////////////////////////////////////
 //
-// Castoro::Gateway::Cache
+// Implement of Dumper
 //
-VALUE Cache::define_class(VALUE _p)
-{
-  VALUE c = rb_define_class_under(_p, "Cache", rb_cObject);
-
-  rb_define_alloc_func(c, (rb_alloc_func_t)rb_alloc);
-  rb_define_method(c, "initialize", RUBY_METHOD_FUNC(rb_init), -1);
-  rb_define_method(c, "find",   RUBY_METHOD_FUNC(rb_find), 3);
-  rb_define_method(c, "watchdog_limit", RUBY_METHOD_FUNC(rb_get_expire), 0);
-  rb_define_method(c, "stat",   RUBY_METHOD_FUNC(rb_stat), 1);
-  rb_define_method(c, "peers",  RUBY_METHOD_FUNC(rb_alloc_peers), 0);
-  rb_define_method(c, "dump",  RUBY_METHOD_FUNC(rb_dump), -1);
-  rb_define_method(c, "find_peers", RUBY_METHOD_FUNC(rb_find_peers), -1);
-  rb_define_method(c, "insert_element", RUBY_METHOD_FUNC(rb_insert_element), 4);
-  rb_define_method(c, "erase_element", RUBY_METHOD_FUNC(rb_erase_element), 4);
-  rb_define_method(c, "get_peer_status", RUBY_METHOD_FUNC(rb_get_peer_status), 1);
-  rb_define_method(c, "set_peer_status", RUBY_METHOD_FUNC(rb_set_peer_status), 2);
-  rb_define_private_method(c, "make_nfs_path", RUBY_METHOD_FUNC(rb_make_nfs_path), 5);
-  rb_eval_string(make_nfs_path);
-  rb_eval_string(member_puts);
-
-  rb_define_const(c, "PAGE_SIZE", INT2NUM((sizeof(CachePage)+4096)&(~4095)));
-  #define DEFINE_CONST(k, value)  rb_define_const(k, #value, INT2NUM(Database::value))
-  DEFINE_CONST(c, DSTAT_CACHE_EXPIRE);
-  DEFINE_CONST(c, DSTAT_CACHE_REQUESTS);
-  DEFINE_CONST(c, DSTAT_CACHE_HITS);
-  DEFINE_CONST(c, DSTAT_CACHE_COUNT_CLEAR);
-  DEFINE_CONST(c, DSTAT_ALLOCATE_PAGES);
-  DEFINE_CONST(c, DSTAT_FREE_PAGES);
-  DEFINE_CONST(c, DSTAT_ACTIVE_PAGES);
-  DEFINE_CONST(c, DSTAT_HAVE_STATUS_PEERS);
-  DEFINE_CONST(c, DSTAT_ACTIVE_PEERS);
-  DEFINE_CONST(c, DSTAT_READABLE_PEERS);
-  #undef DEFINE_CONST
-
-  return c;
-}
-
-
-VALUE Cache::rb_init(int argc, VALUE* argv, VALUE self)
-{
-  VALUE size, opt;
-  if (rb_scan_args(argc, argv, "11", &size, &opt) == 1) {
-    opt = rb_hash_new();
-  }
-
-  VALUE klass     = rb_funcall(self, rb_intern("class"), 0);
-  VALUE page_size = rb_funcall(klass, rb_intern("const_get"), 1, rb_str_new2("PAGE_SIZE"));
-  VALUE page_num  = rb_funcall(size, rb_intern("/"), 1, page_size);
-
-  ssize_t pages = NUM2LL(page_num);
-  if (pages <= 0) {
-    rb_throw("Page size must be > 0.", rb_eArgError);
-  }
-
-  Cache* c = get_self(self);
-  Database* pdb = (Database*)ruby_xmalloc(sizeof(Database));
-  new( (void*)pdb ) Database(pages);
-  c->m_db = pdb;
-
-  operator_locker = rb_intern("locker");
-  operator_synchronize = rb_intern("synchronize");
-  operator_bracket = rb_intern("[]");
-  operator_bracket_let = rb_intern("[]=");
-  operator_push = rb_intern("push");
-  operator_make_nfs_path = rb_intern("make_nfs_path");
-  operator_member_puts = rb_intern("member_puts");
-  rb_cSym_status = ID2SYM(rb_intern("status"));
-  rb_cSym_available = ID2SYM(rb_intern("available"));
-  rb_cSym_empty = ID2SYM(rb_intern(""));
-
-  // locker object.
-  rb_require("monitor");
-  VALUE monitor_class = rb_const_get(rb_mKernel, rb_intern("Monitor"));
-  VALUE monitor = rb_funcall(monitor_class, rb_intern("new"), 0);
-  rb_ivar_set(self, operator_locker, monitor);
-
-  // watchdog limit.
-  VALUE watchdog_limit = rb_hash_aref(opt, ID2SYM(rb_intern("watchdog_limit")));
-  if (!RTEST(watchdog_limit)) watchdog_limit = INT2NUM(15);
-  c->set_expire(NUM2UINT(watchdog_limit));
-
-  return self;
-}
-
-
-VALUE Cache::rb_find(VALUE self, VALUE _c, VALUE _t, VALUE _r)
-{
-  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(find_internal), rb_ary_new3(4, self, _c, _t, _r));
-}
-
-VALUE Cache::rb_get_expire(VALUE self)
-{
-  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(get_expire_internal), rb_ary_new3(1, self));
-}
-
-VALUE Cache::rb_stat(VALUE self, VALUE _k)
-{
-  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(stat_internal), rb_ary_new3(2, self, _k));
-}
-
-VALUE Cache::rb_alloc_peers(VALUE self)
-{
-  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(alloc_peers_internal), rb_ary_new3(1, self));
-}
-
-
-// Dumper
+////////////////////////////////////////////////
 class Dumper: public CacheDumperAbstract
 {
 public:
   inline Dumper(VALUE _s, VALUE _f) {
-
     rb_eval_string(member_puts);
     self = _s;
     f = _f;
@@ -251,55 +144,114 @@ private:
   ID  operator_member_puts;
 };
 
-VALUE Cache::rb_dump(int argc, VALUE* argv, VALUE self)
-{
-  VALUE _f, _p;
-  int num = rb_scan_args(argc, argv, "11", &_f, &_p);
-  VALUE args = rb_ary_new3(2, self, _f);
-  if (num == 2) rb_ary_push(args, _p);
 
-  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(dump_internal), args);
+/////////////////////////////////////////////////////////////
+//
+// Implements of Castoro::Gateway::Cache
+//
+////////////////////////////////////////////////////////////
+
+//
+// define I/F method
+//
+VALUE Cache::define_class(VALUE _p)
+{
+  VALUE c = rb_define_class_under(_p, "Cache", rb_cObject);
+
+  rb_define_alloc_func(c, (rb_alloc_func_t)rb_alloc);
+  rb_define_method(c, "initialize", RUBY_METHOD_FUNC(rb_init), -1);
+  rb_define_method(c, "find",   RUBY_METHOD_FUNC(rb_find), 3);
+  rb_define_method(c, "watchdog_limit", RUBY_METHOD_FUNC(rb_get_expire), 0);
+  rb_define_method(c, "stat",   RUBY_METHOD_FUNC(rb_stat), 1);
+  rb_define_method(c, "peers",  RUBY_METHOD_FUNC(rb_alloc_peers), 0);
+  rb_define_method(c, "dump",  RUBY_METHOD_FUNC(rb_dump), -1);
+  rb_define_method(c, "find_peers", RUBY_METHOD_FUNC(rb_find_peers), -1);
+  rb_define_method(c, "insert_element", RUBY_METHOD_FUNC(rb_insert_element), 4);
+  rb_define_method(c, "erase_element", RUBY_METHOD_FUNC(rb_erase_element), 4);
+  rb_define_method(c, "get_peer_status", RUBY_METHOD_FUNC(rb_get_peer_status), 1);
+  rb_define_method(c, "set_peer_status", RUBY_METHOD_FUNC(rb_set_peer_status), 2);
+  rb_define_method(c, "get_peers_info",  RUBY_METHOD_FUNC(rb_get_peers_info), 0);
+
+  rb_define_private_method(c, "make_nfs_path", RUBY_METHOD_FUNC(rb_make_nfs_path), 5);
+  rb_eval_string(make_nfs_path);
+  rb_eval_string(member_puts);
+
+  rb_define_const(c, "PAGE_SIZE", INT2NUM((sizeof(CachePage)+4096)&(~4095)));
+  #define DEFINE_CONST(k, value)  rb_define_const(k, #value, INT2NUM(Database::value))
+  DEFINE_CONST(c, DSTAT_CACHE_EXPIRE);
+  DEFINE_CONST(c, DSTAT_CACHE_REQUESTS);
+  DEFINE_CONST(c, DSTAT_CACHE_HITS);
+  DEFINE_CONST(c, DSTAT_CACHE_COUNT_CLEAR);
+  DEFINE_CONST(c, DSTAT_ALLOCATE_PAGES);
+  DEFINE_CONST(c, DSTAT_FREE_PAGES);
+  DEFINE_CONST(c, DSTAT_ACTIVE_PAGES);
+  DEFINE_CONST(c, DSTAT_HAVE_STATUS_PEERS);
+  DEFINE_CONST(c, DSTAT_ACTIVE_PEERS);
+  DEFINE_CONST(c, DSTAT_READABLE_PEERS);
+  #undef DEFINE_CONST
+
+  return c;
 }
 
-VALUE Cache::rb_find_peers(int argc, VALUE* argv, VALUE self)    
+//////////////////////////////////////
+// ruby Binding methods
+//////////////////////////////////////
+//
+// public  initialize()
+//
+VALUE Cache::rb_init(int argc, VALUE* argv, VALUE self)
 {
-  VALUE require_spaces;
-  int num = rb_scan_args(argc, argv, "01", &require_spaces);
-  VALUE args = rb_ary_new3(1, self);
-  if (num == 1) rb_ary_push(args, require_spaces);
+  VALUE size, opt;
+  if (rb_scan_args(argc, argv, "11", &size, &opt) == 1) {
+    opt = rb_hash_new();
+  }
 
-  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(find_peers_internal), args);
+  VALUE klass     = rb_funcall(self, rb_intern("class"), 0);
+  VALUE page_size = rb_funcall(klass, rb_intern("const_get"), 1, rb_str_new2("PAGE_SIZE"));
+  VALUE page_num  = rb_funcall(size, rb_intern("/"), 1, page_size);
+
+  ssize_t pages = NUM2LL(page_num);
+  if (pages <= 0) {
+    rb_throw("Page size must be > 0.", rb_eArgError);
+  }
+
+  Cache* c = get_self(self);
+  Database* pdb = (Database*)ruby_xmalloc(sizeof(Database));
+  new( (void*)pdb ) Database(pages);
+  c->m_db = pdb;
+
+  operator_locker = rb_intern("locker");
+  operator_synchronize = rb_intern("synchronize");
+  operator_bracket = rb_intern("[]");
+  operator_bracket_let = rb_intern("[]=");
+  operator_push = rb_intern("push");
+  operator_make_nfs_path = rb_intern("make_nfs_path");
+  operator_member_puts = rb_intern("member_puts");
+  rb_cSym_status = ID2SYM(rb_intern("status"));
+  rb_cSym_available = ID2SYM(rb_intern("available"));
+  rb_cSym_empty = ID2SYM(rb_intern(""));
+
+  // locker object.
+  rb_require("monitor");
+  VALUE monitor_class = rb_const_get(rb_mKernel, rb_intern("Monitor"));
+  VALUE monitor = rb_funcall(monitor_class, rb_intern("new"), 0);
+  rb_ivar_set(self, operator_locker, monitor);
+
+  // watchdog limit.
+  VALUE watchdog_limit = rb_hash_aref(opt, ID2SYM(rb_intern("watchdog_limit")));
+  if (!RTEST(watchdog_limit)) watchdog_limit = INT2NUM(15);
+  c->set_expire(NUM2UINT(watchdog_limit));
+
+  return self;
 }
 
-VALUE Cache::rb_insert_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r)
-{
-  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(insert_element_internal), rb_ary_new3(5, self, _p, _c, _t, _r));
-}
 
-VALUE Cache::rb_erase_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r)
+//
+//  public Cache.find()
+//
+VALUE Cache::rb_find(VALUE self, VALUE _c, VALUE _t, VALUE _r)
 {
-  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(erase_element_internal), rb_ary_new3(5, self, _p, _c, _t, _r));
-}
-
-VALUE Cache::rb_get_peer_status(VALUE self, VALUE _p)
-{
-  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(get_peer_status_internal), rb_ary_new3(2, self, _p));
-}
-
-VALUE Cache::rb_set_peer_status(VALUE self, VALUE _p, VALUE _s)
-{
-  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(set_peer_status_internal), rb_ary_new3(3, self, _p, _s));
-}
-
-VALUE Cache::rb_make_nfs_path(VALUE self, VALUE _p, VALUE _b, VALUE _c, VALUE _t, VALUE _r)
-{
-  return rb_funcall(rb_cCache, operator_make_nfs_path, 5, _p, _b, _c, _t, _r);
-}
-
-VALUE Cache::synchronize(VALUE self)
-{
-  VALUE monitor = rb_ivar_get(self, operator_locker);
-  return rb_funcall(monitor, operator_synchronize, 0);
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(find_internal), rb_ary_new3(4, self, _c, _t, _r));
 }
 
 VALUE Cache::find_internal(VALUE block_arg, VALUE data, VALUE self)
@@ -323,17 +275,45 @@ VALUE Cache::find_internal(VALUE block_arg, VALUE data, VALUE self)
   return result;
 }
 
+
+//
+//  public Cache.watchdog_limit()
+//
+VALUE Cache::rb_get_expire(VALUE self)
+{
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(get_expire_internal), rb_ary_new3(1, self));
+}
+
 VALUE Cache::get_expire_internal(VALUE block_arg, VALUE data, VALUE self)
 {
   VALUE _self = rb_ary_entry(data, 0);
   return UINT2NUM(get_self(_self)->get_expire());
 }
 
+
+//
+//  public Cache.stat()
+//
+VALUE Cache::rb_stat(VALUE self, VALUE _k)
+{
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(stat_internal), rb_ary_new3(2, self, _k));
+}
+
+
 VALUE Cache::stat_internal(VALUE block_arg, VALUE data, VALUE self)
 {
   VALUE _self = rb_ary_entry(data, 0);
   VALUE _k    = rb_ary_entry(data, 1);
   return ULL2NUM(get_self(_self)->stat((Database::DatabaseStat)NUM2INT(_k)));
+}
+
+
+//
+//  public Cache.peers()
+//
+VALUE Cache::rb_alloc_peers(VALUE self)
+{
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(alloc_peers_internal), rb_ary_new3(1, self));
 }
 
 VALUE Cache::alloc_peers_internal(VALUE block_arg, VALUE data, VALUE self)
@@ -343,6 +323,19 @@ VALUE Cache::alloc_peers_internal(VALUE block_arg, VALUE data, VALUE self)
   Peers* pp = (Peers*)ruby_xmalloc(sizeof(Peers));
   new( (void*)pp ) Peers(*c);
   return Data_Wrap_Struct(rb_cPeers, Peers::gc_mark, Peers::free, pp);
+}
+
+//
+//  public Cache.dump()
+//
+VALUE Cache::rb_dump(int argc, VALUE* argv, VALUE self)
+{
+  VALUE _f, _p;
+  int num = rb_scan_args(argc, argv, "11", &_f, &_p);
+  VALUE args = rb_ary_new3(2, self, _f);
+  if (num == 2) rb_ary_push(args, _p);
+
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(dump_internal), args);
 }
 
 VALUE Cache::dump_internal(VALUE block_arg, VALUE data, VALUE self)
@@ -364,6 +357,20 @@ VALUE Cache::dump_internal(VALUE block_arg, VALUE data, VALUE self)
   return result ? Qtrue : Qfalse;
 }
 
+
+//
+//  public Cache.find_peers()
+//
+VALUE Cache::rb_find_peers(int argc, VALUE* argv, VALUE self)    
+{
+  VALUE require_spaces;
+  int num = rb_scan_args(argc, argv, "01", &require_spaces);
+  VALUE args = rb_ary_new3(1, self);
+  if (num == 1) rb_ary_push(args, require_spaces);
+
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(find_peers_internal), args);
+}
+
 VALUE Cache::find_peers_internal(VALUE block_arg, VALUE data, VALUE self)
 {
   VALUE _self = rb_ary_entry(data, 0);
@@ -374,6 +381,15 @@ VALUE Cache::find_peers_internal(VALUE block_arg, VALUE data, VALUE self)
     return rb_funcall(peers, rb_intern("find"), 1, _s);
   else
     return rb_funcall(peers, rb_intern("find"), 0);
+}
+
+
+//
+// public Cache.insert_element()
+//
+VALUE Cache::rb_insert_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r)
+{
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(insert_element_internal), rb_ary_new3(5, self, _p, _c, _t, _r));
 }
 
 VALUE Cache::insert_element_internal(VALUE block_arg, VALUE data, VALUE self)
@@ -389,6 +405,15 @@ VALUE Cache::insert_element_internal(VALUE block_arg, VALUE data, VALUE self)
   return rb_funcall(peer, rb_intern("insert"), 3, _c, _t, _r);
 }
 
+
+//
+//  public Cache.erase_element()
+//
+VALUE Cache::rb_erase_element(VALUE self, VALUE _p, VALUE _c, VALUE _t, VALUE _r)
+{
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(erase_element_internal), rb_ary_new3(5, self, _p, _c, _t, _r));
+}
+
 VALUE Cache::erase_element_internal(VALUE block_arg, VALUE data, VALUE self)
 {
   VALUE _self = rb_ary_entry(data, 0);
@@ -402,6 +427,16 @@ VALUE Cache::erase_element_internal(VALUE block_arg, VALUE data, VALUE self)
   return rb_funcall(peer, rb_intern("erase"), 3, _c, _t, _r);
 }
 
+
+//
+//  public Cache.get_peer_status()
+//
+VALUE Cache::rb_get_peer_status(VALUE self, VALUE _p)
+{
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(get_peer_status_internal), rb_ary_new3(2, self, _p));
+}
+
+
 VALUE Cache::get_peer_status_internal(VALUE block_arg, VALUE data, VALUE self)
 {
   VALUE _self = rb_ary_entry(data, 0);
@@ -410,6 +445,15 @@ VALUE Cache::get_peer_status_internal(VALUE block_arg, VALUE data, VALUE self)
   VALUE peers = rb_funcall(_self, rb_intern("peers"), 0);
   VALUE peer  = rb_funcall(peers, rb_intern("[]"), 1, _p);
   return rb_funcall(peer, rb_intern("status"), 0);
+}
+
+
+//
+//  public Cache.set_peer_status()
+//
+VALUE Cache::rb_set_peer_status(VALUE self, VALUE _p, VALUE _s)
+{
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(set_peer_status_internal), rb_ary_new3(3, self, _p, _s));
 }
 
 VALUE Cache::set_peer_status_internal(VALUE block_arg, VALUE data, VALUE self)
@@ -422,6 +466,58 @@ VALUE Cache::set_peer_status_internal(VALUE block_arg, VALUE data, VALUE self)
   VALUE peer  = rb_funcall(peers, rb_intern("[]"), 1, _p);
   return rb_funcall(peer, rb_intern("status="), 1, _s);
 }
+
+
+//
+// public Cache.get_peers_info()
+//
+VALUE Cache::rb_get_peers_info(VALUE self)
+{
+  return rb_iterate(synchronize, self, RUBY_METHOD_FUNC(get_peers_info_internal), rb_ary_new3(1, self));
+}
+
+VALUE Cache::get_peers_info_internal(VALUE block_arg, VALUE data, VALUE self)
+{
+  VALUE _self  = rb_ary_entry(data, 0);
+  PeerStatusMap map = get_self(_self)->m_db->get_peer_status_map();
+
+  VALUE result = rb_class_new_instance(0, &stub, rb_cArray);
+  for(PeerStatusMap::iterator it = map.begin(); it != map.end(); it++) 
+  {
+    PeerStatus s = (*it).second;
+    rb_funcall(result, operator_push, 1, rb_funcall(ID2SYM((*it).first), rb_intern("to_s"), 0));
+    rb_funcall(result, operator_push, 1, INT2NUM(s.status));
+    rb_funcall(result, operator_push, 1, ULL2NUM(s.available));
+  }
+
+  return result;
+}
+
+
+//
+// private Cache.make_nfs_path()
+//
+VALUE Cache::rb_make_nfs_path(VALUE self, VALUE _p, VALUE _b, VALUE _c, VALUE _t, VALUE _r)
+{
+  return rb_funcall(rb_cCache, operator_make_nfs_path, 5, _p, _b, _c, _t, _r);
+}
+
+
+//
+// This method is Cache's utility. 
+//
+VALUE Cache::synchronize(VALUE self)
+{
+  VALUE monitor = rb_ivar_get(self, operator_locker);
+  return rb_funcall(monitor, operator_synchronize, 0);
+}
+
+
+///////////////////////////////////////////////////////////////
+//
+// implement of peers
+//
+//////////////////////////////////////////////////////////////
 
 //
 // Castoro::Gateway::Peers
@@ -437,6 +533,9 @@ VALUE Peers::define_class(VALUE _p)
 }
 
 
+//
+// Peers.find()
+//
 VALUE Peers::rb_find(int argc, VALUE* argv, VALUE self)
 {
   ArrayOfId a;
@@ -457,6 +556,9 @@ VALUE Peers::rb_find(int argc, VALUE* argv, VALUE self)
 }
 
 
+//
+// public Peers =[]
+//
 VALUE Peers::rb_alloc_peer(VALUE self, VALUE _p)
 {
   Peers* p = get_self(self);
@@ -466,6 +568,13 @@ VALUE Peers::rb_alloc_peer(VALUE self, VALUE _p)
 }
 
 
+
+
+///////////////////////////////////////////////////////////////
+//
+// implement of peer
+//
+//////////////////////////////////////////////////////////////
 //
 // Castoro::Gateway::Peer
 //
@@ -487,6 +596,9 @@ VALUE Peer::define_class(VALUE _p)
 }
 
 
+//
+// public Peer.insert
+//
 VALUE Peer::rb_insert(VALUE self, VALUE _c, VALUE _t, VALUE _r)
 {
   Peer* p = get_self(self);
@@ -495,6 +607,9 @@ VALUE Peer::rb_insert(VALUE self, VALUE _c, VALUE _t, VALUE _r)
 }
 
 
+//
+// public Peer.erase
+//
 VALUE Peer::rb_remove(VALUE self, VALUE _c, VALUE _t, VALUE _r)
 {
   Peer* p = get_self(self);
@@ -503,6 +618,9 @@ VALUE Peer::rb_remove(VALUE self, VALUE _c, VALUE _t, VALUE _r)
 }
 
 
+//
+// public Peer.insert
+//
 VALUE Peer::rb_set_status(VALUE self, VALUE _s)
 {
   Peer* p = get_self(self);
@@ -519,6 +637,9 @@ VALUE Peer::rb_set_status(VALUE self, VALUE _s)
 }
 
 
+//
+// public Peer.status();
+//
 VALUE Peer::rb_get_status(VALUE self)
 {
   Peer* p = get_self(self);
@@ -534,6 +655,9 @@ VALUE Peer::rb_get_status(VALUE self)
 }
 
 
+//
+// public Peer.unlink()
+//
 VALUE Peer::rb_unlink(VALUE self)
 {
   Peer* p = get_self(self);

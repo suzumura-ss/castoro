@@ -263,6 +263,7 @@ describe Castoro::Gateway do
           @console.should_receive(:new)
                   .with(
                     @logger, @repository,
+                    "127.0.0.1",
                     30150
                   ).exactly(1)
           @console.should_receive(:start)

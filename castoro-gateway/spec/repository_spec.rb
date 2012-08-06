@@ -205,6 +205,16 @@ describe Castoro::Gateway::Repository do
       end
     end
 
+    context "when get peersStatus" do
+      it "cache#get_peers_info should be called once." do
+        @cache.stub!(:peersStatus).and_return([["peer1", 10, 1000],["peer2", 20, 1100],["peer3", 30, 1200]]);
+        @cache.should_receive(:peersStatus).exactly(1)
+
+        repository = Castoro::Gateway::Repository.new @logger, @config
+        repository.peersStatus.should == [["peer1", 10, 1000], ["peer2", 20, 1100], ["peer3", 30, 1200]]
+      end
+    end 
+
     context "when dump the cache" do
       it "cache#dump should be called once." do
         @cache.stub!(:dump)

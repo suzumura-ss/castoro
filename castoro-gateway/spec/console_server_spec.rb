@@ -24,6 +24,7 @@ describe Castoro::Gateway::ConsoleServer do
     # the Logger
     @logger = Logger.new(ENV['DEBUG'] ? STDOUT : nil)
     @port = ENV['CONSOLE_PORT'] ? ENV['CONSOLE_PORT'].to_i : 30110
+    @ip = ENV['IP'] ? ENV['IP'] : "127.0.0.1"
 
     # mock for repository
     cached = [
@@ -42,6 +43,9 @@ describe Castoro::Gateway::ConsoleServer do
         "baz" => "BAZ",
       }
     }
+    @r.stub!(:peersStatus).and_return {
+      [ ["peer1", 10, 30], ["peer2", 20, 30], ["peer3", 30, 10]]
+    }
     @r.stub!(:dump).and_return { |io, peers|
       cached.each { |c|
         io.puts "  #{c[:p]}: #{c[:b]}" if peers.nil? or peers.include?(c[:p])
@@ -53,7 +57,7 @@ describe Castoro::Gateway::ConsoleServer do
       cached.delete :b => b, :p => p
     }
 
-    @c = Castoro::Gateway::ConsoleServer.new @logger, @r, @port
+    @c = Castoro::Gateway::ConsoleServer.new @logger, @r, @ip, @port
   end
 
   describe "#status" do
@@ -64,6 +68,13 @@ describe Castoro::Gateway::ConsoleServer do
         "bar" => "BAR",
         "baz" => "BAZ",
       }
+    end
+  end
+
+  describe "#peersStatus" do
+    it "repository should receive peerStatus" do
+      @r.should_receive(:peersStatus).with(no_args)
+      @c.peersStatus.should == [["peer1", 10, 30], ["peer2", 20, 30], ["peer3", 30, 10]]
     end
   end
 
@@ -119,7 +130,7 @@ EOF
     it "should listen drb access port" do
       begin
         DRb.start_service
-        obj = DRbObject.new_with_uri "druby://127.0.0.1:#{@port}"
+        obj = DRbObject.new_with_uri "druby://#{@ip}:#{@port}"
       rescue
         DRb.stop_service
       end

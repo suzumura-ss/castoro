@@ -268,6 +268,5 @@ bool Database::dump(CacheDumperAbstract& dumper)
   return true;
 }
 
-
 }
-}
+} 

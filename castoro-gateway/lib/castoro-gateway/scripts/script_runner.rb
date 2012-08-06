@@ -153,10 +153,12 @@ module Castoro
       end
   
       def self.status options
-        ret = connect_to_console(options[:port].to_i) { |obj| obj.status }
+        ret = connect_to_console(options[:ip].to_s, options[:port].to_i) { |obj|
+          obj.status
+         }
   
         width  = ret.keys.max { |x, y| x.length <=> y.length }.length
-        key_format = "%-#{width}s"
+        key_format = "%-#{wildth}s"
         ret.each { |k, v|
           STDOUT.puts "#{key_format % k} : #{v}"
         }
@@ -166,8 +168,22 @@ module Castoro
         exit(1)
       end
   
+      def self.peersStatus options
+        ret = connect_to_console(options[:ip].to_s, options[:port].to_i) { |obj|
+          obj.peerStatus
+        }
+  
+        ret.each { |k|
+          STDOUT.puts "#{k[0]}:#{k[1]}:#{k[2]}\n"
+        }
+      rescue => e
+        STDERR.puts "--- Castoro::Gateway error! - #{e.message}"
+        STDERR.puts e.backtrace.join("\n\t") if options[:verbose]
+        exit(1)
+      end
+
       def self.dump options
-        connect_to_console(options[:port].to_i) { |obj| obj.dump STDOUT }
+        connect_to_console(options[:ip].to_s, options[:port].to_i) { |obj| obj.dump STDOUT }
   
       rescue => e
         STDERR.puts "--- Castoro::Gateway error! - #{e.message}"
@@ -178,7 +194,9 @@ module Castoro
       def self.purge options
         STDERR.puts "*** Purge Castoro::Gateway..."
 
-        results = connect_to_console(options[:port].to_i) { |obj| obj.purge *ARGV }
+        results = connect_to_console(options[:ip].to_s, options[:port].to_i) { |obj|
+          obj.purge *ARGV 
+         }
 
         STDERR.puts "--- purge completed"
         results.each { |k,v|
@@ -222,7 +240,7 @@ module Castoro
       end
   
       def self.send_signal pid_file, signal
-        # SIGINT signal is sent to dispatcher deamon(s).
+        # SIGINT signal is sent to dispatcher deamon(s).l
         pid = File.open(pid_file, "r") do |f|
           f.read
         end.to_i
@@ -231,10 +249,13 @@ module Castoro
         Process.waitpid2(pid) rescue nil
       end
 
-      def self.connect_to_console(port)
+       #
+      # access to druby object
+       #
+      def self.connect_to_console(ip, port)
         DRb.start_service
         result = nil
-        DRbObject.new_with_uri("druby://127.0.0.1:#{port}").tap { |obj|
+        DRbObject.new_with_uri("druby://#{ip}:#{port}").tap { |obj|
           result = yield obj
         }
         result

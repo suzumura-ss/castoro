@@ -329,17 +329,14 @@ describe Castoro::Cache do
     end
 
     it "should be dump" do
-      result = ""
-      class << result
-        def puts(str)
-          self << str + "\n"
-        end
-      end
-      @cache.dump(result).should be_true
-      result.should == <<__RESULT__
+      io = StringIO.new
+      @cache.dump(io).should be_true
+      io.rewind
+      io.read.should == <<__RESULT__
   std100: 1.2.3
   std101: 1.2.3
   std102: 1.2.3
+
 __RESULT__
     end
 
@@ -379,6 +376,30 @@ __RESULT__
       @cache.stat(Castoro::Cache::DSTAT_READABLE_PEERS).should == 2
     end
 
+    describe "#get_peers_info" do
+      it "should return peers_info" do
+         infos = @cache.get_peers_info();
+         infos.length.should == 6
+         infos[0].should == PEER1
+         infos[1].should == ACTIVE[:status]
+         infos[2].should == ACTIVE[:available]
+         infos[3].should == PEER2
+         infos[4].should == READONLY[:status]
+         infos[5].should == 0
+      end
+
+      it "should return same value from peers_info by any executing" do
+         infos = @cache.get_peers_info();
+         infos.length.should == 6
+         infos[0].should == PEER1
+         infos[1].should == ACTIVE[:status]
+         infos[2].should == ACTIVE[:available]
+         infos[3].should == PEER2
+         infos[4].should == READONLY[:status]
+         infos[5].should == 0
+      end
+    end
+ 
     after do
       @cache = nil
     end

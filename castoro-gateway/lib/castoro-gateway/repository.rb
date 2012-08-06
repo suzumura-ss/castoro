@@ -121,6 +121,13 @@ module Castoro
         @cache.status
       end
 
+      ## 
+      # The status of array representation is returned.
+      #
+      def peersStatus
+          @cache.peersStatus     
+      end
+
       ##
       # cache record is dumped.
       #

@@ -158,6 +158,20 @@ parser = OptionParser.new do |parser|
     parser.on('-p PORT', '--port <portnumber>', 'console port') do |v|
       opt[:port] = v.to_i
     end
+    parser.on('-i IP', '--ip <ip>', 'gateway deamon ip') do |v|
+      opt[:ip] = v.to_s
+    end
+ 
+  when :peersStatus
+    parser.on('-v', '--verbose', 'verbose') do |v|
+      opt[:verbose] = true
+    end
+    parser.on('-p PORT', '--port <portnumber>', 'console port') do |v|
+      opt[:port] = v.to_i
+    end
+    parser.on('-i IP', '--ip <ip>', 'gateway deamon ip') do |v|
+      opt[:ip] = v.to_s
+    end
 
   when :dump
     parser.on('-v', '--verbose', 'verbose') do |v|

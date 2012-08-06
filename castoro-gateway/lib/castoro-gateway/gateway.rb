@@ -125,7 +125,7 @@ module Castoro
 
         # start console server.
         @config.is_original_or_island_when {
-          @console = @@console_server_class.new @logger, @repository, @config["gateway_console_tcpport"].to_i
+          @console = @@console_server_class.new @logger, @repository, @config["peer_comm_device_addr"], @config["gateway_console_tcpport"].to_i
           @console.start
         }
 

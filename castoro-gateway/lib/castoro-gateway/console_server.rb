@@ -30,7 +30,7 @@ module Castoro
     class ConsoleServer
 
       DEFAULT_OPTIONS = {
-        :host => "127.0.0.1",
+        #:host => "127.0.0.1",
         :gets_expire => 5.0,
         :fork => true,
       }
@@ -57,12 +57,12 @@ module Castoro
         nil
       }
 
-      def initialize logger, repository, port, options = {}
+      def initialize logger, repository, ip, port, options = {}
         @logger = logger
         @repository = repository
 
         @options = DEFAULT_OPTIONS.merge(options || {})
-        @uri = "druby://#{@options[:host]}:#{port}"
+        @uri = "druby://#{ip}:#{port}"
         @locker = Monitor.new
       end
 
@@ -89,6 +89,10 @@ module Castoro
 
       def status
         @repository.status
+      end
+
+      def peersStatus
+        @repository.peersStatus
       end
 
       def dump io

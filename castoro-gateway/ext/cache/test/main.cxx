@@ -22,11 +22,15 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#define __TEST__
+#include <stdint.h>
+#include <unistd.h>
+//#define __TEST__
+#include "../basetypes.hxx"
 #include "../database.hxx"
 #include "../mapping.cxx"
 #include "../page.cxx"
 #include "../database.cxx"
+
 
 int g_testcount = 0;
 char g_description[4096] = "";
@@ -369,6 +373,15 @@ void test_Database_status()
   ASSERT(db.get_status(2, r));
   ASSERT(!r.is_enough_spaces(1000));
 
+  Castoro::Gateway::PeerStatusMap map = db.get_peer_status_map();
+  ASSERT_EQ(map.size(), 2);
+  Castoro::Gateway::PeerStatusMap::iterator it = map.begin();
+  ASSERT_EQ((*it).first, 1);
+  //ASSERT_EQ((Castoro::Gateway::PeerStatus)((*it).second), s1);
+  it++;
+  ASSERT_EQ((*it).first, 2);
+  //ASSERT_EQ((*it).second, &s2);
+
   DESCRIPTION("Database status expires");
   db.set_expire(1);
   db.set_status(1, s1);
@@ -398,6 +411,7 @@ void test_Database_status()
   peers.clear();
   db.find(2000, peers);
   ASSERT_EQ(peers.size(), 0);
+
 }
 
 
@@ -407,18 +421,21 @@ void test_Database()
   Castoro::Gateway::Database db(2);
   db.set_expire(100);
   Castoro::Gateway::PeerStatus s(1000, 0, Castoro::Gateway::DS_ACTIVE);
-  Castoro::Gateway::ArrayOfPeerWithBase result;
+  //Castoro::Gateway::ArrayOfPeerWithBase result;
+  Castoro::Gateway::ArrayOfId result;
   bool removed = false;
 
   DESCRIPTION("Database insert/find when no peers activated");
   result.clear();
-  db.insert(0x10001, 2, 3, PEER1, 0xff00);
+  //db.insert(0x10001, 2, 3, PEER1, 0xff00);
+  db.insert(0x10001, 2, 3, PEER1);
   db.find(0x10001, 2, 3, result, removed);
   ASSERT_EQ(result.size(), 0);
   ASSERT_EQ(removed, false);
 
   result.clear();
-  db.insert(0x20001, 2, 3, PEER2, 0xff0f);
+  //db.insert(0x20001, 2, 3, PEER2, 0xff0f);
+  db.insert(0x20001, 2, 3, PEER2);
   db.find(0x20001, 2, 3, result, removed);
   ASSERT_EQ(result.size(), 0);
   ASSERT_EQ(removed, false);
@@ -434,7 +451,8 @@ void test_Database()
   result.clear();
   db.find(0x10001, 2, 3, result, removed);
   ASSERT_EQ(result.size(), 1);
-  ASSERT_EQ(result[0].peer, PEER1);
+ // ASSERT_EQ(result[0].peer, PEER1);
+  ASSERT_EQ(result[0], PEER1);
   ASSERT_EQ(removed, false);
 
   result.clear();
@@ -453,21 +471,26 @@ void test_Database()
   result.clear();
   db.find(0x10001, 2, 3, result, removed);
   ASSERT_EQ(result.size(), 1);
-  ASSERT_EQ(result[0].peer, PEER1);
-  ASSERT_EQ(result[0].base, 0xff00);
+  //ASSERT_EQ(result[0].peer, PEER1);
+  ASSERT_EQ(result[0], PEER1);
+  //ASSERT_EQ(result[0].base, 0xff00);
   ASSERT_EQ(removed, false);
 
   result.clear();
   db.find(0x20001, 2, 3, result, removed);
   ASSERT_EQ(result.size(), 1);
-  ASSERT_EQ(result[0].peer, PEER2);
-  ASSERT_EQ(result[0].base, 0xff0f);
+  //ASSERT_EQ(result[0].peer, PEER2);
+  ASSERT_EQ(result[0], PEER2);
+  //ASSERT_EQ(result[0].base, 0xff0f);
   ASSERT_EQ(removed, false);
  
 
   DESCRIPTION("Database delete/find.");
-  db.insert(0x10001, 2, 3, PEER1, 0xff00);
-  db.insert(0x10002, 2, 3, PEER1, 0xff00);
+  //db.insert(0x10001, 2, 3, PEER1, 0xff00);
+  //db.insert(0x10002, 2, 3, PEER1, 0xff00);
+  db.insert(0x10001, 2, 3, PEER1);
+  db.insert(0x10002, 2, 3, PEER1); 
+
   result.clear();
   db.remove(0x10001, 2, 3, PEER1);
   db.find(0x10001, 2, 3, result, removed);
@@ -476,19 +499,23 @@ void test_Database()
 
 
   DESCRIPTION("Database insert/find when table overflow");
-  db.insert(0x30001, 2, 3, PEER1, 0xff00);
-  db.insert(0x40001, 2, 3, PEER1, 0xff00);
+  //db.insert(0x30001, 2, 3, PEER1, 0xff00);
+  //db.insert(0x40001, 2, 3, PEER1, 0xff00);
+  db.insert(0x30001, 2, 3, PEER1);
+  db.insert(0x40001, 2, 3, PEER1);
 
   result.clear();
   db.find(0x30001, 2, 3, result, removed);
   ASSERT_EQ(result.size(), 1);
-  ASSERT_EQ(result[0].peer, PEER1);
+  //ASSERT_EQ(result[0].peer, PEER1);
+  ASSERT_EQ(result[0], PEER1);
   ASSERT_EQ(removed, false);
 
   result.clear();
   db.find(0x40001, 2, 3, result, removed);
   ASSERT_EQ(result.size(), 1);
-  ASSERT_EQ(result[0].peer, PEER1);
+  //ASSERT_EQ(result[0].peer, PEER1);
+  ASSERT_EQ(result[0], PEER1);
   ASSERT_EQ(removed, false);
 
   result.clear();
@@ -507,7 +534,8 @@ void test_Database_random()
 {
   Castoro::Gateway::Database db(1000);
   Castoro::Gateway::PeerStatus s(1000, 0, Castoro::Gateway::DS_ACTIVE);
-  Castoro::Gateway::ArrayOfPeerWithBase result;
+  //Castoro::Gateway::ArrayOfPeerWithBase result;
+  Castoro::Gateway::ArrayOfId result;
   ID bases[100];
   bool removed;
 
@@ -528,7 +556,8 @@ void test_Database_random()
     ID base = bases[p];
 
     uint64_t cid = rand();
-    db.insert(cid, 2, 3, peer, base);
+    //db.insert(cid, 2, 3, peer, base);
+    db.insert(cid, 2, 3, peer);
     result.clear();
     db.find(cid, 2, 3, result, removed);
     if(result.size()==0) {
@@ -537,11 +566,11 @@ void test_Database_random()
       not_found++;
     } else {
       for(int i=0; i<result.size(); i++) {
-        if((result.at(i).peer==peer) && (result.at(i).base==base)) break;
+        if((result.at(i)==peer)) break;
         if(i==result.size()-1) {
           printf("[%d] cid=%llu, peer=%llx, base=%llx\n", count, cid, peer, base);
           for(int j=0; j<result.size(); j++) {
-            printf("          (%2d) peer=%llx, base=%llx\n", j, result.at(j).peer, result.at(j).base);
+            printf("          (%2d) peer=%llx\n", j, result.at(j));
           }
           ASSERT(!"Not found");
         }

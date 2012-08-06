@@ -29,7 +29,6 @@
 namespace Castoro {
 namespace Gateway {
 
-
   class PeerStatus {
   public:
     inline PeerStatus(uint64_t a=0, time_t t=0, DetailStatus s=DS_UNKNOWN) {
@@ -81,6 +80,7 @@ namespace Gateway {
     void find(ArrayOfId& result);
     void find(uint64_t require_space, ArrayOfId& result);
     void remove(ID peer);
+    PeerStatusMap get_peer_status_map() { return m_status; };
 
     // global settings.
     inline void set_expire(uint32_t expires) { m_expire = expires; };
