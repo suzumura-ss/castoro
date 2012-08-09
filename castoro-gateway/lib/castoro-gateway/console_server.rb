@@ -26,7 +26,9 @@ require "stringio"
 
 module Castoro
   class Gateway
-
+    #
+    # This class is basic class of IslandConsoleServer and MasterConsoleServer.
+    #
     class ConsoleServer
 
       DEFAULT_OPTIONS = {
@@ -57,6 +59,13 @@ module Castoro
         nil
       }
 
+      #
+      # --arg
+      #  logger     Specify logger instance 
+      #  repository When type is island or original, specify Repository class instance
+      #             When type is master,  specify IslandStatus class instance
+      #  ip         IP Address String
+      #  port       Port number
       def initialize logger, repository, ip, port, options = {}
         @logger = logger
         @repository = repository
@@ -70,6 +79,7 @@ module Castoro
         @locker.synchronize {
           raise CastoroError, "console server already started." if alive?
           @server = DRb::DRbServer.new @uri, self
+          @logger.info { "console server DRbService start #{@uri}"}
         }
       end
 
@@ -78,7 +88,8 @@ module Castoro
           raise CastoroError, "console server already stopped." unless alive?
           @server.stop_service
           @server = nil
-        }
+          @logger.info { "console server DRbService stop #{@uri}"}
+       }
       end
 
       def alive?
@@ -86,6 +97,39 @@ module Castoro
           !! (@server and @server.alive?)
         }
       end
+    end  
+
+    ##
+    # MasterConsoleServer
+    #
+    # This console server is used when gateway's type is master.
+    #
+    class MasterConsoleServer < ConsoleServer
+      def initilaize  logger, repository, ip, port, options = {}
+        super logger, repository, ip, port, options
+      end
+
+      def status 
+        @repository.status 
+  
+        #result = []
+        #st = @repository.status         
+        #st.each do |key, value|
+        #   result.push [ key, value[:storables], value[:capacity] ]
+        #end
+        #result
+      end
+    end
+
+    ##
+    # IslandConsoleServer
+    #
+    # This console server is used when gateway's type is island or original.
+    #
+    class IslandConsoleServer < ConsoleServer
+      def initilaize  logger, repository, ip, port, options = {}
+        super logger, repository, ip, port, options
+      end  
 
       def status
         @repository.status
@@ -139,9 +183,7 @@ module Castoro
       def forker
         @options[:fork] ? @@forker : @@noforker
       end
-
     end
-
   end
 end
 

@@ -177,7 +177,9 @@ describe Castoro::Gateway do
         Castoro::Gateway.class_variable_get(:@@facade_class).should         == Castoro::Gateway::Facade
         Castoro::Gateway.class_variable_get(:@@workers_class).should        == Castoro::Gateway::Workers
         Castoro::Gateway.class_variable_get(:@@repository_class).should     == Castoro::Gateway::Repository
-        Castoro::Gateway.class_variable_get(:@@console_server_class).should == Castoro::Gateway::ConsoleServer
+        Castoro::Gateway.class_variable_get(:@@island_status_class).should == Castoro::Gateway::IslandStatus
+        Castoro::Gateway.class_variable_get(:@@console_server_class).should == Castoro::Gateway::IslandConsoleServer
+        Castoro::Gateway.class_variable_get(:@@master_console_class).should  == Castoro::Gateway::MasterConsoleServer
       end
     end
 

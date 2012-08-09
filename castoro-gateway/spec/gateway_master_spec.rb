@@ -22,7 +22,8 @@ require 'get_devices'
 
 describe Castoro::Gateway do
   before do
-    @logger = Logger.new nil
+    #@logger = Logger.new nil
+    @logger = Logger.new(ENV['DEBUG'] ? STDOUT : nil)
   end
 
   describe "given master configurations" do
@@ -60,7 +61,7 @@ describe Castoro::Gateway do
     end
 
     it "console server should not receive .new" do
-      Castoro::Gateway::ConsoleServer.should_not_receive(:new)
+      Castoro::Gateway::IslandConsoleServer.should_not_receive(:new)
       @g.start
       sleep 0.5
     end
@@ -90,6 +91,7 @@ describe Castoro::Gateway do
 
     after do
       if @g
+        @logger.info { "stop the Gateway" }
         @g.stop rescue nil
       end
       @g = nil

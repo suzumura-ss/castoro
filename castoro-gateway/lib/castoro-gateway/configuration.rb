@@ -56,20 +56,18 @@ module Castoro; class Gateway
         "gateway_watchdog_udpport_multicast" => 30113,
         "gateway_watchdog_logging" => false,
         "gateway_comm_ipaddr_multicast" => "239.192.1.1",
-#       "gateway_comm_device_multicast" => "eth0",
         "gateway_comm_device_addr" => nil,         # Specification is indispensable
         "peer_comm_udpport_multicast" => 30112,
         "peer_comm_ipaddr_multicast" => "239.192.1.1",
-#       "peer_comm_device_multicast" => "eth0",
         "peer_comm_device_addr" => nil,              # Specification is indispensable 
       },
       "master" => {
         "type" => "master",
+        "gateway_console_tcpport" => 30110,
         "gateway_comm_udpport" => 30111,
         "gateway_learning_udpport_multicast" => 30109,
         "master_comm_ipaddr_multicast" => "239.192.254.254",
         "island_comm_udpport_broadcast" => 30108,
- #      "island_comm_device_multicast" => "eth0",
         "island_comm_device_addr" => nil,            # Specification is indispensable 
       },
       "island" => {
@@ -79,17 +77,14 @@ module Castoro; class Gateway
         "gateway_watchdog_udpport_multicast" => 30113,
         "gateway_watchdog_logging" => false,
         "gateway_comm_ipaddr_multicast" => "239.192.1.1",
-#       "gateway_comm_device_multicast" => "eth0",
         "gateway_comm_device_addr" => nil,          # Specification is indispensable 
         "peer_comm_udpport_multicast" => 30112,
         "peer_comm_ipaddr_multicast" => "239.192.1.1",
-#       "peer_comm_device_multicast" => "eth0",
         "peer_comm_device_addr" => nil,            # Specification is indispensable 
         "master_comm_ipaddr_multicast" => "239.192.254.254",
         "island_comm_udpport_broadcast" => 30108,
         "island_comm_ipaddr_multicast" => nil,
-#       "island_comm_device_multicast" => "eth0",  
-        "island_comm_device_addr" => nil,          # Specification is indispensable 
+        "island_comm_device_addr" => nil,         # Specification is indispensable 
       },
     }.freeze
 
@@ -187,14 +182,10 @@ module Castoro; class Gateway
       check_port_number       options, "gateway_watchdog_udpport_multicast"
       boolean_normalize       options, "gateway_watchdog_logging"
       check_multicast_address options, "gateway_comm_ipaddr_multicast"
-
-#     check_network_interface options, "gateway_comm_device_multicast"
       check_ip_address        options, "gateway_comm_device_addr" 
       
       check_port_number       options, "peer_comm_udpport_multicast"
       check_multicast_address options, "peer_comm_ipaddr_multicast"
-
-#     check_network_interface options, "peer_comm_device_multicast"
       check_ip_address        options, "peer_comm_device_addr"
     end
 
@@ -205,10 +196,9 @@ module Castoro; class Gateway
 
       check_port_number       options, "gateway_comm_udpport"
       check_port_number       options, "gateway_learning_udpport_multicast"
+
       check_multicast_address options, "master_comm_ipaddr_multicast"
       check_port_number       options, "island_comm_udpport_broadcast"
-
-#     check_network_interface options, "island_comm_device_multicast"
       check_ip_address        options, "island_comm_device_addr" 
     end
 
@@ -225,21 +215,15 @@ module Castoro; class Gateway
       check_port_number       options, "gateway_watchdog_udpport_multicast"
       boolean_normalize       options, "gateway_watchdog_logging"
       check_multicast_address options, "gateway_comm_ipaddr_multicast"
-
-#     check_network_interface options, "gateway_comm_device_multicast"
       check_ip_address        options, "gateway_comm_device_addr" 
 
       check_port_number       options, "peer_comm_udpport_multicast"
       check_multicast_address options, "peer_comm_ipaddr_multicast"
-
-#     check_network_interface options, "peer_comm_device_multicast"
       check_ip_address        options, "peer_comm_device_addr" 
 
       check_multicast_address options, "master_comm_ipaddr_multicast"
       check_port_number       options, "island_comm_udpport_broadcast"
       check_multicast_address options, "island_comm_ipaddr_multicast"
-
-#     check_network_interface options, "island_comm_device_multicast"
       check_ip_address        options, "island_comm_device_addr" 
     end
 

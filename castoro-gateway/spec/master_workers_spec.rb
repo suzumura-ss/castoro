@@ -39,8 +39,8 @@ describe Castoro::Gateway::MasterWorkers do
 
   describe "given valid constructor argument" do
     before do
-      @w = Castoro::Gateway::MasterWorkers.new @logger, 1,
-        @facade, @device_addr, @port, @broadcast_port
+      @islandStatus = Castoro::Gateway::IslandStatus.new @logger, @port, @device_addr
+      @w = Castoro::Gateway::MasterWorkers.new @logger, 1, @facade, @islandStatus, @device_addr, @broadcast_port
     end
 
     it "should be able to start" do
@@ -62,12 +62,13 @@ describe Castoro::Gateway::MasterWorkers do
       it "should return nop response" do
         received = false
         receiver = Castoro::Receiver::UDP.new(@logger, @mock_port) { |h, d, p, i|
+          @logger.info { "Receiver multicast receive NOP. type is #{d.kind_of?(Castoro::Protocol::Response::Nop)}" }
           received = true if d.kind_of?(Castoro::Protocol::Response::Nop)         
         }
         receiver.start
 
         @w.start
-        sleep 0.5
+        sleep 1.0
 
         receiver.stop
         received.should == true
@@ -87,12 +88,13 @@ describe Castoro::Gateway::MasterWorkers do
       it "should send broadcast" do
         received = false
         receiver = Castoro::Receiver::UDP.new(@logger, @broadcast_port) { |h, d, p, i|
+          @logger.info { "Receiver multicast receove GET. type is #{d.kind_of?(Castoro::Protocol::Command::Get)}" }
           received = true if d.kind_of?(Castoro::Protocol::Command::Get)
         }
         receiver.start
 
         @w.start
-        sleep 0.5
+        sleep 1.0
 
         receiver.stop
         received.should == true
@@ -112,12 +114,13 @@ describe Castoro::Gateway::MasterWorkers do
       it "should send multicast" do
         received = false
         receiver = Castoro::Receiver::UDP::Multicast.new(@logger, @port, 'efc00101'.to_island.to_ip, @device_addr) { |h,d,p,i|
+          @logger.info { "Receiver multicast receove. type is #{d.kind_of?(Castoro::Protocol::Command::Get)}" }
           received = true if d.kind_of?(Castoro::Protocol::Command::Get)
         }
         receiver.start
 
         @w.start
-        sleep 0.5
+        sleep 1.0
 
         receiver.stop
         received.should == true
@@ -145,6 +148,7 @@ describe Castoro::Gateway::MasterWorkers do
       it "should send multicast" do
         received = false
         receiver = Castoro::Receiver::UDP::Multicast.new(@logger, @port, 'efc00105'.to_island.to_ip, @device_addr) { |h,d,p,i|
+          @logger.info { "Receiver multicast receove CREATE. type is #{d.kind_of?(Castoro::Protocol::Command::Create)}" }
           received = true if d.kind_of?(Castoro::Protocol::Command::Create)
         }
         receiver.start
@@ -157,7 +161,6 @@ describe Castoro::Gateway::MasterWorkers do
       end
     end
 
-
     after do
       if @w
         @w.stop rescue nil
@@ -167,7 +170,7 @@ describe Castoro::Gateway::MasterWorkers do
   end
 end
 
-describe Castoro::Gateway::MasterWorkers::IslandStatus do
+describe Castoro::Gateway::IslandStatus do
   before(:all) do
     @logger      = Logger.new(ENV['DEBUG'] ? STDOUT : nil)
     @device_addr = ENV['DEVICE']    || IPSocket.getaddress(Socket.gethostname)
@@ -182,7 +185,7 @@ describe Castoro::Gateway::MasterWorkers::IslandStatus do
     end
 
     it "should choice random island" do
-      islandStatus = Castoro::Gateway::MasterWorkers::IslandStatus.new @logger, @port, @device_addr
+      islandStatus = Castoro::Gateway::IslandStatus.new @logger, @port, @device_addr
       islandStatus.start
       islandStatus.set Castoro::Protocol::Command::Island.new('efc00101'.to_island, 1, 1000)
       islandStatus.set Castoro::Protocol::Command::Island.new('efc00102'.to_island, 2, 10000)

@@ -81,7 +81,6 @@ describe Castoro::Gateway do
 
     # console
     DRb.start_service
-    #@console = DRbObject.new_with_uri "druby://127.0.0.1:#{@conf["gateway_console_tcpport"]}"
     @console = DRbObject.new_with_uri "druby://#{@conf["gateway_comm_device_addr"]}:#{@conf["gateway_console_tcpport"]}"
 
   end

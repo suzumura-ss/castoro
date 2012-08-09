@@ -19,7 +19,7 @@
 
 require File.dirname(__FILE__) + '/spec_helper.rb'
 
-describe Castoro::Gateway::ConsoleServer do
+describe Castoro::Gateway::IslandConsoleServer do
   before do
     # the Logger
     @logger = Logger.new(ENV['DEBUG'] ? STDOUT : nil)
@@ -57,7 +57,8 @@ describe Castoro::Gateway::ConsoleServer do
       cached.delete :b => b, :p => p
     }
 
-    @c = Castoro::Gateway::ConsoleServer.new @logger, @r, @ip, @port
+    #@c = Castoro::Gateway::ConsoleServer.new @logger, @r, @ip, @port
+    @c = Castoro::Gateway::IslandConsoleServer.new @logger, @r, @ip, @port
   end
 
   describe "#status" do
@@ -160,6 +161,40 @@ EOF
 
     after do
       @c.stop if @c.alive?
+    end
+  end
+
+  after do
+    @c = nil
+  end
+end
+
+
+
+describe Castoro::Gateway::MasterConsoleServer do
+  before do
+    # the Logger
+    @logger = Logger.new(ENV['DEBUG'] ? STDOUT : nil)
+
+    @r = mock Castoro::Gateway::IslandStatus
+    @r.stub!(:status).and_return {
+      { 
+        "island1" => {  :storables => 6, :capacity => 2000 },  
+        "island2" => {  :storables => 3, :capacity => 1000 },  
+      }
+    }
+
+    #@c = Castoro::Gateway::ConsoleServer.new @logger, @r, @ip, @port
+    @c = Castoro::Gateway::MasterConsoleServer.new @logger, @r, @ip, @port
+  end
+
+  describe "#status" do
+    it "repository should receive status" do
+      @r.should_receive(:status).with(no_args)
+      @c.status.should == { 
+        "island1" => {  :storables => 6, :capacity => 2000 },  
+        "island2" => {  :storables => 3, :capacity => 1000 },  
+      }
     end
   end
 

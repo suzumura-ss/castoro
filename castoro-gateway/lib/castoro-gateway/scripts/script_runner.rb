@@ -155,13 +155,16 @@ module Castoro
       def self.status options
         ret = connect_to_console(options[:ip].to_s, options[:port].to_i) { |obj|
           obj.status
-         }
-  
-        width  = ret.keys.max { |x, y| x.length <=> y.length }.length
-        key_format = "%-#{wildth}s"
-        ret.each { |k, v|
-          STDOUT.puts "#{key_format % k} : #{v}"
         }
+
+        if ret.length > 0 then
+          # When ret.length is 0, ret.keys.max{}.length generates an error for keys.max is return nil. 
+          width  = ret.keys.max { |x, y| x.length <=> y.length }.length
+          key_format = "%-#{width}s"
+          ret.each { |k, v|
+            STDOUT.puts "#{key_format % k} : #{v}"
+          }
+        end
       rescue => e
         STDERR.puts "--- Castoro::Gateway error! - #{e.message}"
         STDERR.puts e.backtrace.join("\n\t") if options[:verbose]
@@ -170,7 +173,7 @@ module Castoro
   
       def self.peersStatus options
         ret = connect_to_console(options[:ip].to_s, options[:port].to_i) { |obj|
-          obj.peerStatus
+          obj.peersStatus
         }
   
         ret.each { |k|
@@ -219,7 +222,7 @@ module Castoro
         # signal.
         stopping = false
         [:INT, :HUP, :TERM].each { |sig|
-          trap(sig) { |s|
+          trap(sig) { |s| # Trap a signal from send_signal()
             unless stopping
               stopping = true
               gateway.stop (s == :TERM)
@@ -239,6 +242,7 @@ module Castoro
         while gateway.alive?; sleep 3; end
       end
   
+
       def self.send_signal pid_file, signal
         # SIGINT signal is sent to dispatcher deamon(s).l
         pid = File.open(pid_file, "r") do |f|
@@ -249,9 +253,9 @@ module Castoro
         Process.waitpid2(pid) rescue nil
       end
 
-       #
+      #
       # access to druby object
-       #
+      #
       def self.connect_to_console(ip, port)
         DRb.start_service
         result = nil

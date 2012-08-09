@@ -51,9 +51,11 @@ module Castoro
       @@facade_class          = Facade
       @@workers_class         = Workers
       @@repository_class      = Repository
-      @@console_server_class  = ConsoleServer
+      @@console_server_class  = IslandConsoleServer
+      @@master_console_class  = MasterConsoleServer
       @@watchdog_sender_class = WatchdogSender
       @@master_workers_class  = MasterWorkers
+      @@island_status_class   = IslandStatus
     end
     dependency_classes_init
 
@@ -74,13 +76,18 @@ module Castoro
         raise GatewayError, "gateway already started." if alive?
 
         @logger.info { "*** castoro-gateway starting. with config\n" + @config.to_yaml }
-
         @unicast_count = 0
 
         # start repository.
-        @repository = @config.is_original_or_island_when {
-          @@repository_class.new @logger, @config["cache"]
-        }
+        @repository = case @config["type"]
+                      when "original", "island"
+                        @@repository_class.new @logger, @config["cache"]
+                      when "master"
+                        @@island_status_class.new @logger, @config["gateway_learning_udpport_multicast"].to_s, @config["island_comm_device_addr"]
+                      else
+                        raise CastoroError, "type needs to be original, master, or island."
+                      end
+        @logger.info { "Create Repository:class is #{@repository.class} config[type]=#{@config["type"]}"}
 
         # start facade.
         @facade = @@facade_class.new @logger, @config
@@ -104,8 +111,8 @@ module Castoro
                          @logger,
                          @config["workers"],
                          @facade,
+                         @repository,
                          @config["island_comm_device_addr"],
-                         @config["gateway_learning_udpport_multicast"],
                          @config["island_comm_udpport_broadcast"]
                      )
                    when "island"
@@ -123,11 +130,18 @@ module Castoro
                    end
         @workers.start
 
-        # start console server.
-        @config.is_original_or_island_when {
-          @console = @@console_server_class.new @logger, @repository, @config["peer_comm_device_addr"], @config["gateway_console_tcpport"].to_i
-          @console.start
-        }
+        # start console server
+        @console = case @config["type"]
+                   when "original", "island"
+                     @@console_server_class.new @logger, @repository, @config["peer_comm_device_addr"], @config["gateway_console_tcpport"].to_i
+                   when "master"
+                     @logger.info { "call console server create!! " }
+                     @@master_console_class.new @logger, @repository, @config["island_comm_device_addr"], @config["gateway_console_tcpport"].to_i
+                   else
+                     raise CastoroError, "type needs to be original, master, or island."
+                   end
+        @logger.info { "call console server start!! " }
+        @console.start
 
         # start watchdog sender.
         @config.is_island_when {
@@ -165,6 +179,7 @@ module Castoro
         @watchdog_sender = nil
 
         @repository = nil
+        @islandStatus = nil # It should already be stopped by workers.stop(). 
 
         @logger.info { "*** castoro-gateway stopped." }
       }

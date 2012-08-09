@@ -50,14 +50,22 @@ COMMAND_OPTIONS = {
   :status => {
     :verbose => false,
     :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_tcpport"].to_i,
+    :ip => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["peer_comm_device_addr"].to_i,
+  },
+  :peersStatus => {
+    :verbose => false,
+    :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_tcpport"].to_i,
+    :ip => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["peer_comm_device_addr"].to_i,
   },
   :dump => {
     :verbose => false,
     :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_tcpport"].to_i,
+    :ip => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["peer_comm_device_addr"].to_i,
   },
   :purge => {
     :verbose => false,
     :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_tcpport"].to_i,
+    :ip => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["peer_comm_device_addr"].to_i,
   }
 }
 
@@ -180,6 +188,9 @@ parser = OptionParser.new do |parser|
     parser.on('-p PORT', '--port <portnumber>', 'console port') do |v|
       opt[:port] = v.to_i
     end
+    parser.on('-i IP', '--ip <ip>', 'gateway deamon ip') do |v|
+      opt[:ip] = v.to_s
+    end
 
   when :purge
     parser.banner = "#{parser.banner} PEER [PEER]..."
@@ -188,6 +199,9 @@ parser = OptionParser.new do |parser|
     end
     parser.on('-p PORT', '--port <portnumber>', 'console port') do |v|
       opt[:port] = v.to_i
+    end
+    parser.on('-i IP', '--ip <ip>', 'gateway deamon ip') do |v|
+      opt[:ip] = v.to_s
     end
   end
 end

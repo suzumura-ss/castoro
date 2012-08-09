@@ -32,8 +32,8 @@ module Castoro
         super logger, count
         @facade     = facade
         @repository = repository
-        @addr       = multicast_addr
-        @device     = device_addr
+        @addr       = multicast_addr # This is multicast address, not IP address
+        @device     = device_addr    # This is IP Address of NIC
         @port       = multicast_port
         @island     = island ? island.to_island : nil
       end
