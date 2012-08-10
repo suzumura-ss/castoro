@@ -124,8 +124,8 @@ module Castoro
       ## 
       # The status of array representation is returned.
       #
-      def peersStatus
-          @cache.peersStatus     
+      def peers_status
+          @cache.peers_status     
       end
 
       ##

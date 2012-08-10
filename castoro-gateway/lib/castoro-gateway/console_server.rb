@@ -135,8 +135,8 @@ module Castoro
         @repository.status
       end
 
-      def peersStatus
-        @repository.peersStatus
+      def peers_status
+        @repository.peers_status
       end
 
       def dump io

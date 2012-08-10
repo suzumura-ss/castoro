@@ -199,8 +199,8 @@ describe Castoro::BasketCache do
       end
 
       it "#peersStatus return the zero available and status." do
-        res = @cache.peersStatus
-        res.should == []
+        res = @cache.peers_status
+        res.should == {}
       end
 
     end
@@ -243,16 +243,11 @@ describe Castoro::BasketCache do
       end
 
       it "#peersStatus return the available and active status" do
-        res = @cache.peersStatus
-        res[0][0].should == "peer100"
-        res[0][1].should == ACTIVE
-        res[0][2].should == available 
-        res[1][0].should == "peer101"
-        res[1][1].should == ACTIVE
-        res[1][2].should == available 
-        res[2][0].should == "peer102"
-        res[2][1].should == ACTIVE
-        res[2][2].should == available
+        res = @cache.peers_status
+        res.length.should == 3
+        res["peer100"].should == {:status=>ACTIVE, :available=>available}
+        res["peer101"].should == {:status=>ACTIVE, :available=>available}
+        res["peer102"].should == {:status=>ACTIVE, :available=>available}
       end
     end
 
@@ -294,16 +289,11 @@ describe Castoro::BasketCache do
       end
 
       it "#peersStatus return the available and readonly status" do
-        res = @cache.peersStatus
-        res[0][0].should == "peer100"
-        res[0][1].should == READONLY 
-        res[0][2].should == available
-        res[1][0].should == "peer101"
-        res[1][1].should == READONLY 
-        res[1][2].should == available
-        res[2][0].should == "peer102"
-        res[2][1].should == READONLY
-        res[2][2].should == available
+        res = @cache.peers_status
+        res.length.should == 3
+        res["peer100"].should == {:status=>READONLY, :available=>available}
+        res["peer101"].should == {:status=>READONLY, :available=>available}
+        res["peer101"].should == {:status=>READONLY, :available=>available}
       end
     end
 
@@ -339,16 +329,11 @@ describe Castoro::BasketCache do
       end
 
       it "#peersStatus return the available and maintenance status" do
-        res = @cache.peersStatus
-        res[0][0].should == "peer100"
-        res[0][1].should == MAINTENANCE 
-        res[0][2].should == available
-        res[1][0].should == "peer101"
-        res[1][1].should == MAINTENANCE 
-        res[1][2].should == available
-        res[2][0].should == "peer102"
-        res[2][1].should == MAINTENANCE
-        res[2][2].should == available
+        res = @cache.peers_status
+        res.length.should == 3
+        res["peer100"].should == {:status=>MAINTENANCE, :available=>available}
+        res["peer101"].should == {:status=>MAINTENANCE, :available=>available}
+        res["peer101"].should == {:status=>MAINTENANCE, :available=>available}
       end
     end
 

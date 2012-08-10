@@ -171,13 +171,13 @@ module Castoro
         exit(1)
       end
   
-      def self.peersStatus options
+      def self.peers_status options
         ret = connect_to_console(options[:ip].to_s, options[:port].to_i) { |obj|
-          obj.peersStatus
+          obj.peers_status
         }
   
-        ret.each { |k|
-          STDOUT.puts "#{k[0]}:#{k[1]}:#{k[2]}\n"
+        ret.each { |k, v|
+          STDOUT.puts "#{k}:#{v}\n"
         }
       rescue => e
         STDERR.puts "--- Castoro::Gateway error! - #{e.message}"

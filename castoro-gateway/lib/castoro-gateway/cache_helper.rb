@@ -145,16 +145,16 @@ module Castoro
     ##
     # The status of hash representation is returned.
     #
-    def peersStatus
+    def peers_status
       @logger.info { "peers info request accepted." }
 
-      result = [];
+      result = {};
       peerInfo = @cache.get_peers_info();
       
       i = 0
       while i < peerInfo.length do
-         peer = [ peerInfo[i], peerInfo[i + 1], peerInfo[i + 2] ]
-         result.push peer
+         peer = {:status => peerInfo[i + 1], :available => peerInfo[i + 2] }
+         result[ peerInfo[i] ] = peer
          i += 3
       end
       result

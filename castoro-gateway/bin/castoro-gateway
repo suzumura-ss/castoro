@@ -52,7 +52,7 @@ COMMAND_OPTIONS = {
     :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_tcpport"].to_i,
     :ip => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["peer_comm_device_addr"].to_i,
   },
-  :peersStatus => {
+  :peers_status => {
     :verbose => false,
     :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_tcpport"].to_i,
     :ip => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["peer_comm_device_addr"].to_i,
@@ -170,7 +170,7 @@ parser = OptionParser.new do |parser|
       opt[:ip] = v.to_s
     end
  
-  when :peersStatus
+  when :peers_status
     parser.on('-v', '--verbose', 'verbose') do |v|
       opt[:verbose] = true
     end

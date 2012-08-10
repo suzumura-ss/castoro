@@ -43,8 +43,12 @@ describe Castoro::Gateway::IslandConsoleServer do
         "baz" => "BAZ",
       }
     }
-    @r.stub!(:peersStatus).and_return {
-      [ ["peer1", 10, 30], ["peer2", 20, 30], ["peer3", 30, 10]]
+    @r.stub!(:peers_status).and_return {
+       {
+        "peer1" => {:status=>30, :available=>30}, 
+        "peer2" => {:status=>30, :available=>20}, 
+        "peer3" => {:status=>30, :available=>10}
+      }
     }
     @r.stub!(:dump).and_return { |io, peers|
       cached.each { |c|
@@ -57,7 +61,6 @@ describe Castoro::Gateway::IslandConsoleServer do
       cached.delete :b => b, :p => p
     }
 
-    #@c = Castoro::Gateway::ConsoleServer.new @logger, @r, @ip, @port
     @c = Castoro::Gateway::IslandConsoleServer.new @logger, @r, @ip, @port
   end
 
@@ -72,10 +75,14 @@ describe Castoro::Gateway::IslandConsoleServer do
     end
   end
 
-  describe "#peersStatus" do
-    it "repository should receive peerStatus" do
-      @r.should_receive(:peersStatus).with(no_args)
-      @c.peersStatus.should == [["peer1", 10, 30], ["peer2", 20, 30], ["peer3", 30, 10]]
+  describe "#peers_status" do
+    it "repository should receive peers_status" do
+      @r.should_receive(:peers_status).with(no_args)
+      @c.peers_status.should == {
+        "peer1" => {:status=>30, :available=>30}, 
+        "peer2" => {:status=>30, :available=>20}, 
+        "peer3" => {:status=>30, :available=>10}
+      }
     end
   end
 
