@@ -1,17 +1,19 @@
 define ruby_stack_trace
- # Version 0.0.2 - 2012-07-25
- # First, move_down_to_the_frame_of_thread_start_func_2
- set $a = vm_exec_core
- set $b = vm_exec
- set $f = 0
+ # Version 0.0.3 - 2012-08-10
+ set height 0
+ set width 0
+ # First, move down to the frame of vm_exec_core
+ set $target_func = vm_exec_core
+ set $adjacent_func = vm_exec
+ set $frame = 0
  set $found = 0
- while $f < 50
-  frame $f
-  if $a <= $pc && $pc <= $b
+ while $frame < 50
+  frame $frame
+  if $target_func <= $pc && $pc <= $adjacent_func
    set $found = 1
    loop_break
   end
-  set $f = $f + 1
+  set $frame = $frame + 1
  end
  printf "\n"
  thread
@@ -37,8 +39,8 @@ define ruby_stack_trace
   set $FL_USER1 = ((1)<<($FL_USHIFT+1))
   set $RSTRING_NOEMBED = $FL_USER1
   set $p = th->cfp
-  while $p < th->stack + th->stack_size
-   set $VM_FRAME_TYPE = (($p)->flag & $VM_FRAME_MAGIC_MASK)
+  while (VALUE *)$p < th->stack + th->stack_size
+   set $VM_FRAME_TYPE = $p->flag & $VM_FRAME_MAGIC_MASK
    printf "#%-2d ", $p - th->cfp
    set $nopos = 0
    set $t = $VM_FRAME_TYPE
@@ -89,8 +91,16 @@ define ruby_stack_trace
       printf "%d %s", rb_vm_get_sourceline($p), rb_class2name($p->iseq->klass)
      end
     else
-     if $p->method_id
-      printf ":%s", rb_id2name($p->method_id)
+     if ruby_version[4] < '2'
+      # ruby 1.9.1 or earlier
+      if $p->method_id
+       printf ":%s", rb_id2name($p->method_id)
+      end
+     else
+      # ruby 1.9.2 or later
+      if $p->me
+       printf ":%s", rb_id2name($p->me->def->original_id)
+      end
      end
     end
    end
@@ -103,6 +113,8 @@ define ruby_stack_trace
 end
  
 document ruby_stack_trace
- Prints backtrace of all stack frames in the level of Ruby script.
- Notes: This command is intended to use with Ruby 1.9.1.
+ Backtraces Ruby script stack frames.
+ eg 1: (gdb) ruby_stack_trace
+ eg 2: (gdb) thread apply all ruby_stack_trace
+ Notes: This command is intended to use with Ruby from 1.9.1 to 1.9.3.
 end
