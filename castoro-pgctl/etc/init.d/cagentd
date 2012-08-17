@@ -40,29 +40,30 @@ case "$1" in
 
     'stop')
 	echo "Stopping $script ... "
-	/usr/local/bin/ruby -e "\
-require 'socket'; \
-printf '%s', 'Stopping ' + \"$script\" + ' ... '; \
-begin; \
-  s=TCPSocket.new 'localhost', $port; \
-  s.puts '[\"1.1\",\"C\",\"SHUTDOWN\",null]'; \
-  x=s.gets; \
-  puts x if x; \
-rescue Errno::ECONNREFUSED => e; \
-  puts 'Already stopped'; \
-  exit 1; \
-rescue => e; \
-  puts 'localhost:'+$port.to_s+': '+e.message; \
-  exit 1; \
-end; \
-sleep 3; \
-begin; \
-  s=TCPSocket.new 'localhost', $port; \
-rescue Errno::ECONNREFUSED => e; \
-  puts 'OK'; \
-rescue => e; \
-  p e; \
-end"
+	/usr/local/bin/ruby <<EOF
+require 'socket'
+print "Stopping " + "$script" + " ... "
+begin
+  begin
+    s = TCPSocket.new "localhost", $port
+    s.syswrite "[\"1.1\",\"C\",\"SHUTDOWN\",null]\n"
+    x = s.gets
+    puts x if x
+  rescue Errno::ECONNREFUSED => e
+    puts "Already stopped"
+    exit 1
+  end
+  sleep 2
+  begin
+    s=TCPSocket.new "localhost", $port
+  rescue Errno::ECONNREFUSED => e
+    puts "OK"
+  end
+rescue => e
+  p e
+  exit 1
+end
+EOF
 	;;
 
     *)
