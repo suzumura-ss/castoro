@@ -104,11 +104,15 @@ module Castoro
 
 
     class TcpSocketDelegator
+      MAX_LINE_LENGTH = 4096
+      BUFSIZE = 4096
+
       attr_reader :addr, :port
 
       def initialize socket
         @socket = socket
-        @buffer = []
+        @buffer = nil  # the buffer
+        @pos = 0       # current position
       end
 
       def method_missing m, *args, &block
@@ -119,42 +123,56 @@ module Castoro
         @port, @addr = Socket.unpack_sockaddr_in sockaddr
       end
 
+      def fill_buffer timedout
+        if @socket.closed?
+          Log.debug "TCP Closed : #{@addr}:#{@port}" if $DEBUG
+          return false
+        end
+
+        # If the only single Ruby thread is running and Socket::SO_RCVTIMEO 
+        # is activated, socket.sysread() works expectedly.
+        # sysread(), however, does not expectedly work and it blocks forever
+        # if two or more Ruby threads are running under Ruby 1.9.1.
+        # Thus, select() must be used here, instead of sysread().
+        if timedout
+          unless IO.select( [@socket], nil, nil, timedout )
+            # timed out
+            raise Errno::EAGAIN, "gets timed out: #{timedout}s"
+          end
+        end
+
+        # sysread() might raise:
+        #  Errno::EAGAIN: Resource temporarily unavailable ; meanings timed out
+        #  EOFError "end of file reached"
+        #  IOError: closed stream
+        @buffer = @socket.sysread( BUFSIZE )
+        Log.debug "TCP I : #{@addr}:#{@port} #{@buffer}" if $DEBUG
+
+        return (@buffer and 0 < @buffer.length)
+      end
+
       def timed_gets timedout
-        unless 2 <= @buffer.size and @buffer[1] == "\n"
-          # If the only single Ruby thread is running and Socket::SO_RCVTIMEO 
-          # is activated, socket.sysread() works expectedly.
-          # sysread(), however, does not expectedly work and it blocks forever
-          # if two or more Ruby threads are running under Ruby 1.9.1.
-          # Thus, select() must be used here, instead of sysread().
-          if timedout
-            unless IO.select( [@socket], nil, nil, timedout )
-              # timed out
-              raise Errno::EAGAIN, "gets timed out: #{timedout}s"
-            end
+        data = nil
+
+        loop do
+          unless @buffer
+            fill_buffer( timedout ) or return data
+            @pos = 0
           end
 
-          x = sysread 4096
-          # sysread() might raise:
-          #  Errno::EAGAIN: Resource temporarily unavailable ; meanings timed out
-          #  EOFError "end of file reached"
-          #  IOError: closed stream
-          Log.debug "TCP I : #{@addr}:#{@port} #{x}" if $DEBUG
-
-          a = x.split( /\r?(\n)/ )
-          if 0 < @buffer.size and @buffer[-1] != "\n" and not a[0].nil?
-            @buffer[-1] = "#{@buffer[-1]}#{a.shift}"
+          n = @buffer.index( "\n", @pos )
+          if n
+            data = data ? (data + @buffer.slice( @pos..n )) : @buffer.slice( @pos..n )
+            MAX_LINE_LENGTH < data.length and raise IOError, "Too long line has been received: #{@addr}:#{@port} #{data}"
+            @pos = n + 1
+            @buffer = nil if @buffer.length <= @pos
+            return data
+          else
+            data = data ? (data + @buffer) : @buffer
+            MAX_LINE_LENGTH < data.length and raise IOError, "Too long line has been received: #{@addr}:#{@port} #{data}"
+            @buffer = nil
           end
-          @buffer.concat a
         end
-
-        if ( 2 <= @buffer.size and @buffer[1] == "\n" )
-          data, linefeed = @buffer.slice!( 0, 2 )
-          return data
-        end
-
-        # Todo: there might be no "\n" at the end of file.
-        Log.debug "TCP Closed : #{@addr}:#{@port}" if $DEBUG
-        return nil
       end
 
       def gets
@@ -167,7 +185,7 @@ module Castoro
       end
 
       def puts data
-        syswrite "#{data}\n"
+        @socket.syswrite "#{data}\n"
       end
 
       def tcp?
