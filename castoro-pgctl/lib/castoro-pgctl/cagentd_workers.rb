@@ -18,7 +18,7 @@
 #
 
 require 'castoro-pgctl/pre_threaded_tcp_server'
-require 'castoro-pgctl//tcp_socket'
+require 'castoro-pgctl/tcp_socket'
 require 'castoro-pgctl/channel'
 require 'castoro-pgctl/configurations_pgctl'
 require 'castoro-pgctl/log'
