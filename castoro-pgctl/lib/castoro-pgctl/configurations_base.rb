@@ -42,16 +42,20 @@ module Castoro
           file
         end
 
+        def define_attr_reader item, value
+          self.class.class_eval do
+            if method_defined? item
+              remove_method item 
+            end
+            define_method( item ) do
+              value
+            end
+          end
+        end
+
         def define_attr_readers entries
           entries.map do |item, value|
-            self.class.class_eval do
-              if method_defined? item
-                remove_method item 
-              end
-              define_method( item ) do
-                value
-              end
-            end
+            define_attr_reader item, value
           end
         end
       end
