@@ -67,6 +67,12 @@ module Castoro
                 h[ s[ :basket_keyconverter ] ] = s[ :type_id_ranges ]
               end
             end
+
+            # To interprete basket_basedir by accepting peer.conf in both castoro-1 and castoro-2 formats
+            h = @global.data  # Hash
+            if h.has_key?( :BasketBaseDir ) and not h.has_key?( :basket_basedir )
+              h[ :basket_basedir ] = h[ :BasketBaseDir ]
+            end
           end
 
           private
@@ -226,7 +232,9 @@ if $0 == __FILE__
     module Peer
       c = Configurations::Peer
       c.file = '../../../castoro-peer/etc/castoro/peer.conf-sample-ja.conf'
+#     c.file = '.../castoro-1/castoro-peer/config/etc/peer.conf'
       p c.instance
+      p c.instance.basket_basedir
     end
   end
 end
