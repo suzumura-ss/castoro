@@ -97,6 +97,35 @@ module Castoro
         n
       end
 
+      def do_date
+        work_on_every_component_simple { |x| x.do_date }  # proxy object
+      end
+
+      def print_date_printf h, s
+        f = "%-14s%s\n"  # format
+        s = sprintf f, h, s
+        print s.sub( / +\Z/, "" )
+      end
+
+      def print_date
+        print_date_printf 'HOSTNAME', 'DATE'
+        work_on_every_component( false ) do |h, t, x|  # hostname, component type, proxy object
+          if t == :cmond
+            if ( e = x.date.exception || x.date.error )
+              print_date_printf h, e
+            else
+              if x.date.tv_sec and x.date.tv_usec
+                date = Time.at x.date.tv_sec, x.date.tv_usec
+                print_date_printf h, date.to_s
+              else
+                print_date_printf h, '(unknown error occured)'
+              end
+            end
+            true
+          end
+        end
+      end
+
       def do_ps
         work_on_every_component_simple { |x| x.do_ps }  # proxy object
       end

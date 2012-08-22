@@ -28,7 +28,7 @@ module Castoro
     module Proxy
       class Base
         attr_accessor :flag
-        attr_reader :ps, :start, :stop, :status, :mode, :auto
+        attr_reader :date, :ps, :start, :stop, :status, :mode, :auto
 
         def target
           # should be implemented in a subclass
@@ -54,6 +54,11 @@ module Castoro
 
         def do_dummy
           execute( nil ) { |c| }  # do nothing
+        end
+
+        def do_date
+          @date = Command::GetDate.new @hostname, target
+          execute( @date ) { |c| c.execute }
         end
 
         def do_ps

@@ -159,6 +159,19 @@ module Castoro
         def name ; :cagentd ; end
       end
 
+      class GetDate < Cagentd
+        attr_reader :tv_sec, :tv_usec
+
+        def execute
+          @tv_sec, @tv_usec = nil, nil
+          if @target == :cmond  # a DATE command needs to be executed just once per host
+            r = call :GETDATE
+            @tv_sec = r[ 'tv_sec' ] or raise UnexpectedResponseError, "sent GETDATE, but its corresponding response does not include tv_sec: #{r.inspect}"
+            @tv_usec = r[ 'tv_usec' ] or raise UnexpectedResponseError, "sent GETDATE, but its corresponding response does not include tv_usec: #{r.inspect}"
+          end
+        end
+      end
+
       class Status < Cagentd
         attr_reader :mode, :auto, :debug
 

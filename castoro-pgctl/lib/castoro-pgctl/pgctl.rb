@@ -175,6 +175,7 @@ EOT
         c = case x
             when 'help'     ; usage ; Process.exit 0
             when 'list'     ; SubCommand::List
+            when 'date'     ; SubCommand::Date
             when 'ps'       ; SubCommand::Ps
             when 'status'   ; SubCommand::Status
             when 'gstart'   ; SubCommand::Gstart

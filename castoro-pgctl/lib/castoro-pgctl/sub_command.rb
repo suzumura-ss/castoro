@@ -68,6 +68,20 @@ module Castoro
       end
 
 
+      module DateModule
+        def do_date
+          dispatch { @x.do_date }
+        end
+
+        def do_date_and_print
+          title "Date"
+          do_date
+          @x.print_date
+          Exceptions.instance.confirm
+        end
+      end
+
+
       module PsModule
         def do_ps
           dispatch { @x.do_ps }
@@ -195,6 +209,7 @@ module Castoro
 
 
       class Base
+        include DateModule
         include PsModule
         include StatusModule
         include StartStopModule
@@ -385,6 +400,13 @@ module Castoro
               printf "  %s = %s\n", name, hosts.join(' ')
             end
           end
+        end
+      end
+
+
+      class Date < AtLeastOneNameRequired
+        def run
+          do_date_and_print
         end
       end
 
