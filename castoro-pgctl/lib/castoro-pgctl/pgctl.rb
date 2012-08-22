@@ -62,6 +62,9 @@ module Castoro
                   default: #{Configurations::Peer::DEFAULT_FILE}
 
   subcommands:
+   #{x}  help
+    help     prints this help message and exit.
+
    #{x} [global options]  list|passwd
    #{x} [global options]  list|ps|status  hostname|groupname...
     list     lists peer groups
@@ -170,6 +173,7 @@ EOT
         x = ARGV.shift
         x.nil? and raise CommandLineArgumentError, "No sub-command is given."
         c = case x
+            when 'help'     ; usage ; Process.exit 0
             when 'list'     ; SubCommand::List
             when 'ps'       ; SubCommand::Ps
             when 'status'   ; SubCommand::Status
