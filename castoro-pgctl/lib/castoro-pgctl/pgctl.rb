@@ -169,20 +169,21 @@ EOT
       def parse_sub_command
         x = ARGV.shift
         x.nil? and raise CommandLineArgumentError, "No sub-command is given."
-        case x
-        when 'list'     ; SubCommand::List.new
-        when 'ps'       ; SubCommand::Ps.new
-        when 'status'   ; SubCommand::Status.new
-        when 'gstart'   ; SubCommand::Gstart.new
-        when 'gstop'    ; SubCommand::Gstop.new
-        when 'enable'   ; SubCommand::Enable.new
-        when 'disable'  ; SubCommand::Disable.new
-        when 'start'    ; SubCommand::Start.new
-        when 'stop'     ; SubCommand::Stop.new
-        when 'passwd'   ; SubCommand::Passwd.new
-        else
-          raise CommandLineArgumentError, "Unknown sub-command: #{x}"
-        end
+        c = case x
+            when 'list'     ; SubCommand::List
+            when 'ps'       ; SubCommand::Ps
+            when 'status'   ; SubCommand::Status
+            when 'gstart'   ; SubCommand::Gstart
+            when 'gstop'    ; SubCommand::Gstop
+            when 'enable'   ; SubCommand::Enable
+            when 'disable'  ; SubCommand::Disable
+            when 'start'    ; SubCommand::Start
+            when 'stop'     ; SubCommand::Stop
+            when 'passwd'   ; SubCommand::Passwd
+            else
+              raise CommandLineArgumentError, "Unknown sub-command: #{x}"
+            end
+        c.new
       end
 
       def parse
