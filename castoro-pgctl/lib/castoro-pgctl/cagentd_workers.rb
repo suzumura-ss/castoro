@@ -21,6 +21,7 @@ require 'castoro-pgctl/pre_threaded_tcp_server'
 require 'castoro-pgctl/tcp_socket'
 require 'castoro-pgctl/channel'
 require 'castoro-pgctl/configurations_pgctl'
+require 'castoro-pgctl/working_directory_examiner'
 require 'castoro-pgctl/log'
 
 module Castoro
@@ -67,11 +68,13 @@ module Castoro
         command, args = channel.receive_command
         command.nil? and return :closed  # end of file reached
         result = case command.upcase
+                 when 'GETDATE'  ; do_getdate args
                  when 'GETPROP'  ; do_getprop args
                  when 'SETPROP'  ; do_setprop args
                  when 'STATUS'   ; do_status args
                  when 'MODE'     ; do_mode args
                  when 'AUTO'     ; do_auto args
+                 when 'REMAINS'  ; do_remains args
                  when 'QUIT'     ; socket.close ; return :closed
                  when 'SHUTDOWN' ; do_shutdown ; return :closed
                  else
@@ -81,6 +84,11 @@ module Castoro
 
       rescue => e
         channel.send_response e
+      end
+
+      def do_getdate args
+        t = Time.new  # current time
+        { :tv_sec => t.tv_sec, :tv_usec => t.tv_usec }
       end
 
       def do_shutdown
@@ -260,6 +268,23 @@ module Castoro
         auto = x[1] ? true : ( x[2] ? false : nil )
 
         { :target => target, :auto_previous => auto_previous, :auto => auto }
+      end
+
+      def do_remains args
+        type = args[ 'type' ] or raise ArgumentError, "type is not specified: #{args.inspect}"
+        threshold = args[ 'threshold' ]  or raise ArgumentError, "threshold is not specified: #{args.inspect}"
+
+        examiner = case type
+                   when 'uploading'  ; WorkingDirectoryExaminer::ForUploading
+                   when 'receiving'  ; WorkingDirectoryExaminer::ForReceiving
+                   when 'sending'    ; WorkingDirectoryExaminer::ForSending
+                   else
+                     raise ArgumentError, "type is not recognized: #{args.inspect}"
+                   end
+
+        x = examiner.new threshold
+        x.examine
+        { :type => type, :threshold => threshold, :inactive => x.inactive, :active => x.active }
       end
     end
 

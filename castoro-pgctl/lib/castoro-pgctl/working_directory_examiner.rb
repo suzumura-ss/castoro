@@ -23,12 +23,12 @@ require 'castoro-pgctl/configurations_peer'
 module Castoro
   module Peer
 
-    module WorkingDirectory
+    module WorkingDirectoryExaminer
       class Base
         attr_reader :inactive, :active
 
-        def initialize
-          @inactive, @active = 0, 0
+        def initialize threshold
+          @threshold = threshold
         end
 
         def traverse node, pattern  # :yield: path
@@ -44,20 +44,19 @@ module Castoro
         ensure
           d.close if defined? d
         end
+
+        def examine
+          @inactive, @active = 0, 0
+        end
       end
 
 
       class DataDirectoryBase < Base
-        def initialize
-          super
-          @threshold = Time.new - tolerance  # tolerance is defined in a subclass
-        end
-
         def count_up path
           # Errno::EACCES: Permission denied - /root/x
           s = File.stat path
           #p [s.ctime, path]
-          if @threshold <= s.ctime
+          if @threshold <= s.ctime.tv_sec  # in UNIX seconds
             @active = @active + 1
           else
             @inactive = @inactive + 1
@@ -65,6 +64,7 @@ module Castoro
         end
 
         def examine
+          super
           # /base_dir/999/baskets/w/20120820T15/100002.202.1.20120820T155450.924.870420
           # /base_dir/999/baskets/r/20120802T17/100000.202.1.20120802T175508.475.443236
           dir = Configurations::Peer.instance.basket_basedir
@@ -84,10 +84,6 @@ module Castoro
 
 
       class ForUploading < DataDirectoryBase
-        def tolerance
-          Configurations::Pgctl.instance.cagentd_uploading_timetolerance
-        end
-
         def directory_name
           "w"
         end
@@ -95,10 +91,6 @@ module Castoro
 
 
       class ForReceiving < DataDirectoryBase
-        def tolerance
-          Configurations::Pgctl.instance.cagentd_receiving_timetolerance
-        end
-
         def directory_name
           "r"
         end
@@ -106,7 +98,10 @@ module Castoro
 
 
       class ForSending < Base
+        # @threshold is intentionally ignored.
+
         def examine
+          super
           # /var/castoro/replication/processing
           # /var/castoro/replication/sleeping
           # /var/castoro/replication/waiting
@@ -130,15 +125,15 @@ if $0 == __FILE__
       Configurations::Pgctl.file = "../../etc/castoro/pgctl.conf-sample-en.conf"
       #Configurations::Peer.file  = "../../../castoro-peer/etc/castoro/peer.conf-sample-en.conf"
 
-      x = WorkingDirectory::ForUploading.new
+      x = WorkingDirectoryExaminer::ForUploading.new
       x.examine
       p [x.inactive, x.active]
 
-      x = WorkingDirectory::ForReceiving.new
+      x = WorkingDirectoryExaminer::ForReceiving.new
       x.examine
       p [x.inactive, x.active]
 
-      x = WorkingDirectory::ForSending.new
+      x = WorkingDirectoryExaminer::ForSending.new
       x.examine
       p [x.inactive, x.active]
     end
