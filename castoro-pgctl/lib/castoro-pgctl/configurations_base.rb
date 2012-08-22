@@ -28,7 +28,11 @@ module Castoro
           @file = get_filename
           c = get_configuration_file_instance @file  # defined in a subclass
           c.load
-          c.validate
+          begin
+            c.validate
+          rescue NameError, ArgumentError => e
+            raise ConfigurationError, "#{e.message}: #{@file}"
+          end
           @entries = c.entries
           define_attr_readers @entries
         end
