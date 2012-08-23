@@ -66,10 +66,11 @@ module Castoro
     help     prints this help message and exit.
 
    #{x} [global options]  list|passwd
-   #{x} [global options]  list|ps|status  hostname|groupname...
+   #{x} [global options]  list|ps|status|date  hostname|groupname...
     list     lists peer groups
     ps       lists the deamon processes in a 'ps -ef' format
     status   shows the status of the deamon processes on the every host
+    date     retrieves system date of each host
     passwd   sets a password for the critical sub commands
 
    #{x} [global options]  gstart|gstop  groupname...
