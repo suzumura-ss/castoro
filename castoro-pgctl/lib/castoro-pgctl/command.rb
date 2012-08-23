@@ -249,6 +249,19 @@ module Castoro
           end
         end
       end
+
+      class Remains < Cagentd
+        attr_reader :inactive, :active
+
+        def execute type, threshold
+          if @target == :cmond  # Todo, this is silly.
+            r = call( :REMAINS, { :type => type, :threshold => threshold } )
+            @inactive = r[ 'inactive' ] or raise UnexpectedResponseError, "sent REMAINS, but its corresponding response does not include inactive: #{r.inspect}"
+            @active   = r[ 'active' ]   or raise UnexpectedResponseError, "sent REMAINS, but its corresponding response does not include active: #{r.inspect}"
+          end
+        end
+      end
+
     end
 
   end

@@ -208,8 +208,40 @@ module Castoro
       end
 
 
+      module RemainsModule
+        def do_remains_uploading
+          threshold = $StartTime.tv_sec - Configurations::Pgctl.instance.cagentd_uploading_timetolerance
+          dispatch { @x.do_remains :uploading, threshold }
+        end
+
+        def do_remains_receiving
+          threshold = $StartTime.tv_sec - Configurations::Pgctl.instance.cagentd_receiving_timetolerance
+          dispatch { @x.do_remains :receiving, threshold }
+        end
+
+        def do_remains_sending
+          threshold = $StartTime.tv_sec  # this value will be ignored.
+          dispatch { @x.do_remains :sending, threshold }
+        end
+
+        def do_remains
+          do_remains_uploading
+          do_remains_receiving
+          do_remains_sending
+        end
+
+        def do_remains_and_print
+          title "Remains"
+          do_remains
+          @x.print_remains
+          Exceptions.instance.confirm
+        end
+      end
+
+
       class Base
         include DateModule
+        include RemainsModule
         include PsModule
         include StatusModule
         include StartStopModule
@@ -421,6 +453,13 @@ module Castoro
       class Status < AtLeastOneNameRequired
         def run
           do_status_and_print
+        end
+      end
+
+
+      class Remains < AtLeastOneNameRequired
+        def run
+          do_remains_and_print
         end
       end
 

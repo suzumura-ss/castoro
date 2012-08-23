@@ -66,11 +66,12 @@ module Castoro
     help     prints this help message and exit.
 
    #{x} [global options]  list|passwd
-   #{x} [global options]  list|ps|status|date  hostname|groupname...
+   #{x} [global options]  list|ps|status|date|remains  hostname|groupname...
     list     lists peer groups
     ps       lists the deamon processes in a 'ps -ef' format
     status   shows the status of the deamon processes on the every host
     date     retrieves system date of each host
+    remains  lists remains of temporary basket directories and replications
     passwd   sets a password for the critical sub commands
 
    #{x} [global options]  gstart|gstop  groupname...
@@ -179,6 +180,7 @@ EOT
             when 'date'     ; SubCommand::Date
             when 'ps'       ; SubCommand::Ps
             when 'status'   ; SubCommand::Status
+            when 'remains'  ; SubCommand::Remains
             when 'gstart'   ; SubCommand::Gstart
             when 'gstop'    ; SubCommand::Gstop
             when 'enable'   ; SubCommand::Enable
@@ -203,6 +205,7 @@ EOT
       end
 
       def run
+        $StartTime = Time.new  # the current time
         args = ARGV.join(' ')
         command = parse
         SignalHandler.setup

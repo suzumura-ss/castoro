@@ -459,6 +459,60 @@ module Castoro
         end
         raise Failure::Auto, z.join("\n") if 0 < z.size
       end
+
+      def do_remains type, threshold
+        work_on_every_component_simple do |x|  # proxy object
+          x.do_remains type, threshold
+        end
+      end
+
+      def print_remains_printf h, i, j, k, m, n
+        f = "%-14s %14d%7d %17d%7d  %18d\n"  # format
+        s = sprintf f, h, i, j, k, m, n
+        print s.sub( / +\Z/, "" )
+      end
+
+      def print_remains
+        print "HOSTNAME      UPLOADING(TOTAL ACTIVE)  RECEIVING(TOTAL ACTIVE)  REPLICATING(TOTAL)\n"
+        i, j, k, m, n = nil, nil, nil, nil, nil
+        work_on_every_component( false ) do |h, t, x|  # hostname, component type, proxy object
+          if t == :cmond  # Todo. This is silly.
+
+            if ( a = x.remains[ :uploading ] )
+              if ( e = a.exception || a.error )
+                print_remains_printf h, e, '', '', '', ''
+              else
+                i = a.inactive + a.active
+                j = a.active
+              end
+            end
+
+            if ( a = x.remains[ :receiving ] )
+              if ( e = a.exception || a.error )
+                print_remains_printf h, e, '', '', '', ''
+              else
+                k = a.inactive + a.active
+                m = a.active
+              end
+            end
+
+            if ( a = x.remains[ :sending ] )
+              if ( e = a.exception || a.error )
+                print_remains_printf h, e, '', '', '', ''
+              else
+                n = a.inactive + a.active
+              end
+            end
+
+            if i && j && k && m && n
+              print_remains_printf h, i, j, k, m, n
+              i, j, k, m, n = nil, nil, nil, nil, nil
+            end
+          end
+          true
+        end
+      end
+
     end
 
   end

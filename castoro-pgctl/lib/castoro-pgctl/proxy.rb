@@ -28,7 +28,7 @@ module Castoro
     module Proxy
       class Base
         attr_accessor :flag
-        attr_reader :date, :ps, :start, :stop, :status, :mode, :auto
+        attr_reader :date, :ps, :start, :stop, :status, :mode, :auto, :remains
 
         def target
           # should be implemented in a subclass
@@ -104,6 +104,12 @@ module Castoro
         def do_auto auto
           @auto = Command::Auto.new @hostname, target
           execute( @auto ) { |c| c.execute auto }
+        end
+
+        def do_remains type, threshold
+          @remains = {} unless @remains
+          @remains[ type ] = Command::Remains.new @hostname, target
+          execute( @remains[ type ] ) { |c| c.execute type, threshold }
         end
       end
 
