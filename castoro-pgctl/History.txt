@@ -1,3 +1,13 @@
+=== 0.3.1 2012-08-24
+* New features to examine temporary basket directories and replication items
+* Added corresponding configuration items to pgctl.conf
+* Added date, reamins, and help subcommands to pgctl
+* Added GETDATE and REMAINS remote commands
+* Enhanced exception handing and some in configurations_base.rb
+* Accepts both BasketBaseDir in peer.conf for castoro-1 and basket_basedir for castoro-2 
+* Fixed issue #80 - cagentd does not stop using /etc/init.d/cagentd stop
+* Removed #include <stropts.h> from password_reader.c to compile it on CentOS 6.2
+
 === 0.0.3 2012-07-23
 * Renamed castoro-groupctl with castoro-pgctl; groupctl with pgctl
 * Added a feature to interprete /etc/castoro/peer.conf of both castoro-1 and 2

@@ -20,7 +20,7 @@
 module Castoro
   module Peer
     
-    PKG_VERSION = '0.0.3'
+    PKG_VERSION = '0.3.1'
 
   end
 end

@@ -7,11 +7,11 @@ h2. Installation
 <pre>
 gem uninstall castoro-pgctl
 
-gem install --no-rdoc --no-ri castoro-pgctl-0.0.3.gem
-cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/etc/init.d
+gem install --no-rdoc --no-ri castoro-pgctl-0.3.1.gem
+cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.3.1/etc/init.d
 make install
 
-cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.0.3/etc/castoro
+cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.3.1/etc/castoro
 cp pgctl.conf-sample-ja.conf /etc/castoro/pgctl.conf
 vi /etc/castoro/pgctl.conf
 
@@ -23,7 +23,7 @@ h2. Help Messages
 
 <pre>
 $ pgctl -h
-pgctl - Castoro Peer Group Control command - Version 0.0.3"
+pgctl - Castoro Peer Group Control command - Version 0.3.1"
 
  usage: pgctl [global options] subcommand [hostname|groupname]...
 
@@ -37,11 +37,16 @@ pgctl - Castoro Peer Group Control command - Version 0.0.3"
                   default: /etc/castoro/peer.conf
 
   subcommands:
+   pgctl  help
+    help     prints this help message and exit.
+
    pgctl [global options]  list|passwd
-   pgctl [global options]  list|ps|status  hostname|groupname...
+   pgctl [global options]  list|ps|status|date|remains  hostname|groupname...
     list     lists peer groups
     ps       lists the deamon processes in a 'ps -ef' format
     status   shows the status of the deamon processes on the every host
+    date     retrieves system date of each host
+    remains  lists remains of temporary basket directories and replications
     passwd   sets a password for the critical sub commands
 
    pgctl [global options]  gstart|gstop  groupname...
@@ -110,7 +115,6 @@ pgctl - Castoro Peer Group Control command - Version 0.0.3"
 
    pgctl stop peer101
         stops peer101 by force without any check
-
 </pre>
 
 
@@ -147,6 +151,27 @@ Succeeded:
  pgctl list
 </pre>
 
+h3. Retrieving system date of each host
+
+<pre>
+$ pgctl date G00
+[ 2012-08-24 11:40:31 +0900  Date ]
+HOSTNAME      DATE
+peer100       2012-08-24 11:40:31 +0900
+peer101       2012-08-24 11:40:31 +0900
+peer1a2       2012-08-24 11:40:31 +0900
+</pre>
+
+h3. Listing remains of temporary basket directories and replications
+
+<pre>
+$ pgctl remains G00
+[ 2012-08-23 14:10:08 +0900  Remains ]
+HOSTNAME      UPLOADING(TOTAL ACTIVE)  RECEIVING(TOTAL ACTIVE)  REPLICATING(TOTAL)
+peer100                     5      2                44      0                   0
+peer101                     0      0                37      0                   3
+peer102                     0      0                26      3                   0
+</pre>
 
 h3. Managing a Password
 
@@ -1085,25 +1110,25 @@ Succeeded:
 h3. Stopping Every Peer in a Peer Group
 
 <pre>
-$ pgctl gstop G00
-[ 2012-07-22 22:15:54 +0900  Daemon processes ]
+$ pgctl  gstop G00
+[ 2012-08-24 11:12:53 +0900  Daemon processes ]
 HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
-peer100       cmond          castoro  5865  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
-peer100       cpeerd         castoro  5869  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer100       crepd          castoro  5864  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
-peer100       manipulatord      root  5862  2024   0 22:11:44 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+peer100       cmond          castoro 12222 21806   0 11:12:14 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer100       cpeerd         castoro 12227 21806   0 11:12:15 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer100       crepd          castoro 12235 21806   0 11:12:15 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer100       manipulatord      root 12245 21806   0 11:12:15 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
 
-peer101       cmond          castoro  4945  2311   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cmond
-peer101       cpeerd         castoro  4932  2311   0 21:56:56 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer101       crepd          castoro  4950  2311   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/crepd
-peer101       manipulatord      root  4938  2311   0 21:56:56 ?           0:03 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+peer101       cmond          castoro 12228 21810   0 11:12:15 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer101       cpeerd         castoro 12242 21810   0 11:12:15 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer101       crepd          castoro 12229 21810   1 11:12:15 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer101       manipulatord      root 12239 21810   0 11:12:15 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
 
-peer102       cmond          castoro  4943  2644   0 21:56:57 ?           0:04 /usr/local/bin/ruby /usr/local/bin/cmond
-peer102       cpeerd         castoro  4944  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/cpeerd
-peer102       crepd          castoro  4940  2644   0 21:56:57 ?           0:03 /usr/local/bin/ruby /usr/local/bin/crepd
-peer102       manipulatord      root  4919  2644   0 21:56:55 ?           0:03 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
+peer102       cmond          castoro 12240 21797   0 11:12:15 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cmond
+peer102       cpeerd         castoro 12234 21797   0 11:12:15 ?           0:00 /usr/local/bin/ruby /usr/local/bin/cpeerd
+peer102       crepd          castoro 12243 21797   0 11:12:15 ?           0:00 /usr/local/bin/ruby /usr/local/bin/crepd
+peer102       manipulatord      root 12220 21797   0 11:12:14 ?           0:00 /usr/local/bin/ruby /usr/local/bin/castoro-manipulator start -c /etc/castoro/ma
 
-[ 2012-07-22 22:15:54 +0900  Status ]
+[ 2012-08-24 11:12:53 +0900  Status ]
 HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
 peer100       cmond         running       30 online     auto          off
 peer100       cpeerd        running       30 online     auto          off
@@ -1120,10 +1145,10 @@ peer102       cpeerd        running       30 online     auto          off
 peer102       crepd         running       30 online     auto          off
 peer102       manipulatord  running
 
-[ 2012-07-22 22:15:55 +0900  Diagnotice ]
+[ 2012-08-24 11:12:54 +0900  Diagnotice ]
 Some or all deamon processes in the specified groups are currently running.
 
-[ 2012-07-22 22:15:55 +0900  Planning ]
+[ 2012-08-24 11:12:54 +0900  Planning ]
 HOSTNAME      DAEMON        PLANS
 peer100       cmond         The daemon process will be stopped.
 peer100       cpeerd        The daemon process will be stopped.
@@ -1145,10 +1170,7 @@ The above plans are about to be carried out.
 Is that OK?  [ YES / no ] YES
 Thank you. Your answer is YES.  Proceeding...
 
-This subcommand is password protected. Please enter the password.
-pgctl Password: zzz    ... invisible
-
-[ 2012-07-22 22:16:01 +0900  Turning the autopilot off ]
+[ 2012-08-24 11:12:58 +0900  Turning the autopilot off ]
 HOSTNAME      DAEMON        RESULTS
 peer100       cmond         Autopilot has changed from auto to off
 peer100       cpeerd        Autopilot has changed from auto to off
@@ -1165,7 +1187,7 @@ peer102       cpeerd        Autopilot has changed from auto to off
 peer102       crepd         Autopilot has changed from auto to off
 peer102       manipulatord  
 
-[ 2012-07-22 22:16:03 +0900  Status ]
+[ 2012-08-24 11:13:00 +0900  Status ]
 HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
 peer100       cmond         running       30 online     off           off
 peer100       cpeerd        running       30 online     off           off
@@ -1182,7 +1204,7 @@ peer102       cpeerd        running       30 online     off           off
 peer102       crepd         running       30 online     off           off
 peer102       manipulatord  running
 
-[ 2012-07-22 22:16:05 +0900  Descending the mode to 25 fin_rep ]
+[ 2012-08-24 11:13:01 +0900  Descending the mode to 25 fin_rep ]
 HOSTNAME      DAEMON        RESULTS
 peer100       cmond         Mode has changed from 30 online to 25 fin_rep
 peer100       cpeerd        Mode has changed from 30 online to 25 fin_rep
@@ -1199,7 +1221,7 @@ peer102       cpeerd        Mode has changed from 30 online to 25 fin_rep
 peer102       crepd         Mode has changed from 30 online to 25 fin_rep
 peer102       manipulatord  
 
-[ 2012-07-22 22:16:07 +0900  Status ]
+[ 2012-08-24 11:13:03 +0900  Status ]
 HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
 peer100       cmond         running       25 fin_rep    off           off
 peer100       cpeerd        running       25 fin_rep    off           off
@@ -1216,7 +1238,48 @@ peer102       cpeerd        running       25 fin_rep    off           off
 peer102       crepd         running       25 fin_rep    off           off
 peer102       manipulatord  running
 
-[ 2012-07-22 22:16:10 +0900  Descending the mode to 23 rep ]
+[ 2012-08-24 11:13:06 +0900  Remains of uploading baskets ]
+HOSTNAME      UPLOADING(TOTAL ACTIVE)
+peer100                    10      4
+peer101                     0      0
+peer102                     0      0
+
+[ 2012-08-24 11:13:09 +0900  Remains of uploading baskets ]
+HOSTNAME      UPLOADING(TOTAL ACTIVE)
+peer100                    10      4
+peer101                     0      0
+peer102                     0      0
+
+[ 2012-08-24 11:13:12 +0900  Remains of uploading baskets ]
+HOSTNAME      UPLOADING(TOTAL ACTIVE)
+peer100                     9      3
+peer101                     0      0
+peer102                     0      0
+
+[ 2012-08-24 11:13:15 +0900  Remains of uploading baskets ]
+HOSTNAME      UPLOADING(TOTAL ACTIVE)
+peer100                     9      3
+peer101                     0      0
+peer102                     0      0
+
+[ 2012-08-24 11:13:19 +0900  Remains of uploading baskets ]
+HOSTNAME      UPLOADING(TOTAL ACTIVE)
+peer100                     9      3
+peer101                     0      0
+peer102                     0      0
+
+There are 3 basket directories that may be active.
+What do you want to do, Repeat, Ignore, or Cancel?
+Please answer with R, I, or C and Enter: R
+Thank you. Your answer is R.  Repeat...
+
+[ 2012-08-24 11:13:26 +0900  Remains of uploading baskets ]
+HOSTNAME      UPLOADING(TOTAL ACTIVE)
+peer100                     6      0
+peer101                     0      0
+peer102                     0      0
+
+[ 2012-08-24 11:13:27 +0900  Descending the mode to 23 rep ]
 HOSTNAME      DAEMON        RESULTS
 peer100       cmond         Mode has changed from 25 fin_rep to 23 rep
 peer100       cpeerd        Mode has changed from 25 fin_rep to 23 rep
@@ -1233,7 +1296,7 @@ peer102       cpeerd        Mode has changed from 25 fin_rep to 23 rep
 peer102       crepd         Mode has changed from 25 fin_rep to 23 rep
 peer102       manipulatord  
 
-[ 2012-07-22 22:16:12 +0900  Status ]
+[ 2012-08-24 11:13:29 +0900  Status ]
 HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
 peer100       cmond         running       23 rep        off           off
 peer100       cpeerd        running       23 rep        off           off
@@ -1250,7 +1313,25 @@ peer102       cpeerd        running       23 rep        off           off
 peer102       crepd         running       23 rep        off           off
 peer102       manipulatord  running
 
-[ 2012-07-22 22:16:15 +0900  Descending the mode to 20 readonly ]
+[ 2012-08-24 11:13:32 +0900  Remains of replications ]
+HOSTNAME      RECEIVING(TOTAL ACTIVE)  REPLICATING(TOTAL)
+peer100                    44      0                   0
+peer101                    37      0                   3
+peer102                    29      3                   0
+
+[ 2012-08-24 11:13:36 +0900  Remains of replications ]
+HOSTNAME      RECEIVING(TOTAL ACTIVE)  REPLICATING(TOTAL)
+peer100                    44      0                   0
+peer101                    37      0                   3
+peer102                    29      3                   0
+
+[ 2012-08-24 11:13:39 +0900  Remains of replications ]
+HOSTNAME      RECEIVING(TOTAL ACTIVE)  REPLICATING(TOTAL)
+peer100                    44      0                   0
+peer101                    37      0                   0
+peer102                    26      0                   0
+
+[ 2012-08-24 11:13:40 +0900  Descending the mode to 20 readonly ]
 HOSTNAME      DAEMON        RESULTS
 peer100       cmond         Mode has changed from 23 rep to 20 readonly
 peer100       cpeerd        Mode has changed from 23 rep to 20 readonly
@@ -1267,7 +1348,7 @@ peer102       cpeerd        Mode has changed from 23 rep to 20 readonly
 peer102       crepd         Mode has changed from 23 rep to 20 readonly
 peer102       manipulatord  
 
-[ 2012-07-22 22:16:17 +0900  Status ]
+[ 2012-08-24 11:13:42 +0900  Status ]
 HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
 peer100       cmond         running       20 readonly   off           off
 peer100       cpeerd        running       20 readonly   off           off
@@ -1284,7 +1365,7 @@ peer102       cpeerd        running       20 readonly   off           off
 peer102       crepd         running       20 readonly   off           off
 peer102       manipulatord  running
 
-[ 2012-07-22 22:16:21 +0900  Descending the mode to 10 offline ]
+[ 2012-08-24 11:13:47 +0900  Descending the mode to 10 offline ]
 HOSTNAME      DAEMON        RESULTS
 peer100       cmond         Mode has changed from 20 readonly to 10 offline
 peer100       cpeerd        Mode has changed from 20 readonly to 10 offline
@@ -1301,7 +1382,7 @@ peer102       cpeerd        Mode has changed from 20 readonly to 10 offline
 peer102       crepd         Mode has changed from 20 readonly to 10 offline
 peer102       manipulatord  
 
-[ 2012-07-22 22:16:23 +0900  Status ]
+[ 2012-08-24 11:13:49 +0900  Status ]
 HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
 peer100       cmond         running       10 offline    off           off
 peer100       cpeerd        running       10 offline    off           off
@@ -1318,7 +1399,7 @@ peer102       cpeerd        running       10 offline    off           off
 peer102       crepd         running       10 offline    off           off
 peer102       manipulatord  running
 
-[ 2012-07-22 22:16:26 +0900  Stopping daemons ]
+[ 2012-08-24 11:13:51 +0900  Stopping daemons ]
 HOSTNAME      DAEMON        RESULTS
 peer100       cmond         status=0 peer100 cmond is going to shutdown ... 
 peer100       cpeerd        status=0 peer100 cpeerd is going to shutdown ... 
@@ -1335,7 +1416,7 @@ peer102       cpeerd        status=0 peer102 cpeerd is going to shutdown ... Inv
 peer102       crepd         status=0 peer102 crepd is going to shutdown ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z"
 peer102       manipulatord  status=0 Stop Castoro-Manipulator ... Invalid gemspec in [/usr/local/lib/ruby/gems/1.9.1/specifications/json-1.6.1.gemspec]: invalid date format in specification: "2011-09-18 00:00:00.000000000Z" *** Stopping Castoro::Manipulator daemon... *** done.
 
-[ 2012-07-22 22:16:31 +0900  Daemon processes ]
+[ 2012-08-24 11:13:57 +0900  Daemon processes ]
 HOSTNAME      DAEMON             UID   PID  PPID   C    STIME TTY         TIME CMD
 peer100       cmond
 peer100       cpeerd
@@ -1352,7 +1433,7 @@ peer102       cpeerd
 peer102       crepd
 peer102       manipulatord
 
-[ 2012-07-22 22:16:31 +0900  Status ]
+[ 2012-08-24 11:13:57 +0900  Status ]
 HOSTNAME      DAEMON        ACTIVITY      MODE          AUTOPILOT     DEBUG
 peer100       cmond         stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30100
 peer100       cpeerd        stopped       Connection refused or else: errno=146 hostname=127.0.0.1 port=30102
@@ -1372,7 +1453,7 @@ peer102       manipulatord  stopped
 
 Succeeded:
  pgctl gstop G00
-<pre>
+</pre>
 
 h3. Starting a Peer
 
@@ -1434,7 +1515,7 @@ peer100       manipulatord  running
 
 Succeeded:
  pgctl start peer100
-<pre>
+</pre>
 
 h3. Stopping a Peer
 
@@ -1496,4 +1577,4 @@ peer100       manipulatord  stopped
 
 Succeeded:
  pgctl stop peer100
-<pre>
+</pre>
