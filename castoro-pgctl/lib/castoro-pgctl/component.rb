@@ -124,6 +124,7 @@ module Castoro
             true
           end
         end
+        print "\n"
       end
 
       def do_ps
@@ -445,6 +446,22 @@ module Castoro
         end
       end
 
+      def auto
+        r = nil
+        work_on_every_component_simple do |x|  # proxy object
+          if x.has_auto?
+            a = x.status.auto
+            a.nil? and return nil
+            if r.nil?
+              r = a
+            else
+              r == a or return nil
+            end
+          end
+        end
+        r
+      end
+
       def verify_auto auto
         z = []
         work_on_every_component do |h, t, x|  # hostname, component type, proxy object
@@ -511,6 +528,109 @@ module Castoro
           end
           true
         end
+        print "\n"
+      end
+
+      def print_remains_uploading_printf h, i, j
+        f = "%-14s %14d%7d\n"  # format
+        s = sprintf f, h, i, j
+        print s.sub( / +\Z/, "" )
+      end
+
+      def print_remains_uploading
+        print "HOSTNAME      UPLOADING(TOTAL ACTIVE)\n"
+        work_on_every_component( false ) do |h, t, x|  # hostname, component type, proxy object
+          if t == :cmond  # Todo. This is silly.
+            if ( a = x.remains[ :uploading ] )
+              if ( e = a.exception || a.error )
+                print_remains_uploading_printf h, e, ''
+              else
+                i = a.inactive + a.active
+                j = a.active
+                print_remains_uploading_printf h, i, j
+              end
+            end
+          end
+          true
+        end
+        print "\n"
+      end
+
+      def remains_uploading_active
+        count = 0
+        work_on_every_component( false ) do |h, t, x|  # hostname, component type, proxy object
+          if t == :cmond  # Todo. This is silly.
+            if ( a = x.remains[ :uploading ] )
+              if ( e = a.exception || a.error )
+                return nil
+              else
+                count = count + a.active
+              end
+            end
+          end
+        end
+        count
+      end
+
+      def print_remains_replication_printf h, k, m, n
+        f = "%-14s %14d%7d  %18d\n"  # format
+        s = sprintf f, h, k, m, n
+        print s.sub( / +\Z/, "" )
+      end
+
+      def print_remains_replication
+        print "HOSTNAME      RECEIVING(TOTAL ACTIVE)  REPLICATING(TOTAL)\n"
+        k, m, n = nil, nil, nil
+        work_on_every_component( false ) do |h, t, x|  # hostname, component type, proxy object
+          if t == :cmond  # Todo. This is silly.
+            if ( a = x.remains[ :receiving ] )
+              if ( e = a.exception || a.error )
+                print_remains_replication_printf h, e, '', ''
+              else
+                k = a.inactive + a.active
+                m = a.active
+              end
+            end
+
+            if ( a = x.remains[ :sending ] )
+              if ( e = a.exception || a.error )
+                print_remains_replication_printf h, e, '', ''
+              else
+                n = a.inactive + a.active
+              end
+            end
+
+            if k && m && n
+              print_remains_replication_printf h, k, m, n
+              k, m, n = nil, nil, nil
+            end
+          end
+          true
+        end
+        print "\n"
+      end
+
+      def remains_replication_active
+        count = 0
+        work_on_every_component( false ) do |h, t, x|  # hostname, component type, proxy object
+          if t == :cmond  # Todo. This is silly.
+            if ( a = x.remains[ :receiving ] )
+              if ( e = a.exception || a.error )
+                return nil
+              else
+                count = count + a.active
+              end
+            end
+            if ( a = x.remains[ :sending ] )
+              if ( e = a.exception || a.error )
+                return nil
+              else
+                count = count + a.active
+              end
+            end
+          end
+        end
+        count
       end
 
     end

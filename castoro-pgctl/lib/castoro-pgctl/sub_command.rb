@@ -64,6 +64,8 @@ module Castoro
               puts ""
             end
           end
+        ensure
+          puts ""
         end
       end
 
@@ -137,6 +139,16 @@ module Castoro
           Exceptions.instance.confirm
         end
 
+        def turn_autopilot_off_if_not
+          a = @x.auto
+          if a.nil? or a == true
+            turn_autopilot_off
+            sleep 2
+            do_status_and_print
+            SignalHandler.check
+          end
+        end
+
         def turn_autopilot_on
           title "Turning the autopilot auto"
           dispatch { @x.do_auto true }
@@ -164,46 +176,113 @@ module Castoro
           Exceptions.instance.confirm
         end
 
-        def descend_the_mode_to_readonly
-          turn_autopilot_off     ; sleep 2
+        def descend_the_mode_to_fin_rep
+          m = @x.mode
+          return if m and m <= 25  # 25 fin_rep
+
+          turn_autopilot_off_if_not
+          descend_the_mode_to 25 ; sleep 2  # 25 fin_rep
           do_status_and_print
-          SignalHandler.check    ; sleep 2
+          @x.verify_mode_less_or_equal 25
+          SignalHandler.check ; sleep 2
+        end
 
+        def ask_judgement
+          print "What do you want to do, Repeat, Ignore, or Cancel?\n"
+          print "Please answer with R, I, or C and Enter: "
+          loop do
+            answer = gets.chomp
+            case answer
+            when 'R'
+              print "Thank you. Your answer is R.  Repeat...\n"
+              return :repeat
+            when 'I'
+              print "Thank you. Your answer is I.  Ignore...\n"
+              return :ignore
+            when 'C'
+              print "Thank you. Your answer is C.  Cancel...\n"
+              raise Failure::Cancel, "Cancelled by the operator."
+            end
+            print "Sorry, please answer with R, I, or C and Enter: "
+          end
+        ensure
+          print "\n"
+        end
+
+        def descend_the_mode_to_rep
+          descend_the_mode_to_fin_rep
           m = @x.mode
-          if m.nil? or 30 <= m
-            descend_the_mode_to 25 ; sleep 2  # 25 fin_rep
-            do_status_and_print
-            @x.verify_mode_less_or_equal 25
-            SignalHandler.check ; sleep 2
+          return if m and m <= 23  # 23 rep
+
+          count = 0
+          loop do
+            do_remains_uploading_and_print
+            Exceptions.instance.confirm
+            active = @x.remains_uploading_active
+            break if active and active == 0
+            count = count + 1
+            if 3 <= count
+              count = 0
+              if active == 1
+                print "There is #{active} basket directory that may be active.\n"
+              else
+                print "There are #{active} basket directories that may be active.\n"
+              end
+              break if ask_judgement == :ignore
+            else
+              sleep 2
+            end
           end
 
+          turn_autopilot_off_if_not
+          descend_the_mode_to 23 ; sleep 2  # 23 rep
+          do_status_and_print
+          @x.verify_mode_less_or_equal 23
+          SignalHandler.check ; sleep 2
+        end
+
+        def descend_the_mode_to_readonly
+          descend_the_mode_to_rep
           m = @x.mode
-          if m.nil? or 25 <= m
-            descend_the_mode_to 23 ; sleep 2  # 23 rep
-            do_status_and_print
-            @x.verify_mode_less_or_equal 23
-            SignalHandler.check ; sleep 2
+          return if m and m <= 20  # 20 readonly
+
+          count = 0
+          loop do
+            do_remains_replication_and_print
+            Exceptions.instance.confirm
+            active = @x.remains_replication_active
+            break if active and active == 0
+            count = count + 1
+            if 3 <= count
+              count = 0
+              if active == 1
+                print "There is #{active} replication that may be active.\n"
+              else
+                print "There are #{active} replications that may be active.\n"
+              end
+              break if ask_judgement == :ignore
+            else
+              sleep 2
+            end
           end
 
-          m = @x.mode
-          if m.nil? or 23 <= m
-            descend_the_mode_to 20 ; sleep 2  # 20 readonly
-            do_status_and_print
-            @x.verify_mode_less_or_equal 20 ; sleep 2
-            SignalHandler.check ; sleep 2
-          end
+          turn_autopilot_off_if_not
+          descend_the_mode_to 20 ; sleep 2  # 20 readonly
+          do_status_and_print
+          @x.verify_mode_less_or_equal 20 ; sleep 2
+          SignalHandler.check ; sleep 2
         end
 
         def descend_the_mode_to_offline
           descend_the_mode_to_readonly
-
           m = @x.mode
-          if m.nil? or 20 <= m
-            descend_the_mode_to 10 ; sleep 2  # 10 offline
-            do_status_and_print
-            @x.verify_mode_less_or_equal 10
-            SignalHandler.check ; sleep 2
-          end
+          return if m and m <= 10  # 10 offline
+
+          turn_autopilot_off_if_not
+          descend_the_mode_to 10 ; sleep 2  # 10 offline
+          do_status_and_print
+          @x.verify_mode_less_or_equal 10
+          SignalHandler.check ; sleep 2
         end
       end
 
@@ -234,6 +313,21 @@ module Castoro
           title "Remains"
           do_remains
           @x.print_remains
+          Exceptions.instance.confirm
+        end
+
+        def do_remains_uploading_and_print
+          title "Remains of uploading baskets"
+          do_remains_uploading
+          @x.print_remains_uploading
+          Exceptions.instance.confirm
+        end
+
+        def do_remains_replication_and_print
+          title "Remains of replications"
+          do_remains_receiving
+          do_remains_sending
+          @x.print_remains_replication
           Exceptions.instance.confirm
         end
       end

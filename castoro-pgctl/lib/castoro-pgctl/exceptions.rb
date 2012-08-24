@@ -56,6 +56,7 @@ module Castoro
       class NoGroupSpecified < Base ; end
       class NoPeerSpecified < Base ; end
       class OtherHostsNotRunning < Base ; end
+      class Cancel < Base ; end
     end
     class AuthenticationError < Failure::Base ; end
 
