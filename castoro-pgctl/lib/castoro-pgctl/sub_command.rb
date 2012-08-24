@@ -221,7 +221,7 @@ module Castoro
             active = @x.remains_uploading_active
             break if active and active == 0
             count = count + 1
-            if 3 <= count
+            if Configurations::Pgctl.instance.pgctl_uploading_confirmationcount <= count
               count = 0
               if active == 1
                 print "There is #{active} basket directory that may be active.\n"
@@ -230,7 +230,7 @@ module Castoro
               end
               break if ask_judgement == :ignore
             else
-              sleep 2
+              sleep Configurations::Pgctl.instance.pgctl_uploading_confirmationinterval
             end
           end
 
@@ -253,7 +253,7 @@ module Castoro
             active = @x.remains_replication_active
             break if active and active == 0
             count = count + 1
-            if 3 <= count
+            if Configurations::Pgctl.instance.pgctl_replication_confirmationcount <= count
               count = 0
               if active == 1
                 print "There is #{active} replication that may be active.\n"
@@ -262,7 +262,7 @@ module Castoro
               end
               break if ask_judgement == :ignore
             else
-              sleep 2
+              sleep Configurations::Pgctl.instance.pgctl_replication_confirmationinterval
             end
           end
 

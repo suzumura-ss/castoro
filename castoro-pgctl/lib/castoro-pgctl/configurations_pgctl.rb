@@ -91,6 +91,10 @@ module Castoro
                   :pgctl_password_filemode                    => [ :mandatory, :octal ],
                   :pgctl_password_backupfile                  => [ :mandatory, :string, :optional_path ],
                   :pgctl_password_attemptlimit                => [ :mandatory, :number ],
+                  :pgctl_uploading_confirmationinterval       => [ :mandatory, :number ],
+                  :pgctl_uploading_confirmationcount          => [ :mandatory, :number ],
+                  :pgctl_replication_confirmationinterval     => [ :mandatory, :number ],
+                  :pgctl_replication_confirmationcount        => [ :mandatory, :number ],
                   :cagentd_uploading_timetolerance            => [ :mandatory, :number ],
                   :cagentd_receiving_timetolerance            => [ :mandatory, :number ],
                   )
