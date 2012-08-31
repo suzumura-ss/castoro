@@ -53,9 +53,10 @@ Usage: castoro-gateway stop [options]
     -p, --pid <pidfile>              PID file
 </pre>
 
-h3. castoro-gateway status
+h3. castoro-gateway status(type:original, island)
 
 Command for displays the status of running gateway program.
+This command can be used only by island gateway or original gateway.
 See below Usage.
 
 <pre>
@@ -70,6 +71,31 @@ CACHE_ACTIVE_PAGES      : 0
 CACHE_HAVE_STATUS_PEERS : 0
 CACHE_ACTIVE_PEERS      : 0
 CACHE_READABLE_PEERS    : 0
+</pre>
+
+h3. castoro-gateway status(type:master)
+
+Command for displays the status of island status that master gateway has.
+This command can be used only by master gateway.
+See below Usage.
+
+<pre>
+$ castoro-gateway status
+efc0fe00 : {:storables=>3, :capacity=>43349696512}
+efc0fe01 : {:storables=>3, :capacity=>43359846400}
+</pre>
+
+h3. castoro-gateway peers_status(type:original, island)
+
+Command for displays the status of peer's status that gateway has.
+This command can be used only by island gateway or original gateway.
+See below Usage.
+
+<pre>
+$ castoro-gateway peers_status -i 192.168.108.41
+peer1:{:status=>30, :available=>14449831936}
+peer2:{:status=>30, :available=>14450106368}
+peer3:{:status=>30, :available=>14449762304}
 </pre>
 
 h3. castoro-gateway dump

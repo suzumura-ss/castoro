@@ -22,10 +22,8 @@
 require 'fileutils'
 require 'optparse'
 require 'pathname'
-
 require 'rubygems'
 require 'castoro-gateway'
-
 require 'castoro-gateway/scripts/script_runner'
 
 COMMAND_OPTIONS = {
@@ -49,23 +47,23 @@ COMMAND_OPTIONS = {
   },
   :status => {
     :verbose => false,
+    :conf => '/etc/castoro/gateway.conf',
     :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_tcpport"].to_i,
-    :ip => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["peer_comm_device_addr"].to_i,
   },
   :peers_status => {
     :verbose => false,
+    :conf => '/etc/castoro/gateway.conf',
     :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_tcpport"].to_i,
-    :ip => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["peer_comm_device_addr"].to_i,
   },
   :dump => {
     :verbose => false,
+    :conf => '/etc/castoro/gateway.conf',
     :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_tcpport"].to_i,
-    :ip => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["peer_comm_device_addr"].to_i,
   },
   :purge => {
     :verbose => false,
+    :conf => '/etc/castoro/gateway.conf',
     :port => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["gateway_console_tcpport"].to_i,
-    :ip => Castoro::Gateway::Configuration::DEFAULT_SETTINGS["original"]["peer_comm_device_addr"].to_i,
   }
 }
 
@@ -85,6 +83,18 @@ unless COMMAND_OPTIONS.include? command
 end
 
 opt = COMMAND_OPTIONS[command].dup
+
+# Read config and get my IP Address. (IP Address is not defined by default.) 
+begin
+  config = YAML::load(ERB.new(IO.read('/etc/castoro/gateway.conf')).result)
+  type = config["default"]["type"]
+  case type
+    when "master" then  opt[:ip] = config["default"]["island_comm_device_addr"]
+    else  opt[:ip] = config["default"]["peer_comm_device_addr"]
+  end
+rescue 
+  opt[:ip] = "127.0.0.1"
+end
 
 parser = OptionParser.new do |parser|
   parser.program_name = "#{File.basename(__FILE__)} #{command}"
