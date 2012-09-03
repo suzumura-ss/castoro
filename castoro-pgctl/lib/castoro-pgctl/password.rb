@@ -41,24 +41,24 @@ module Castoro
         @pw.changable?
 
         if @pw.empty?
-          puts "Setting a password of the command pgctl."
+          puts "Setting a new password for the command pgctl."
+          set_new_password
+          puts "A new pgctl password has been successfully set."
+
         else
           puts "Changing a password of the command pgctl."
           x = read_password "(current) pgctl password: "
           @pw.verify( x ) or raise AuthenticationError, "Password does not match. Authentication failed."
+          set_new_password
+          if @pw.empty?
+            puts "A pgctl password has been successfully erased. Now, no password is set."
+          else
+            puts "A pgctl password has been successfully changed."
+          end
         end
-
-        a = read_password "New pgctl password: "
-        b = read_password "Retype new pgctl password: "
-        a == b or raise AuthenticationError, "Sorry, passwords do not match."
-
-        @pw.store a
-        puts "pgctl password has been successfully changed."
 
       ensure
         erase_string x if defined? x
-        erase_string a if defined? a
-        erase_string b if defined? b
       end
 
       def authenticate
@@ -66,7 +66,7 @@ module Castoro
         m = Configurations::Pgctl.instance.pgctl_password_attemptlimit
 
         loop do
-          x = read_password "pgctl Password: "
+          x = read_password "pgctl password: "
           @pw.verify( x ) and return true
           n = n + 1
           n < m or raise AuthenticationError, "Password does not match. Authentication failed."
@@ -86,6 +86,17 @@ module Castoro
 
       def read_password s
         PasswordReader.read_password s
+      end
+
+      def set_new_password
+        a = read_password "New pgctl password: "
+        b = read_password "Retype new pgctl password: "
+        a == b or raise AuthenticationError, "Sorry, passwords do not match."
+        @pw.store a
+
+      ensure
+        erase_string a if defined? a
+        erase_string b if defined? b
       end
 
       def erase_string s
