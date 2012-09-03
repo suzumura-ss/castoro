@@ -159,7 +159,7 @@ $ pgctl date G00
 HOSTNAME      DATE
 peer100       2012-08-24 11:40:31 +0900
 peer101       2012-08-24 11:40:31 +0900
-peer1a2       2012-08-24 11:40:31 +0900
+peer102       2012-08-24 11:40:31 +0900
 </pre>
 
 h3. Listing remains of temporary basket directories and replications
