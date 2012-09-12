@@ -1,5 +1,12 @@
 #! /bin/bash -e
 #
+# cagentd   starts and stops the Castoro Agent Daemon
+#
+# chkconfig: 345 90 10
+# description: Castoro Agent Daemon
+# config: /etc/castoro/pgctl.conf
+# config: /etc/castoro/peer.conf
+#
 #   Copyright 2010 Ricoh Company, Ltd.
 #
 #   This file is part of Castoro.
