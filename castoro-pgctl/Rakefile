@@ -1,3 +1,5 @@
+#  -*- mode: Ruby; -*-
+
 #
 #   Copyright 2010 Ricoh Company, Ltd.
 #
@@ -52,7 +54,7 @@ castoro-pgctl is a subsystem which remotely controls a group of Castoro peers.
   s.extra_rdoc_files = ['README.textile']
   s.executables = Dir.glob("bin/**/*").map { |f| File.basename(f) }
   s.bindir = "bin"
-  s.extensions = ["ext/password_reader/extconf.rb"]
+  s.extensions = ["ext/password_reader/extconf.rb", "etc/init.d/configure"]
   s.authors = ['Castoro project']
   s.homepage = 'https://github.com/ToshiyukiTerashita/castoro'
   s.email = ''
