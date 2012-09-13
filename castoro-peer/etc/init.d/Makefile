@@ -19,10 +19,18 @@
 
 DEST = /etc/init.d
 
-default:
-	@echo Do nothing.
+.PHONY: default install uninstall
 
-install :
+default:
+	@echo To install files into /etc/init.d, make install
+	@echo To uninstall them, make uninstall
+
+install:
 	/bin/cp cmond $(DEST)
 	/bin/cp cpeerd $(DEST)
 	/bin/cp crepd $(DEST)
+
+uninstall:
+	-/bin/rm $(DEST)/cmond
+	-/bin/rm $(DEST)/cpeerd
+	-/bin/rm $(DEST)/crepd
