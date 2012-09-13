@@ -38,6 +38,7 @@ PKG_FILES = Array.new.tap do |a|
   a.delete_if { |x| not File.file? x }
   a.delete_if { |x| x.match( %r{/[.#]|~\Z} ) }
   a.delete_if { |x| x.match( %r{/(..?(\..*)?|test[^/]*)\Z} ) }
+  a.delete_if { |x| x == 'etc/init.d/Makefile' }  # The Makefile will be copied from Makefile.*
 end
 
 spec = Gem::Specification.new do |s|

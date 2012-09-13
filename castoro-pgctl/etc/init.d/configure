@@ -1,12 +1,5 @@
-# This is a dummy file for `gem install` which will internally run configure_builder.rb. 
-# Subsequently, the following commands will be executed by the script:
-#   make
-#   make install
-#
-# See the following files for details:
-#  /usr/local/lib/ruby/1.9.1/rubygems/ext/configure_builder.rb
-#  /usr/local/lib/ruby/1.9.1/rubygems/ext/builder.rb
-#
-# or
-#  /usr/local/lib/ruby/gems/1.9.1/gems/rubygems-update-*/lib/rubygems/ext/configure_builder.rb
-#  /usr/local/lib/ruby/gems/1.9.1/gems/rubygems-update-*/lib/rubygems/ext/builder.rb
+#! /bin/bash -e
+
+echo /bin/cp Makefile.`/bin/uname -s` Makefile
+/bin/cp Makefile.`/bin/uname -s` Makefile
+

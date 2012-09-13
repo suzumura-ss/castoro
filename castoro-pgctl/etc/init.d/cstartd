@@ -7,6 +7,8 @@
 # config: /etc/castoro/pgctl.conf
 # config: /etc/castoro/peer.conf
 #
+
+#
 #   Copyright 2010 Ricoh Company, Ltd.
 #
 #   This file is part of Castoro.
@@ -27,6 +29,10 @@
 
 export PATH=/usr/bin:/usr/sbin:/sbin:/usr/local/bin
 script=cstartd
+
+if [ ! -x /usr/local/bin/$script ] ; then
+    exit 1
+fi
 
 config=/etc/castoro/pgctl.conf
 if [ ! -f "$config" ] ; then
