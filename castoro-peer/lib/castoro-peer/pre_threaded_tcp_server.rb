@@ -63,12 +63,10 @@ module Castoro
 
       def start
         @thread_acceptor = Thread.new {
-RubyTracer.enable
           acceptor()
         }
         @number_of_threads.times {
           @thread_workers << Thread.new {
-RubyTracer.enable
             worker()
           }
         }

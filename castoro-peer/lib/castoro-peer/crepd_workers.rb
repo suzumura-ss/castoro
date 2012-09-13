@@ -38,7 +38,6 @@ module Castoro
 
     class ReplicationWorkers
       def initialize
-RubyTracer.enable
         c = Configurations.instance
         Basket.setup c.type_id_rangesHash, c.basket_basedir
         @w = []

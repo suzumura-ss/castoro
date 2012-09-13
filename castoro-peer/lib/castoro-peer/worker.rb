@@ -23,9 +23,6 @@ require 'singleton'
 require 'castoro-peer/log'
 require 'castoro-peer/custom_condition_variable'
 
-require 'castoro-peer/ruby_tracer'
-RubyTracer.open "/var/tmp/ruby_tracer_#{$$}.log"
-
 module Castoro
   module Peer
 
@@ -48,7 +45,6 @@ module Castoro
         @terminated = false
         @finished = false
         @thread = Thread.new do
-RubyTracer.enable
           loop do
             Thread.current.priority = 3
             calmness = false
