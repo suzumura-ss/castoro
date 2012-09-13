@@ -1,3 +1,5 @@
+#  -*- mode: Ruby; -*-
+
 #
 #   Copyright 2010 Ricoh Company, Ltd.
 #
@@ -17,45 +19,83 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'rubygems'
 require 'rake'
 require 'rake/clean'
-require 'rake/gempackagetask'
+require 'rubygems'
+require 'rubygems/package_task'
 require 'rake/rdoctask'
+#require 'rdoc/task'
+require 'lib/castoro-peer/version'
+
+PKG_VERSION = Castoro::Peer::PKG_VERSION
+
+PKG_FILES = Array.new.tap do |a|
+  a.concat %w( README.textile Rakefile History.txt LICENSE )
+  a.concat Dir.glob("bin/**/*")
+  a.concat Dir.glob("etc/**/*")
+  a.concat Dir.glob("lib/**/*").select { |x| x.match /\.rb\Z/ }
+  a.concat Dir.glob("spec/**/*").select { |x| x.match /\_spec.rb\Z/ }
+  a.push 'spec/spec_helper.rb'
+  a.delete_if { |x| not File.file? x }
+  a.delete_if { |x| x.match( %r{/[.#]|~\Z} ) }
+  a.delete_if { |x| x.match( %r{/(..?(\..*)?|test[^/]*)\Z} ) }
+end
 
 spec = Gem::Specification.new do |s|
   s.name = 'castoro-peer'
-  s.version = '2.0.0'
+  s.summary = "Castoro Peer System"
+  s.version = PKG_VERSION
+  s.requirements << 'none'
+  s.require_path = 'lib'
+  s.files = PKG_FILES.dup
+  s.description = <<-EOF
+castoro-peer is an abstructedly distributed file system.
+  EOF
   s.has_rdoc = true
   s.extra_rdoc_files = ['README.textile']
-  s.summary = "This is a peer of the abstructedly distributed file system, Castoro."
-  s.description = s.summary
   s.executables = Dir.glob("bin/**/*").map { |f| File.basename(f) }
-  s.files = %w(History.txt LICENSE README.textile Rakefile) + Dir.glob("{bin,ext,lib,spec,etc}/**/*")
-  s.require_path = "lib"
   s.bindir = "bin"
   s.authors = ['Castoro project']
-
   s.add_dependency('castoro-manipulator', '>=2.0.0')
   s.add_development_dependency('rspec', '>=2.0.0')
+  s.homepage = 'https://github.com/ToshiyukiTerashita/castoro'
+  s.email = ''
 end
 
-Rake::GemPackageTask.new(spec) do |p|
-  p.gem_spec = spec
-  p.need_tar = true
-  p.need_zip = true
+Gem::PackageTask.new(spec) do |pkg|
+  pkg.need_zip = true
+  pkg.need_tar = true
 end
 
+#RDoc::Task.new do |rdoc|
 Rake::RDocTask.new do |rdoc|
-  files =['README.textile', 'LICENSE', 'lib/**/*.rb']
-  rdoc.rdoc_files.add(files)
   rdoc.main = "README.textile" # page to start on
+  files = PKG_FILES.select { |x| x.match /\Alib\/.+\.rb\Z/ }
+  rdoc.rdoc_files.include('README.textile', 'LICENSE', files)
   rdoc.title = "castor-peer Docs"
-  rdoc.rdoc_dir = 'doc/rdoc' # rdoc output folder
-  rdoc.options << '--line-numbers'
+  rdoc.options << '--all'
 end
 
-Dir['tasks/**/*.rake'].each { |t| load t }
+desc "Run specs"
+task :spec do
+# ruby_opts  = "-d"  # Give -d option to ruby if debug messages is demanded
+  ruby_opts  = ""
+  spec_files = FileList['spec/**/*_spec.rb']
+  spec_opts  = "--format documentation --backtrace"
+  sh "ruby #{ruby_opts} -S rspec #{spec_opts} #{spec_files.join(' ')}"
+end
 
-task :default => [:spec]
+# Prerequisites
+task :gem => :listing_files
 
+# Print a list of files which will be included in a gem package
+task :listing_files do
+  spec.files.each { |x| puts x }
+end
+
+task :default => [:usage]
+
+# Print tasks
+task :usage do
+  sh "rake -T"
+end
