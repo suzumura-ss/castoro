@@ -28,9 +28,11 @@
 #
 
 export PATH=/usr/bin:/usr/sbin:/sbin:/usr/local/bin
-script=cagentd
+ruby=/usr/local/bin/ruby
+script=/usr/local/bin/cagentd
 
-if [ ! -x /usr/local/bin/$script ] ; then
+if [ ! -x $script ] ; then
+    echo "$0: no such file exists: $script"
     exit 1
 fi
 
@@ -48,12 +50,12 @@ fi
 
 case "$1" in
     'start')
-    	/usr/local/bin/$script
+    	$script
 	;;
 
     'stop')
 	echo "Stopping $script ... "
-	/usr/local/bin/ruby <<EOF
+	$ruby <<EOF
 require 'socket'
 print "Stopping " + "$script" + " ... "
 begin
@@ -64,7 +66,7 @@ begin
     puts x if x
   rescue Errno::ECONNREFUSED => e
     puts "Already stopped"
-    exit 1
+    exit 0
   end
   sleep 2
   begin
