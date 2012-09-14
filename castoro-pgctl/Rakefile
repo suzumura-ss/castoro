@@ -23,7 +23,8 @@ require 'rake'
 require 'rake/clean'
 require 'rubygems'
 require 'rubygems/package_task'
-require 'rdoc/task'
+require 'rake/rdoctask'
+#require 'rdoc/task'
 require 'lib/castoro-pgctl/version'
 
 PKG_VERSION = Castoro::Peer::PKG_VERSION
@@ -47,7 +48,7 @@ spec = Gem::Specification.new do |s|
   s.version = PKG_VERSION
   s.requirements << 'none'
   s.require_path = 'lib'
-  s.files = PKG_FILES
+  s.files = PKG_FILES.dup
   s.description = <<-EOF
 castoro-pgctl is a subsystem which remotely controls a group of Castoro peers.
   EOF
@@ -66,9 +67,11 @@ Gem::PackageTask.new(spec) do |pkg|
   pkg.need_tar = true
 end
 
-RDoc::Task.new do |rdoc|
+#RDoc::Task.new do |rdoc|
+Rake::RDocTask.new do |rdoc|
   rdoc.main = "README.textile" # page to start on
-  rdoc.rdoc_files.include('README.textile', 'LICENSE', 'lib/**/*.rb')
+  files = PKG_FILES.select { |x| x.match /\Alib\/.+\.rb\Z/ }
+  rdoc.rdoc_files.include('README.textile', 'LICENSE', files)
   rdoc.title = "castor-pgctl Docs"
   rdoc.options << '--all'
 end
