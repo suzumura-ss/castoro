@@ -52,6 +52,30 @@ module Castoro
 
 
       class DataDirectoryBase < Base
+        def examine
+          super
+          # castoro-peer-2.0.0 or earlier
+          #   /base_dir/999/baskets/w/20120820T15/100002.202.1.20120820T155450.924.870420
+          #   /base_dir/999/baskets/r/20120802T17/100000.202.1.20120802T175508.475.443236
+          #
+          # castoro-peer-2.1.0 or later
+          #   /base_dir/999/baskets/w/2012/20120820T15/100002.202.1.20120820T155450.924.870420
+          #   /base_dir/999/baskets/r/2012/20120802T17/100000.202.1.20120802T175508.475.443236
+          dir = Configurations::Peer.instance.basket_basedir
+          traverse( dir, /\A\d+\Z/ ) do |v|
+            traverse( v, "baskets" ) do |w|
+              traverse( w, directory_name ) do |x|  # directory_name is defined in a subclass
+                examine_sub x  # for 2.0.0 or earlier
+                traverse( x, /\A\d+\Z/ ) do |z|  # for 2.1.0 or later
+                  examine_sub z
+                end
+              end
+            end
+          end
+        end
+
+        private
+
         def count_up path
           # Errno::EACCES: Permission denied - /root/x
           s = File.stat path
@@ -63,20 +87,10 @@ module Castoro
           end
         end
 
-        def examine
-          super
-          # /base_dir/999/baskets/w/20120820T15/100002.202.1.20120820T155450.924.870420
-          # /base_dir/999/baskets/r/20120802T17/100000.202.1.20120802T175508.475.443236
-          dir = Configurations::Peer.instance.basket_basedir
-          traverse( dir, /\A\d+\Z/ ) do |v|
-            traverse( v, "baskets" ) do |w|
-              traverse( w, directory_name ) do |x|  # directory_name is defined in a subclass
-                traverse( x, /\A\d+T\d+\Z/ ) do |y|
-                  traverse( y, /\A[0-9a-z]+\./ ) do |path|  # could be /\A[0-9a-f]+\.\d+\.\d+\./
-                    count_up path
-                  end
-                end
-              end
+        def examine_sub x
+          traverse( x, /\A\d+T\d+\Z/ ) do |y|
+            traverse( y, /\A[0-9a-z]+\./ ) do |path|  # could be /\A[0-9a-f]+\.\d+\.\d+\./
+              count_up path
             end
           end
         end
