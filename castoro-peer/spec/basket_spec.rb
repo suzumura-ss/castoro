@@ -35,7 +35,7 @@ describe Castoro::Peer::Basket do
 
   before do
     time = mock(Time)
-    time.stub!(:strftime).with("%Y%m%dT%H").and_return("20100812T11")
+    time.stub!(:strftime).with("%Y/%Y%m%dT%H").and_return("2010/20100812T11")
     time.stub!(:strftime).with("%Y%m%dT%H%M%S").and_return("20100812T112141")
     time.stub!(:usec).and_return(123456)
     Time.stub!(:new).and_return(time)
@@ -51,24 +51,24 @@ describe Castoro::Peer::Basket do
                              %r"\A987654321.1.2\Z", ],
 
                            [ :path_w,
-                             "/data/1/baskets/w/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn",
-                             %r"\A/data/1/baskets/w/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}\Z" ],
+                             "/data/1/baskets/w/2010/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1/baskets/w/2010/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}\Z" ],
 
                            [ :path_r,
-                             "/data/1/baskets/r/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn",
-                             %r"\A/data/1/baskets/r/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}\Z" ],
+                             "/data/1/baskets/r/2010/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1/baskets/r/2010/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}\Z" ],
 
                            [ :path_a,
                              "/data/1/baskets/a/0/987/654/987654321.1.2",
                              %r"\A/data/1/baskets/a/0/987/654/987654321\.1\.2\Z" ],
 
                            [ :path_d,
-                             "/data/1/baskets/d/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn",
-                             %r"\A/data/1/baskets/d/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}\Z" ],
+                             "/data/1/baskets/d/2010/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1/baskets/d/2010/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}\Z" ],
 
                            [ :path_c,
-                             "/data/1/offline/canceled/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn",
-                             %r"\A/data/1/offline/canceled/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}\Z" ],
+                             "/data/1/offline/canceled/2010/20100812T11/987654321.1.2.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1/offline/canceled/2010/20100812T11/987654321\.1\.2\.20100812T112141\.123\.\d{6}\Z" ],
                           ],
              },
 
@@ -80,12 +80,12 @@ describe Castoro::Peer::Basket do
                              %r"\A0x00fedcba98765432\.1234\.5\Z", ],
 
                            [ :path_w,
-                             "/data/1234/baskets/w/20100812T11/00fedcba98765432.1234.5.20100812T112141.123.nnnnnn",
-                             %r"\A/data/1234/baskets/w/20100812T11/00fedcba98765432\.1234\.5\.20100812T112141\.123\.\d{6}\Z" ],
+                             "/data/1234/baskets/w/2010/20100812T11/00fedcba98765432.1234.5.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1234/baskets/w/2010/20100812T11/00fedcba98765432\.1234\.5\.20100812T112141\.123\.\d{6}\Z" ],
 
                            [ :path_r,
-                             "/data/1234/baskets/r/20100812T11/00fedcba98765432.1234.5.20100812T112141.123.nnnnnn",
-                             %r"\A/data/1234/baskets/r/20100812T11/00fedcba98765432\.1234\.5\.20100812T112141\.123\.\d{6}\Z" ],
+                             "/data/1234/baskets/r/2010/20100812T11/00fedcba98765432.1234.5.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1234/baskets/r/2010/20100812T11/00fedcba98765432\.1234\.5\.20100812T112141\.123\.\d{6}\Z" ],
 
 
                            [ :path_a,
@@ -93,12 +93,12 @@ describe Castoro::Peer::Basket do
                              %r"\A/data/1234/baskets/a/0/0fe/dcb/a98/765/00fedcba98765432\.1234\.5\Z", ],
 
                            [ :path_d,
-                             "/data/1234/baskets/d/20100812T11/00fedcba98765432.1234.5.20100812T112141.123.nnnnnn",
-                             %r"\A/data/1234/baskets/d/20100812T11/00fedcba98765432\.1234\.5\.20100812T112141\.123\.\d{6}\Z" ],
+                             "/data/1234/baskets/d/2010/20100812T11/00fedcba98765432.1234.5.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1234/baskets/d/2010/20100812T11/00fedcba98765432\.1234\.5\.20100812T112141\.123\.\d{6}\Z" ],
 
                            [ :path_c,
-                             "/data/1234/offline/canceled/20100812T11/00fedcba98765432.1234.5.20100812T112141.123.nnnnnn",
-                             %r"\A/data/1234/offline/canceled/20100812T11/00fedcba98765432\.1234\.5\.20100812T112141\.123\.\d{6}\Z" ],
+                             "/data/1234/offline/canceled/2010/20100812T11/00fedcba98765432.1234.5.20100812T112141.123.nnnnnn",
+                             %r"\A/data/1234/offline/canceled/2010/20100812T11/00fedcba98765432\.1234\.5\.20100812T112141\.123\.\d{6}\Z" ],
                           ],
              },
            ]
@@ -125,8 +125,8 @@ describe Castoro::Peer::Basket do
 
     basket = Castoro::Peer::Basket.new 987654321, 1, 2
 
-    x = "/data/1/baskets/w/20100812T11/987654321.1.2.20100812T112141.123.810624"
-    y = "/data/1/offline/canceled/20100812T11/987654321.1.2.20100812T112141.123.810624"
+    x = "/data/1/baskets/w/2010/20100812T11/987654321.1.2.20100812T112141.123.810624"
+    y = "/data/1/offline/canceled/2010/20100812T11/987654321.1.2.20100812T112141.123.810624"
 
     describe "#path_c_with_hint" do
       context "with \"#{x}\"" do
