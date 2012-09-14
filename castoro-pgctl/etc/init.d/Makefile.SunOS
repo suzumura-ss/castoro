@@ -40,6 +40,6 @@ uninstall:
 	-/usr/sbin/svcadm disable svc:/application/castoro/cstartd
 	-/usr/sbin/svcadm disable svc:/application/castoro/cagentd
 	/usr/bin/sleep 5
-	-/usr/sbin/svccfg delete svc:/application/castoro/cstartd
-	-/usr/sbin/svccfg delete svc:/application/castoro/cagentd
+	-/usr/sbin/svccfg delete -f svc:/application/castoro/cstartd
+	-/usr/sbin/svccfg delete -f svc:/application/castoro/cagentd
 	-/bin/rm $(targets)
