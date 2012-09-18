@@ -4,9 +4,18 @@ h2. Installation
 
 <pre>
 gem uninstall castoro-common castoro-manipulator castoro-peer
-gem install --no-rdoc --no-ri castoro-common-0.2.0.gem castoro-manipulator-0.2.0.gem castoro-peer-0.2.0.gem
-cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-peer-0.2.0/etc/init.d
-make install
+gem install --no-rdoc --no-ri castoro-common-2.0.1.gem castoro-manipulator-2.0.0.gem castoro-peer-2.1.0.gem
+</pre>
+
+"cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-peer-2.1.0/etc/init.d ; make install" will be automatically done during "gem install castoro-peer-2.1.0.gem"
+
+
+h2. Uninstallation
+
+<pre>
+cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-peer-2.1.0/etc/init.d
+make uninstall
+gem uninstall castoro-peer
 </pre>
 
 

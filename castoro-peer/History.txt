@@ -1,3 +1,13 @@
+=== 2.1.0 2012-09-18
+* Fixed issue #79 - crepd should stop replication when the status drops from rep to readonly
+* Fixed issue #81 - gets_with_timed_out mulfunctioned with a received text not ending with \n
+* Fixed issue #87 - need to check the existance of basket directory in advance before replication starts
+* Fixed issue #88 (peer) - log messages might not be exported to syslog upon shutdown
+* Fixed issue #91 (peer) - Replaced a directory path of both working and replication from %Y%m%dT%H to %Y/%Y%m%dT%H
+* Let gem install execute make install to copy script files into /etc/init.d/
+* Made Rakefile smarter
+* Made a sample directory of basket_basedir more general in etc/castoro/peer.conf-sample-*.conf
+
 === 2.0.0 2012-06-11
 
 * Changed the version number from 0.2.0 to 2.0.0
