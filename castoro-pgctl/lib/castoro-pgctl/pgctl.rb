@@ -227,6 +227,7 @@ EOT
           puts "\nSucceeded:\n #{@program_name} #{args}"
         else
           puts "\nDid nothing:\n #{@program_name} #{args}"
+          Log.stop
           Process.exit 2
         end
       rescue Failure::Base => e
@@ -234,6 +235,7 @@ EOT
         m = e.message.gsub( %r/\n/, "\n " )
         puts " #{m}"
         puts "\nFailed:\n #{@program_name} #{args}"
+        Log.stop
         Process.exit 3
       end
     end

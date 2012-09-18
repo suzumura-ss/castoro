@@ -95,8 +95,10 @@ module Castoro
             sleep 0.5
           rescue => e
             Log.warning e
+            Log.stop  # think if this is OK. It is called in the rescue cause.
             Process.exit! 1
           end
+          Log.stop
           Process.exit! status
         end
       end

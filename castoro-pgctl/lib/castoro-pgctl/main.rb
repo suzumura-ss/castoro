@@ -81,6 +81,7 @@ module Castoro
       def shutdown
         stop
         sleep 0.5
+        Log.stop
         Process.exit 0
       end
 
@@ -104,6 +105,7 @@ module Castoro
       def do_shutdown
         Log.notice( "Shutdowned." )
         sleep 0.01
+        Log.stop
         Process.exit 0
       end
 
