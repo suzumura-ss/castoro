@@ -6,18 +6,46 @@ h2. Installation
 
 <pre>
 gem uninstall castoro-pgctl
-
-gem install --no-rdoc --no-ri castoro-pgctl-0.4.0.gem
-cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.4.0/etc/init.d
-make install
+gem install -V --no-rdoc --no-ri castoro-pgctl-0.4.0.gem
 
 cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.4.0/etc/castoro
 cp pgctl.conf-sample-ja.conf /etc/castoro/pgctl.conf
 vi /etc/castoro/pgctl.conf
+</pre>
 
+There is no need to do "cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.4.0/etc/init.d ; make install"
+That will be automatically done upon "gem install castoro-pgctl-0.4.0.gem"
+
+h3. Starting daemon processes on CentOS
+<pre>
+chkconfig --list cstartd ; chkconfig --list cagentd
+service cstartd start ; service cagentd start
+</pre>
+
+or
+
+<pre>
 /etc/init.d/cstartd start ; /etc/init.d/cagentd start
 </pre>
 
+h3. Starting daemon processes on OpenSolaris
+<pre>
+svcadm disable cstartd
+svcadm enable cstartd
+svcadm disable cagentd
+svcadm enable cagentd
+svcs cstartd cagentd
+svcs -xv cstartd
+svcs -xv cagentd
+</pre>
+
+
+h2. Uninstallation
+<pre>
+/usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.4.0/etc/init.d
+make uninstall
+gem uninstall castoro-pgctl
+</pre>
 
 h2. Help Messages
 
