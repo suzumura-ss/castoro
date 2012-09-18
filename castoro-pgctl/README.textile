@@ -7,11 +7,11 @@ h2. Installation
 <pre>
 gem uninstall castoro-pgctl
 
-gem install --no-rdoc --no-ri castoro-pgctl-0.3.1.gem
-cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.3.1/etc/init.d
+gem install --no-rdoc --no-ri castoro-pgctl-0.4.0.gem
+cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.4.0/etc/init.d
 make install
 
-cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.3.1/etc/castoro
+cd /usr/local/lib/ruby/gems/1.9.1/gems/castoro-pgctl-0.4.0/etc/castoro
 cp pgctl.conf-sample-ja.conf /etc/castoro/pgctl.conf
 vi /etc/castoro/pgctl.conf
 
@@ -23,7 +23,7 @@ h2. Help Messages
 
 <pre>
 $ pgctl -h
-pgctl - Castoro Peer Group Control command - Version 0.3.1"
+pgctl - Castoro Peer Group Control command - Version 0.4.0"
 
  usage: pgctl [global options] subcommand [hostname|groupname]...
 
@@ -180,7 +180,7 @@ $ pgctl passwd
 Setting a password of the command pgctl.
 New pgctl password: xxx                   ... invisible
 Retype new pgctl password: xxx            ... invisible
-pgctl password has been successfully changed.
+A new pgctl password has been successfully set.
 
 Succeeded:
  pgctl passwd
@@ -192,7 +192,7 @@ Changing a password of the command pgctl.
 (current) pgctl password: xxx             ... invisible
 New pgctl password: yyy                   ... invisible
 Retype new pgctl password: yyy            ... invisible
-pgctl password has been successfully changed.
+A pgctl password has been successfully changed.
 
 Succeeded:
  pgctl passwd
@@ -204,8 +204,7 @@ Changing a password of the command pgctl.
 (current) pgctl password: yyy             ... invisible
 New pgctl password: 
 Retype new pgctl password: 
-
-pgctl password has been successfully changed.
+A pgctl password has been successfully erased. Now, no password is set.
 
 Succeeded:
  pgctl passwd

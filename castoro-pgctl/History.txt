@@ -1,3 +1,12 @@
+=== 0.4.0 2012-09-18
+* Fixed issue #82 - response messages for pgctl passwd was same for setting, changing, and deleting a password
+* Fixed issue #88 (pgctl) - log messages might not be exported to syslog upon shutdown
+* Incorporated issue #91 (pgctl) - Replaced a directory path of both working and replication from %Y%m%dT%H to %Y/%Y%m%dT%H
+* Incorporated issue #92 - /etc/init.d/cstartd and cagentd work with chkconfig on CentOS and svccfg on OpenSolaris
+* Regarding the issue #92, let gem install execute make install
+* Changed an exit status code from 1 to 0 upon AlreadyStoppedError in /etc/init.d/cstartd, cagentd in order to work with SVC in OpenSolaris, so that SVC will automatically restart deamon processes right after they are crashed.
+* Reverted to the traditional one Rake::RDocTask.new from a recent one RDoc::Task.new in Rakefile
+
 === 0.3.1 2012-08-24
 * New features to examine temporary basket directories and replication items
 * Added corresponding configuration items to pgctl.conf
