@@ -147,7 +147,7 @@ module Castoro
           sender.initiate
           @done = true
 
-        rescue NotFoundError => e
+        rescue NotFoundError, StillExistsError => e
           Log.warning e
           @done = true
 

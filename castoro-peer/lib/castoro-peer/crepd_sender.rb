@@ -49,9 +49,6 @@ module Castoro
             else ; raise PermanentError, "Unknown action: #{@entry.action} #{@basket}"
             end
 
-        @connection = Connection.new( @basket )
-        @connection.connect( @host, @port )
-
         args = { :basket => @basket.to_s, :ttl => @entry.ttl, :hosts => @entry.hosts }
         send( m, args )  # this invokes either replicate or delete.
 
@@ -59,9 +56,16 @@ module Castoro
         @connection.close if @connection
       end
 
+      def connect
+        @connection = Connection.new( @basket )
+        @connection.connect( @host, @port )
+      end
+
       def replicate( args )
         File.exist? @basket.path_a or
           raise NotFoundError, "No such basket exists: #{@basket} #{@basket.path_a}"
+
+        connect
 
         started = Time.new
         Log.notice "Replicating #{@basket} to #{@host}:#{@port} started. #{@entry.ttl_and_hosts}"
@@ -144,6 +148,11 @@ module Castoro
       end
 
       def delete( args )
+        File.exist? @basket.path_a and
+          raise StillExistsError, "Basket still exists: #{@basket} #{@basket.path_a}"
+
+        connect
+
         # File.exist? @basket.path_a is not performed here intentionally.
         Log.notice "Deleting #{@basket} to #{@host}:#{@port} started. #{@entry.ttl_and_hosts}"
 

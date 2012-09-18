@@ -29,6 +29,7 @@ module Castoro
     class CommandExecutionError < StandardError ; end
     class AlreadyExistsError < StandardError ; end
     class NotFoundError < StandardError ; end
+    class StillExistsError < StandardError ; end
     class PreconditionFailedError < StandardError ; end
 
     class InternalServerError < StandardError ; end
