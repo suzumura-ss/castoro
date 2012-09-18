@@ -96,6 +96,11 @@ module Castoro
 
         @connection.communicate( 'FINALIZE' )
 
+      rescue DataTransmissionError
+        # In case of this exception, the TCP connection to the receiver may be lost.
+        # No 'CANCEL' can be sent to the receiver.
+        raise  # raise the original exception
+
       rescue => e
         begin
           Log.warning "Cancelling replication #{@basket} #{@host}:#{@port} reason: #{e.message}"
@@ -139,7 +144,22 @@ module Castoro
           rest = size
           while ( 0 < rest )
             n = ( unit_size < rest ) ? unit_size : rest
-            rest -= IO.copy_stream( src, @connection.socket, n )
+
+            begin
+              # copy_stream may raise an exception when its receiver shutdowns or closes the TCP connection.
+              rest -= IO.copy_stream( src, @connection.socket, n )
+            rescue IOError, Errno::EBADF => e
+              raise DataTransmissionError, "IO error occurred during sending replication data: #{@basket} #{@host}:#{@port}"
+            end
+
+            unless ServerStatus.instance.replication_activated?
+              # No more data will be written to the connection.
+              # This shutdown sends a FIN packet to the end so that the receiver 
+              # will notice the current replication has been interrupted.
+              @connection.socket.shutdown Socket::SHUT_WR
+              raise ServerStatusDroppedError, "server status has dropped during sending replication data: #{ServerStatus.instance.status} #{ServerStatus.instance.status_name} #{@basket} #{@host}:#{@port}"
+            end
+
             MaintenaceServerSingletonScheduler.instance.check_point
           end
         end

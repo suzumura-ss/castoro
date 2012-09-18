@@ -161,6 +161,10 @@ module Castoro
           Log.warning e
           @done = true
 
+        rescue ServerStatusDroppedError => e
+          Log.warning e
+          @done = false
+
         rescue InvalidArgumentPermanentError => e
           Log.err e
           @done = true
@@ -169,7 +173,7 @@ module Castoro
           Log.err e
           @done = true
 
-        rescue => e
+        rescue => e  # including I/O errors
           Log.warning e
           @done = false
         end

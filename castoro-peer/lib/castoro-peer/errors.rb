@@ -40,6 +40,8 @@ module Castoro
     # For replication
     class RetryableError < StandardError ; end
     class PermanentError < StandardError ; end
+    class DataTransmissionError < RetryableError ; end
+    class ServerStatusDroppedError < RetryableError ; end
     class AlreadyExistsPermanentError < PermanentError ; end
     class InvalidArgumentPermanentError < PermanentError ; end
 

@@ -80,6 +80,9 @@ module Castoro
             end
           rescue => e
             Log.warning e, "#{@command} #{@args} from #{@ip}:#{@port}"
+
+            # An attempt of sending an error status to the sender may fail
+            # if the TCP connection has been already closed or shutdown.
             @channel.send e
           end
         end
@@ -204,7 +207,23 @@ module Castoro
         rest = sent
         while ( 0 < rest )
           n = ( unit_size < rest ) ? unit_size : rest
+
+          # copy_stream may raise an exception when its sender shutdowns or closes the TCP connection.
+          # this also may raise it when the file system becomes full.
           rest -= IO.copy_stream( @io, @fd, n )  # @fd has been opened in the method do_file
+
+          unless ServerStatus.instance.replication_activated?
+            # No more data will be read from the connection.
+            # SHUT_RD will not send any packet to the end.
+            # SHUT_RDWR is used for this shutdown to send a FIN packet to the end
+            # in order to notice this receiver is closing the connection.
+            @io.shutdown Socket::SHUT_RDWR
+
+            # This error ServerStatusDroppedError is not able to be sent to the sender
+            # because the TCP connection has been already shutdown.
+            raise ServerStatusDroppedError, "server status has dropped during receiving replication data: #{ServerStatus.instance.status} #{ServerStatus.instance.status_name} #{@ip}:#{@port} #{@basket}"
+          end
+
           MaintenaceServerSingletonScheduler.instance.check_point
         end
         @fd.close
@@ -214,6 +233,9 @@ module Castoro
         ( sent == received ) or raise RetryableError, "File size does not match: sent=#{sent} received=#{received} #{@path} #{@basket}"
         @files += 1
         @bytes += received
+
+      ensure
+        @fd.close unless @fd.closed?
       end
 
       def do_end
