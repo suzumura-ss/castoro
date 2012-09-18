@@ -58,7 +58,7 @@ castoro-peer is an abstructedly distributed file system.
   s.extensions = ["etc/init.d/configure"]  # This will let "gem install" execute "make install"
   s.authors = ['Castoro project']
   s.add_dependency('castoro-manipulator', '>=2.0.0')
-  s.add_development_dependency('rspec', '>=2.0.0')
+#  s.add_development_dependency('rspec', '>=2.0.0')
   s.homepage = 'https://github.com/ToshiyukiTerashita/castoro'
   s.email = ''
 end
