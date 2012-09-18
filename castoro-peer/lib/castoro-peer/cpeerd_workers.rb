@@ -680,6 +680,7 @@ module Castoro
           # Todo:
           Thread.new {
             sleep 2
+            Log.stop
             Process.exit 0
           }
           # Todo:

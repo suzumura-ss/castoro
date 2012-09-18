@@ -104,6 +104,7 @@ module Castoro
 #          thread_join_all
           Log.notice( "Shutdowned." )
           sleep 0.01
+          Log.stop
           exit 0
         end
 
