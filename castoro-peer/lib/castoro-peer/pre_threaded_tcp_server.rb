@@ -34,42 +34,42 @@ module Castoro
           @socket = socket
         end
 
-        def method_missing(m, *args, &block)
-          @socket.__send__(m, *args, &block)
+        def method_missing m, *args, &block
+          @socket.__send__ m, *args, &block
         end
 
         def client_sockaddr= client_sockaddr
-          @port, @ip = Socket.unpack_sockaddr_in( client_sockaddr )
+          @port, @ip = Socket.unpack_sockaddr_in client_sockaddr
         end
       end
 
-      def initialize( port, host, number_of_threads )
+      def initialize port, host, number_of_threads
         @number_of_threads = number_of_threads
         factor = 1
         backlog = number_of_threads * factor
         backlog = 5 if backlog < 5
-        sockaddr = Socket.pack_sockaddr_in( port, host )
-        @server_socket = Socket.new( Socket::AF_INET, Socket::SOCK_STREAM, 0 )
-        @server_socket.setsockopt( Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true )
-        @server_socket.setsockopt( Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true )
-        @server_socket.setsockopt( Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true )
+        sockaddr = Socket.pack_sockaddr_in port, host
+        @server_socket = Socket.new Socket::AF_INET, Socket::SOCK_STREAM, 0
+        @server_socket.setsockopt Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true
+        @server_socket.setsockopt Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true
+        @server_socket.setsockopt Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true
         @server_socket.do_not_reverse_lookup = true
-        @server_socket.bind( sockaddr )
-        @server_socket.listen( backlog )
-        @queue = SizedPipeline.new( 1 )
+        @server_socket.bind sockaddr
+        @server_socket.listen backlog
+        @queue = SizedPipeline.new 1
         @thread_acceptor = nil
         @thread_workers = []
       end
 
       def start
-        @thread_acceptor = Thread.new {
-          acceptor()
-        }
-        @number_of_threads.times {
-          @thread_workers << Thread.new {
-            worker()
-          }
-        }
+        @thread_acceptor = Thread.new do
+          acceptor
+        end
+        @number_of_threads.times do
+          @thread_workers << Thread.new do
+            worker
+          end
+        end
       end
 
       def acceptor
@@ -98,7 +98,7 @@ module Castoro
           begin
             socket = @queue.deq
             return if socket.nil?
-            serve( socket )
+            serve socket
             socket.close unless socket.closed?
           rescue => e
             Log.warning e
@@ -106,20 +106,24 @@ module Castoro
         end
       end
 
-      def serve( socket )
+      def serve socket
         # should be implemented in a subclass
       end
 
       def stop
         Thread.kill @thread_acceptor
         @server_socket.close unless @server_socket.closed?
-        @thread_workers.each { |t| Thread.kill t }
+        @thread_workers.each do
+          |t| Thread.kill t
+        end
       end
 
       def graceful_stop
         Thread.kill @thread_acceptor
         @server_socket.close unless @server_socket.closed?
-        @thread_workers.each { @queue.enq nil }
+        @thread_workers.each do
+          @queue.enq nil
+        end
         sleep 0.5
         stop
       end
