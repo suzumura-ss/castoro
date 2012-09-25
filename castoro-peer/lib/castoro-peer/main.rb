@@ -100,11 +100,9 @@ module Castoro
         if @shutdown_requested
           @shutdown_requested = false
           stop
-# Todo: XXX
-#          thread_join_all
           Log.notice "Shutdowned."
-          sleep 0.01
           Log.stop
+          sleep 0.1
           exit 0
         end
 
@@ -150,28 +148,12 @@ module Castoro
           @mutex.lock
           until ( @shutdown_requested || @start_requested || @stop_requested || @reload_requested ) do
             @cv.wait @mutex
-            sleep 1
+            sleep 0.1
           end
           process_request
           @mutex.unlock
-          # sleep 0.01
-          sleep 3
+          sleep 0.1
         end
-      end
-
-      def thread_join_all
-        begin
-          main = Thread.main
-          current = Thread.current
-          STDOUT.flush
-          sleep 0.01
-          a = Thread.list.select { |t| t != main and t != current }
-          a.each { |t|
-            t.join
-          }
-          # sleep 0.01
-          sleep 3
-        end until a.size == 0
       end
     end
 
