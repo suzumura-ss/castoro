@@ -89,8 +89,8 @@ begin
   config = YAML::load(ERB.new(IO.read('/etc/castoro/gateway.conf')).result)
   type = config["default"]["type"]
   case type
-    when "master" then  opt[:ip] = config["default"]["island_comm_device_addr"]
-    else  opt[:ip] = config["default"]["peer_comm_device_addr"]
+    when "original" then opt[:ip] = config["default"]["peer_comm_device_addr"]
+    else opt[:ip] = config["default"]["island_comm_device_addr"]  
   end
 rescue 
   opt[:ip] = "127.0.0.1"

@@ -132,9 +132,9 @@ module Castoro
 
         # start console server
         @console = case @config["type"]
-                   when "original", "island"
+                   when "original"
                      @@console_server_class.new @logger, @repository, @config["peer_comm_device_addr"], @config["gateway_console_tcpport"].to_i
-                   when "master"
+                   when "master", "island"
                      @logger.info { "call console server create!! " }
                      @@master_console_class.new @logger, @repository, @config["island_comm_device_addr"], @config["gateway_console_tcpport"].to_i
                    else

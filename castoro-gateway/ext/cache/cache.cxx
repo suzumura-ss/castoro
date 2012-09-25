@@ -485,9 +485,12 @@ VALUE Cache::get_peers_info_internal(VALUE block_arg, VALUE data, VALUE self)
   for(PeerStatusMap::iterator it = map.begin(); it != map.end(); it++) 
   {
     PeerStatus s = (*it).second;
-    rb_funcall(result, operator_push, 1, rb_funcall(ID2SYM((*it).first), rb_intern("to_s"), 0));
-    rb_funcall(result, operator_push, 1, INT2NUM(s.status));
-    rb_funcall(result, operator_push, 1, ULL2NUM(s.available));
+    if (s.is_valid() == true)
+    {
+      rb_funcall(result, operator_push, 1, rb_funcall(ID2SYM((*it).first), rb_intern("to_s"), 0));
+      rb_funcall(result, operator_push, 1, INT2NUM(s.status));
+      rb_funcall(result, operator_push, 1, ULL2NUM(s.available));
+    }
   }
 
   return result;

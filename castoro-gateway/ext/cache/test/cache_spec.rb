@@ -398,7 +398,13 @@ __RESULT__
          infos[4].should == READONLY[:status]
          infos[5].should == 0
       end
-    end
+      
+      it "should return peers info but timeout" do
+         sleep(10)
+         infos = @cache.get_peers_info();
+         infos.length.should == 0
+      end
+     end
  
     after do
       @cache = nil
