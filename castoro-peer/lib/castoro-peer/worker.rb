@@ -27,7 +27,7 @@ module Castoro
   module Peer
 
     class Worker
-      def initialize( *argv )
+      def initialize *argv
         # Please, please do not put any unrelated class in this file 
         # such as @config = Configurations.instance
         # This class is a general class for not only Castoro but also 
@@ -40,7 +40,7 @@ module Castoro
         @stop_requested = false
       end
 
-      def start( *args )
+      def start *args
         exception_count = 0
         @terminated = false
         @finished = false
@@ -50,8 +50,8 @@ module Castoro
             calmness = false
 #            @mutex.synchronize { @finished = false }
             begin
-              self.serve( *args )
-              if ( $DEBUG and Log.output )
+              self.serve *args
+              if $DEBUG and Log.output
                 STDERR.flush 
                 STDOUT.flush
                 Log.output.flush
@@ -59,33 +59,33 @@ module Castoro
             rescue => e
               exception_count = exception_count + 1
               s = "in #{self.class}; count: #{exception_count}"
-              #              if ( @limitation_of_exception_count <= exception_count )
-              #                Log.crit( "#{s}: reaching the limitation: #{@limitation_of_exception_count}" )
+              #              if @limitation_of_exception_count <= exception_count
+              #                Log.crit "#{s}: reaching the limitation: #{@limitation_of_exception_count}"
               #                # Todo: this situation should be reported to the manager
               #                @terminated = true
               #                @cv.signal
               #                Thread.exit
               #              else
-              Log.err( e, s )
+              Log.err e, s
               #              end
-              # calmness = true if ( exception_count % 10 == 0 )
+              # calmness = true if exception_count % 10 == 0
               calmness = true
             end
 #            @mutex.synchronize { @finished = true }
             @cv.signal
             # Thread.pass
-            if ( calmness )
+            if calmness
               sleep 1.5  # To avoid an out-of-control infinite loop
               calmness = false
             end
-            if ( @finished )
+            if @finished
               Thread.current.exit
             end
           end
         end
       end
 
-      def serve( *args )
+      def serve *args
         # actual task should be implemented in a subclass
       end
 
@@ -101,11 +101,11 @@ module Castoro
       def graceful_stop
         @stop_requested = true
         sleep 0.01
-        if ( @thread and @thread.alive? )
+        if @thread and @thread.alive?
           # p [ @thread, @thread.alive? ]
           self.wait_until_finish
-          if ( @thread and @thread.alive? )
-            Thread::kill( @thread )
+          if @thread and @thread.alive?
+            Thread::kill @thread
           end
           @thread.join
         end
@@ -120,9 +120,9 @@ module Castoro
       def wait_until_finish
         begin
           @mutex.lock
-          until ( self.finish? ) do
+          until self.finish? do
             break if @terminated
-            @cv.wait( @mutex )
+            @cv.wait @mutex
             sleep 1  # cv.wait does not wait: Bug of Ruby: http://redmine.ruby-lang.org/issues/show/3212
           end
         ensure
