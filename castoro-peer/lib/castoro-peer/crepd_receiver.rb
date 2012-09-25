@@ -44,12 +44,19 @@ module Castoro
       end
 
       def serve io
-        receiver = ReplicationReceiver.new io
+        @receiver = ReplicationReceiver.new io
         begin
-          receiver.initiate
+          @receiver.initiate
         rescue => e
           Log.warning e
         end
+      ensure
+        # Do nothing special here upon stopping
+      end
+
+      def stop_requested= f
+        super
+        @receiver.stop_requested = f
       end
     end
 
@@ -62,13 +69,18 @@ module Castoro
         @csm_executor = Csm.create_executor
         @command = nil
         @basket = nil
+        @stop_requested = false
+      end
+
+      def stop_requested= f
+        @stop_requested = f
       end
 
       def initiate
         loop do
           begin
             @channel.receive
-            break if @channel.closed?
+            break if @stop_requested or @channel.closed?
             @command, @args = @channel.parse
             @ip, @port = @io.ip, @io.port
             if ServerStatus.instance.replication_activated?
@@ -206,6 +218,12 @@ module Castoro
 
         rest = sent
         while 0 < rest
+
+          if @stop_requested
+            @io.shutdown Socket::SHUT_RDWR
+            raise StopRequestedError, "Stop requested during receiving replication data: #{@ip}:#{@port} #{@basket}"
+          end
+
           n = ( unit_size < rest ) ? unit_size : rest
 
           # copy_stream may raise an exception when its sender shutdowns or closes the TCP connection.
@@ -235,6 +253,8 @@ module Castoro
         @bytes += received
 
       ensure
+        # IO.copy_stream may be also interrupted by Thread.kill 
+        # in addition to StopRequestedError, ServerStatusDroppedError
         @fd.close unless @fd.closed?
       end
 

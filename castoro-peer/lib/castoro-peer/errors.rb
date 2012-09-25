@@ -31,6 +31,7 @@ module Castoro
     class NotFoundError < StandardError ; end
     class StillExistsError < StandardError ; end
     class PreconditionFailedError < StandardError ; end
+    class StopRequestedError < StandardError ; end
 
     class InternalServerError < StandardError ; end
     class BasketConflictInternalServerError < InternalServerError ; end

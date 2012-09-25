@@ -47,6 +47,7 @@ module Castoro
         last_time = nil
 
         loop do 
+          break if @stop_requested
           Thread.current.priority = 3
           x = nil
           begin
@@ -63,14 +64,13 @@ module Castoro
             retry
           rescue EOFError => e  # EOFError "end of file reached"
             if @stop_requested
-              @finished = true
               return
             else
-              Log.notice e, "Health check: had been connected from #{peer_host}:#{peer_port}"
+              Log.notice e, "Health check: was connected from #{peer_host}:#{peer_port}"
               return
             end
           rescue IOError => e   # IOError: closed stream
-            Log.warning e, "Health check: had been connected from #{peer_host}:#{peer_port}"
+            Log.warning e, "Health check: was connected from #{peer_host}:#{peer_port}"
             return
           end
 
@@ -90,6 +90,8 @@ module Castoro
         end
       rescue => e
         Log.warning e
+      ensure  # this clause is also called by Thread.kill
+        # do nothing special here
       end
     end
 
@@ -112,7 +114,8 @@ module Castoro
 
       def serve_impl io
         @io = io
-        while ( line = @io.gets )
+        while ( line = @io.gets )  # IO.gets will stop until readable data becomes available and might be interrupted by Thread.kill
+          break if @stop_requested  # most commands will be done at no time, but inspect, profiler, and gc could take long time.
           line.chomp!
           next if line =~ /\A\s*\Z/
           begin
@@ -148,6 +151,8 @@ module Castoro
             @io.syswrite "500 Internal Server Error: #{e.class} #{e.message}\n"
           end
         end
+      ensure  # this clause is also called by Thread.kill
+        # do nothing special here
       end
 
       def do_version
