@@ -305,7 +305,7 @@ module Castoro
           rescue => e
             Log.err e
           ensure
-            sleep 3
+            sleep 1
           end
         end
 
