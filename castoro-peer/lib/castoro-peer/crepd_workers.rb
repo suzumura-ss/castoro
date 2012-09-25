@@ -41,12 +41,12 @@ module Castoro
         c = Configurations.instance
         Basket.setup c.type_id_rangesHash, c.basket_basedir
         @w = []
-        @w << ReplicationInternalCommandReceiver.new( c.crepd_registration_udpport )
+        @w << ReplicationInternalCommandReceiver.new c.crepd_registration_udpport
         @w << ReplicationQueueDirectoriesMonitor.new
         @w << ReplicationReceiveServer.new
         c.crepd_number_of_replication_sender.times { @w << ReplicationSenderManager.new }
-        @m = CrepdTcpMaintenaceServer.new( c.crepd_maintenance_tcpport )
-        @h = TCPHealthCheckPatientServer.new( c.crepd_healthcheck_tcpport )
+        @m = CrepdTcpMaintenaceServer.new c.crepd_maintenance_tcpport
+        @h = TCPHealthCheckPatientServer.new c.crepd_healthcheck_tcpport
       end
 
       def start_workers
@@ -67,9 +67,9 @@ module Castoro
 
     class ReplicationQueueDirectoriesMonitor < Worker
       def serve
-        if ( ServerStatus.instance.replication_activated? )
+        if ServerStatus.instance.replication_activated?
           sleep 3 unless ReplicationQueueDirectories.instance.changed?
-          ReplicationQueueDirectories.instance.fillup( ReplicationQueue.instance )
+          ReplicationQueueDirectories.instance.fillup ReplicationQueue.instance
         else
           sleep 3
         end
@@ -82,7 +82,7 @@ module Castoro
 
     class ReplicationSenderManager < Worker
       def serve
-        if ( ServerStatus.instance.replication_activated? )
+        if ServerStatus.instance.replication_activated?
           work
         else
           sleep 3
@@ -100,13 +100,13 @@ module Castoro
         ReplicationQueueDirectories.instance.acquire( entry ) or return
         entry.read
         entry.append_myself
-        sender = FailoverableReplicationSender.new( entry )
+        sender = FailoverableReplicationSender.new entry
         sender.initiate
         x = ReplicationQueueDirectories.instance
         case sender.status
-        when :success  ; x.release( entry )
-        when :failover ; x.move_to_sleep( entry, sender.alternative )
-        when :failure  ; x.move_to_sleep( entry, nil )
+        when :success  ; x.release entry
+        when :failover ; x.move_to_sleep entry, sender.alternative
+        when :failure  ; x.move_to_sleep entry, nil
         else           ; raise PermanentError, "Unknown status: #{sender.status} #{entry.basket}"
         end
       end
@@ -116,14 +116,14 @@ module Castoro
     class FailoverableReplicationSender
       attr_reader :alternative
 
-      def initialize( entry )
+      def initialize entry
         @entry = entry
         @done = nil
       end
 
       def status
-        if ( @done )
-          if ( @alternative )
+        if @done
+          if @alternative
             # an attempt of replicating/deleting the basket to the next host has failed, 
             # however, replicating/deleting the basket to an alternative host has succeeded
             :failover 
@@ -140,10 +140,10 @@ module Castoro
 
       def initiate
         host = StorageServers.instance.target
-        candidates = ( @entry.alternative ) ? [] : StorageServers.instance.alternative_hosts.dup
+        candidates = @entry.alternative ? [] : StorageServers.instance.alternative_hosts.dup
 
         begin
-          sender = ReplicationSender.new( @entry, host )
+          sender = ReplicationSender.new @entry, host
           sender.initiate
           @done = true
 
@@ -182,9 +182,9 @@ module Castoro
 
 
     class ReplicationInternalCommandReceiver < Worker
-      def initialize( port )
+      def initialize port
         @socket = ExtendedUDPSocket.new
-        @socket.bind( '127.0.0.1', port )
+        @socket.bind '127.0.0.1', port
         super
         @queue = ReplicationQueue.instance
       end
@@ -194,8 +194,8 @@ module Castoro
         channel.receive
         command, args = channel.parse
         basket_text = args[ 'basket' ]
-        if ( basket_text )
-          basket = Basket.new_from_text( basket_text )
+        if basket_text
+          basket = Basket.new_from_text basket_text
           case command
           when 'REPLICATE' ; @queue.enq ReplicationEntry.new( :basket => basket, :action => :replication )
           when 'DELETE'    ; @queue.enq ReplicationEntry.new( :basket => basket, :action => :delete )
@@ -230,11 +230,11 @@ module Castoro
 
       def do_shutdown
         # Todo:
-        Thread.new {
+        Thread.new do
           sleep 2
           Log.stop
           Process.exit 0
-        }
+        end
         CrepdMain.instance.stop
       end
     end
