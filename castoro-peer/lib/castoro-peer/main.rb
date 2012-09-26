@@ -52,11 +52,13 @@ module Castoro
         @stop_requested     = false
         @reload_requested   = false
 
+        Configurations.instance
+        sleep 0.01  # make sure that "NOTICE Loading configration file: ..." is printed out on the terminal emulator
+
         CommandLineOptions.new
         if $RUN_AS_DAEMON
           Log.output = nil
         end
-        Configurations.instance
 
         if Process.euid == 0
           # Todo: notifies with an understandable error message if effective_user is not set
