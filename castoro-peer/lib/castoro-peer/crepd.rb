@@ -17,26 +17,37 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+if $0 == __FILE__
+  $LOAD_PATH.dup.each { |x| $LOAD_PATH.delete x if x.match '\/gems\/' }
+  $LOAD_PATH.unshift ".."
+  $LOAD_PATH.unshift "../../../castoro-common/lib"
+end
+
 require 'castoro-peer/main'
 require 'castoro-peer/server_status'
 require 'castoro-peer/crepd_workers'
+#require './ruby_tracer' ; RubyTracer.open "trace-#{$$}.log"
 
 module Castoro
   module Peer
 
     class CrepdMain < Main
       def initialize
+        #RubyTracer.enable
         super
         ReplicationQueueDirectories.instance.salvage
         @w = ReplicationWorkers.new
+        #RubyTracer.enable
       end
 
       def start
         @w.start_workers
+        #RubyTracer.enable
         super
       end
 
       def stop
+        #RubyTracer.enable
         super
         @w.stop_workers
         quit
@@ -52,10 +63,6 @@ end
 ################################################################################
 
 if $0 == __FILE__
-  $LOAD_PATH.dup.each { |x|
-    $LOAD_PATH.delete x if x.match '\/gems\/'
-  }
-
   m = Castoro::Peer::CrepdMain.instance
   Castoro::Peer::ServerStatus.instance.status_name = 'offline'
   m.main_loop

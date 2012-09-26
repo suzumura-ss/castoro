@@ -106,7 +106,8 @@ module Castoro
         sleep 0.01
         if @thread and @thread.alive?
           # p [ @thread, @thread.alive? ]
-          wait_until_finish
+          #wait_until_finish
+          wait_for_a_while
           sleep 0.1
           if @thread and @thread.alive?
             Thread.kill @thread
@@ -117,7 +118,7 @@ module Castoro
 
       protected
 
-      def wait_until_finish
+      def wait_until_finish  # this cannot be used because threads for pipeline process in cpeerd will never stop by themselves
         begin
           @mutex.lock
           until finish? do
@@ -125,6 +126,15 @@ module Castoro
             @cv.timedwait @mutex, 0.5
             sleep 0.1  # cv.wait does not wait in a certain condition: Bug of Ruby: http://redmine.ruby-lang.org/issues/show/3212
           end
+        ensure
+          @mutex.unlock
+        end
+      end
+
+      def wait_for_a_while
+        begin
+          @mutex.lock
+          @cv.timedwait @mutex, 0.5
         ensure
           @mutex.unlock
         end

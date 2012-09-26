@@ -99,11 +99,13 @@ module Castoro
       end
 
       def stop_workers
-        @z.graceful_stop
-        @w.each { |w| w.graceful_stop }
-        @p.graceful_stop
-        @r.graceful_stop
-        @a.graceful_stop
+        a = []
+        a << Thread.new { @z.graceful_stop }
+        @w.each { |w| a << Thread.new { w.graceful_stop } }
+        a << Thread.new { @p.graceful_stop }
+        a << Thread.new { @r.graceful_stop }
+        a << Thread.new { @a.graceful_stop }
+        a.each { |t| t.join }
         @s.stop
       end
 
@@ -113,8 +115,10 @@ module Castoro
       end
 
       def stop_maintenance_server
-        @m.graceful_stop
-        @h.graceful_stop
+        a = []
+        a << Thread.new { @m.graceful_stop }
+        a << Thread.new { @h.graceful_stop }
+        a.each { |t| t.join }
       end
 
    #####################################################################
@@ -383,7 +387,7 @@ module Castoro
           ServerStatus.instance.status = ServerStatus::OFFLINE 
           @alive_packet_sender.send_alive_packet
           sleep 0.1
-          CmondMain.instance.stop
+          Thread.new { CmondMain.instance.stop }
         end
 
         def do_mode

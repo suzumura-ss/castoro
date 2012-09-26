@@ -56,7 +56,7 @@ module Castoro
 
       def stop_requested= f
         super
-        @receiver.stop_requested = f
+        @receiver.stop_requested = f if @receiver
       end
     end
 

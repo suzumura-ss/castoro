@@ -56,11 +56,16 @@ module Castoro
       end
 
       def stop_workers
+        #p "def stop_workers starts in ReplicationWorkers"
+        a = []
         @w.each do |w|
-          Thread.new { w.graceful_stop }  # Todo: this code is somewhat unusual
+          #p "stop_workers #{w.class}"
+          a << Thread.new { w.graceful_stop }
         end
-        @m.graceful_stop
-        @h.graceful_stop
+        a << Thread.new { @m.graceful_stop }
+        a << Thread.new { @h.graceful_stop }
+        a.each { |t| t.join }
+        #p "def stop_workers ends in ReplicationWorkers"
       end
     end
 
@@ -234,7 +239,7 @@ module Castoro
       end
 
       def do_shutdown
-        CrepdMain.instance.stop
+        Thread.new { CrepdMain.instance.stop }
       end
     end
 

@@ -64,10 +64,12 @@ module Castoro
 
       def start
         @thread_acceptor = Thread.new do
+          #RubyTracer.enable
           acceptor
         end
         @number_of_threads.times do
           @thread_workers << Thread.new do
+            #RubyTracer.enable
             worker
           end
         end
@@ -84,18 +86,20 @@ module Castoro
             @queue.enq s
 
           rescue IOError => e
+            #p "@stop_requested = #{@stop_requested} in PreThreadedTcpServer"
             return if @stop_requested and e.message.match( /closed stream/ )
             Log.warning e
-            sleep 0.1  # To avoid out of control
+            sleep 1  # To avoid out of control
 
           rescue Errno::EBADF => e
+            #p "@stop_requested = #{@stop_requested} in PreThreadedTcpServer"
             return if @stop_requested and e.message.match( /Bad file number/ )
             Log.warning e
-            sleep 0.1
+            sleep 1
 
           rescue => e
             Log.warning e
-            sleep 0.1
+            sleep 1
 
           end
         end
@@ -114,7 +118,8 @@ module Castoro
           rescue => e
             Log.warning e
           ensure
-            socket.close unless socket.closed?
+            # socket might be nil or not-yet-defined
+            socket.close if socket and not socket.closed?
           end
         end
       end
@@ -125,27 +130,29 @@ module Castoro
 
       # it would be better if this method is overridden in a subclass
       def stop_requested= f
+        #p "def stop_requested= #{f} in PreThreadedTcpServer"
         @stop_requested = f
       end
 
       def stop
+        #p "def stop in PreThreadedTcpServer"
         Thread.kill @thread_acceptor if @thread_acceptor.alive?
         @thread_workers.each { |t| Thread.kill t }
         sleep 0.1
-        @thread_acceptor.join
-        @thread_workers.each { |t| t.join }
       end
 
       def graceful_stop
-        stop_requested = true
+        #p "def graceful_stop starts in PreThreadedTcpServer"
+        self.stop_requested = true
         @server_socket.close unless @server_socket.closed?  # this lets accept abort
         @thread_acceptor.join
-        @thread_workers.each do |t|
-          t.stop_requested = true
-          @queue.enq nil
-        end
+        #p "def stop acceptor joined in PreThreadedTcpServer"
+        @thread_workers.each { |t| @queue.enq nil }
+        # @thread_workers.each { |t| t.join }  some thread cannot stop by themselves due to being blocked in a system call
+        #p "def stop workers joined in PreThreadedTcpServer"
         sleep 0.5
         stop
+        #p "def graceful_stop ends in PreThreadedTcpServer"
       end
     end
 

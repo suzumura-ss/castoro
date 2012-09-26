@@ -181,10 +181,12 @@ module Castoro
       end
 
       def stop_workers
-        @w.each { |w|
-#          p [ 'stop_workers', w ]
-          w.graceful_stop
-        }
+        a = []
+        @w.each do |w|
+          # p [ 'stop_workers', w ]
+          a << Thread.new { w.graceful_stop }
+        end
+        a.each { |t| t.join }
       end
 
       def start_maintenance_server
@@ -193,8 +195,10 @@ module Castoro
       end
 
       def stop_maintenance_server
-        @m.graceful_stop
-        @h.graceful_stop
+        a = []
+        a << Thread.new { @m.graceful_stop }
+        a << Thread.new { @h.graceful_stop }
+        a.each { |t| t.join }
       end
 
    ########################################################################
@@ -665,7 +669,7 @@ module Castoro
         end
 
         def do_shutdown
-          CpeerdMain.instance.stop
+          Thread.new { CpeerdMain.instance.stop }
         end
 
         def do_dump
