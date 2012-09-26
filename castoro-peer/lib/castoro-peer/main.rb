@@ -26,11 +26,10 @@ require 'castoro-peer/log'
 require 'castoro-peer/daemon'
 require 'castoro-peer/signal_handlers'
 require 'castoro-peer/custom_condition_variable'
+require 'castoro-peer/version'
 
 module Castoro
   module Peer
-
-    PROGRAM_VERSION = 'peer-2.0 - 2012-06-11'
 
     $RUN_AS_DAEMON = true
 
