@@ -133,7 +133,8 @@ module Castoro
         hostname = @data[ :peer_hostname ]
         groups = @data[ :StorageGroupsData ]
         g = groups.select { |a| a.include? hostname }
-        unless g
+        g.flatten!
+        unless g.index( hostname )
           raise ConfigurationError, "Hostname #{hostname} is not included in #{@global[ :config_group_file ]}"
         end
       end
