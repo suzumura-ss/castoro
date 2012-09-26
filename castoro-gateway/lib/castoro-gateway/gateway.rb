@@ -134,8 +134,11 @@ module Castoro
         @console = case @config["type"]
                    when "original"
                      @@console_server_class.new @logger, @repository, @config["peer_comm_device_addr"], @config["gateway_console_tcpport"].to_i
-                   when "master", "island"
+                   when "island"  
                      @logger.info { "call console server create!! " }
+                     @@console_server_class.new @logger, @repository, @config["island_comm_device_addr"], @config["gateway_console_tcpport"].to_i
+                   when "master"
+                     @logger.info { "call master console server create!! " }
                      @@master_console_class.new @logger, @repository, @config["island_comm_device_addr"], @config["gateway_console_tcpport"].to_i
                    else
                      raise CastoroError, "type needs to be original, master, or island."
