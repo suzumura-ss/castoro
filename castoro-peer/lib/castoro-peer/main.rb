@@ -96,14 +96,18 @@ module Castoro
         Log.notice "Stopping..."
       end
 
+      def quit
+        Log.notice "Shutdowned."
+        Log.stop
+        sleep 0.1
+        exit 0
+      end
+
       def process_request
         if @shutdown_requested
           @shutdown_requested = false
           stop
-          Log.notice "Shutdowned."
-          Log.stop
-          sleep 0.1
-          exit 0
+          quit
         end
 
         if @stop_requested

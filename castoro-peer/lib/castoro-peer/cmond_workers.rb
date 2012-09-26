@@ -45,20 +45,20 @@ module Castoro
         rescue => e
           Log.warning e, "Remote control: attempt of connecting to #{host}:#{port}"
           error = e.message
-          socket.close if socket and ! socket.closed?
+          socket.close if socket and not socket.closed?
           socket = nil
         end
         if socket
           socket.setsockopt Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true
           socket.syswrite "_mode #{ServerStatus.instance.status_name}\n"
           begin
-            socket.gets_with_timed_out TIMED_OUT_DURATION
+            socket.gets_with_timed_out TIMED_OUT_DURATION  # gets_with_timed_out might be interrupted by Thread.kill
           rescue Errno::EAGAIN  # "Resource temporarily unavailable"
             Log.warning "Remote control: response timed out #{TIMED_OUT_DURATION}s: #{host}:#{port} #{ServerStatus.instance.status_name}"
           rescue => e
             Log.warning e, "Remote control: #{host}:#{port} #{ServerStatus.instance.status_name}"
           ensure
-            socket.close if socket and ! socket.closed?
+            socket.close if socket and not socket.closed?
           end
         end
       end
@@ -141,6 +141,16 @@ module Castoro
         end
 
         def serve
+          loop do
+            break if @stop_requested
+            work
+          end
+        ensure
+          @socket.close if @socket and not @socket.closed?
+          @socket = nil
+        end
+
+        def work
           Thread.current.priority = 3
           mode, auto, error = nil, nil, nil
           begin
@@ -150,16 +160,16 @@ module Castoro
                 @socket = ExtendedTCPSocket.new
                 @socket.connect @host, @port, TIMED_OUT_DURATION
                 Log.notice "Health check: connection established to #{@host}:#{@port}"
+                elapsed = Time.new - start_time
+                Log.notice "Health check: connection establishment to #{@host}:#{@port} took #{"%.3fs" % (elapsed)}" if THRESHOLD < elapsed 
               rescue => e
                 unless @last_error == e.message
                   Log.warning e, "Health check: attempt of connecting to #{@host}:#{@port}"
                 end
                 error = e.message
-                @socket.close if @socket and ! @socket.closed?
+                @socket.close if @socket and not @socket.closed?
                 @socket = nil
               end
-              elapsed = Time.new - start_time
-              Log.notice "Health check: connection establishment to #{@host}:#{@port} took #{"%.3fs" % (elapsed)}" if THRESHOLD < elapsed 
             end
 
             if @socket
@@ -174,7 +184,7 @@ module Castoro
               Log.notice "Health check: command syswrite() to #{@host}:#{@port} took #{"%.3fs" % (elapsed)}" if THRESHOLD < elapsed 
               x = nil
               begin
-                x = @socket.gets_with_timed_out TIMED_OUT_DURATION
+                x = @socket.gets_with_timed_out TIMED_OUT_DURATION  # gets_with_timed_out might be interrupted by Thread.kill
                 elapsed = Time.new - start_time
                 Log.notice "Health check: command response from #{@host}:#{@port} took #{"%.3fs" % (elapsed)}" if THRESHOLD < elapsed 
                 mode, mode2, auto, debug = x.split ' '
@@ -185,19 +195,19 @@ module Castoro
                 Log.notice "Health check: command response did not come from #{@host}:#{@port} in #{"%.3fs" % (elapsed)}" if THRESHOLD < elapsed 
                 error = "Timed out #{TIMED_OUT_DURATION}s"
                 Log.warning "#{error} #{@host}:#{@port}"
-                @socket.close if @socket and ! @socket.closed?
+                @socket.close if @socket and not @socket.closed?
                 @socket = nil
               rescue => e
                 Log.warning e, "#{@host}:#{@port}"
                 error = e.message
-                @socket.close if @socket and ! @socket.closed?
+                @socket.close if @socket and not @socket.closed?
                 @socket = nil
               end
             end
           rescue => e
             Log.warning e, "#{@host}:#{@port}"
             error = e.message
-            @socket.close if @socket and ! @socket.closed?
+            @socket.close if @socket and not @socket.closed?
             @socket = nil
           end
 
@@ -205,11 +215,6 @@ module Castoro
           @mode, @auto, @error = mode, auto, error
 #          p [ @host, @port, @mode, @auto, @error ]
 
-        rescue => e
-          Log.err e, "#{@host}:#{@port}"
-          error = e.message
-
-        ensure
           rest = @target - Time.new
           x_now = Time.new
           x_rest = rest
@@ -224,11 +229,11 @@ module Castoro
           # Log.notice "rest:#{x_rest} = @target:#{x_target} - Time.new:#{x_now} ==> rest:#{rest} @target:#{@target}"
           sleep rest
           @last_error = error
-        end
 
-        def graceful_stop
-          finished
-          super
+        rescue => e
+          Log.err e, "#{@host}:#{@port}"
+          @last_error = e.message
+          sleep 0.1
         end
       end
 
@@ -246,72 +251,65 @@ module Castoro
         end
 
         def serve
-          begin
-            error = false
-            error = true if @p.error or @r.error
-            @w.each { |x| error = true if x.error }
+          error = false
+          error = true if @p.error or @r.error
+          @w.each { |x| error = true if x.error }
 #            p [ @error, error, @error != error ]
 
-            min = error ? ServerStatus::REP : ServerStatus::ONLINE
-            if @p.mode and @p.mode != ''
-              p_mode = ServerStatus.status_name_to_i @p.mode
-              if ServerStatus::REP <= p_mode
-                min = p_mode if p_mode < min
-              end
+          min = error ? ServerStatus::REP : ServerStatus::ONLINE
+          if @p.mode and @p.mode != ''
+            p_mode = ServerStatus.status_name_to_i @p.mode
+            if ServerStatus::REP <= p_mode
+              min = p_mode if p_mode < min
             end
-            if @r.mode and @r.mode != ''
-              r_mode = ServerStatus.status_name_to_i @r.mode
-              if ServerStatus::REP <= r_mode
-                min = r_mode if r_mode < min
-              end
-            end
-            @w.map do |x| 
-              if x.mode and x.mode != ''
-                y = ServerStatus.status_name_to_i x.mode
-#p [x, y]
-                if ServerStatus::REP <= y
-                  min = y if y < min
-                end
-              end
-            end
-            min = ServerStatus::REP if min < ServerStatus::REP
-
-            if @error != error
-              @error = error
-              if error
-                Log.err "#{@p.host}:#{@p.port} cpeerd error: #{@p.error}" if @p.error
-                Log.err "#{@r.host}:#{@r.port} crepd error: #{@r.error}" if @r.error
-                @w.each { |x| 
-                  Log.err "#{x.host}:#{x.port} cmond error: #{x.error}" if x.error
-                }
-              else
-                Log.notice "Health check: error recovered"
-              end
-            end
-
-            # if min != @lsat_min and min < @lsat_min and min < ServerStatus.instance.status  # Todo: falling down and rising up? ...
-            if min < ServerStatus.instance.status  # Todo: falling down and rising up? ...
-              if $AUTO_PILOT
-                ServerStatus.instance.status = min
-                sleep 0.01
-                RemoteControl.set_mode_of_every_local_target
-                @alive_packet_sender.send_alive_packet
-              else
-                Log.notice "STATUS change (from #{ServerStatus.instance.status_name} to #{min}) is requested, but auto is disabled"
-              end
-            end
-            # @lsat_min = min
-                
-          rescue => e
-            Log.err e
-          ensure
-            sleep 1
           end
-        end
+          if @r.mode and @r.mode != ''
+            r_mode = ServerStatus.status_name_to_i @r.mode
+            if ServerStatus::REP <= r_mode
+              min = r_mode if r_mode < min
+            end
+          end
+          @w.map do |x| 
+            if x.mode and x.mode != ''
+              y = ServerStatus.status_name_to_i x.mode
+#p [x, y]
+              if ServerStatus::REP <= y
+                min = y if y < min
+              end
+            end
+          end
+          min = ServerStatus::REP if min < ServerStatus::REP
 
-        def graceful_stop
-          finished
-          super
+          if @error != error
+            @error = error
+            if error
+              Log.err "#{@p.host}:#{@p.port} cpeerd error: #{@p.error}" if @p.error
+              Log.err "#{@r.host}:#{@r.port} crepd error: #{@r.error}" if @r.error
+              @w.each { |x| 
+                Log.err "#{x.host}:#{x.port} cmond error: #{x.error}" if x.error
+              }
+            else
+              Log.notice "Health check: error recovered"
+            end
+          end
+
+          # if min != @lsat_min and min < @lsat_min and min < ServerStatus.instance.status  # Todo: falling down and rising up? ...
+          if min < ServerStatus.instance.status  # Todo: falling down and rising up? ...
+            if $AUTO_PILOT
+              ServerStatus.instance.status = min
+              sleep 0.01
+              RemoteControl.set_mode_of_every_local_target
+              @alive_packet_sender.send_alive_packet
+            else
+              Log.notice "STATUS change (from #{ServerStatus.instance.status_name} to #{min}) is requested, but auto is disabled"
+            end
+          end
+          # @lsat_min = min
+          sleep 1
+          
+        rescue => e
+          Log.err e
+          sleep 1
         end
       end
 
@@ -332,8 +330,13 @@ module Castoro
         end
 
         def serve
-          send_alive_packet
-          sleep @period
+          loop do
+            break if @stop_requested
+            send_alive_packet
+            sleep @period
+          end
+        ensure
+          @channel.close
         end
 
         def send_alive_packet
@@ -344,11 +347,6 @@ module Castoro
               @channel.send 'ALIVE', args, @ip, @port
             end
           end
-        end
-
-        def graceful_stop
-          finished
-          super
         end
       end
 
@@ -384,13 +382,7 @@ module Castoro
         def do_shutdown
           ServerStatus.instance.status = ServerStatus::OFFLINE 
           @alive_packet_sender.send_alive_packet
-          # Todo:
-          Thread.new do
-            sleep 0.5
-            Log.stop
-            Process.exit 0
-          end
-          # Todo:
+          sleep 0.1
           CmondMain.instance.stop
         end
 
@@ -436,7 +428,7 @@ module Castoro
           while ( opt = @a.shift )
             opt_short = true if opt == "-s"
             opt_period = opt.to_i if opt_period.nil? and opt.match(/[0-9]/)
-            opt_count  = opt.to_i if ! opt_period.nil? and opt.match(/[0-9]/)
+            opt_count  = opt.to_i if ( not opt_period.nil? ) and opt.match(/[0-9]/)
           end
           while 0 < opt_count
             t = Time.new

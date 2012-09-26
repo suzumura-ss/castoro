@@ -37,9 +37,10 @@ module Castoro
       end
 
       def stop
+        super
         @w.stop_workers
         @w.stop_maintenance_server
-        super
+        quit
       end
     end
 

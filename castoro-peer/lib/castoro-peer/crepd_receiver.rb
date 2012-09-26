@@ -79,7 +79,7 @@ module Castoro
       def initiate
         loop do
           begin
-            @channel.receive
+            @channel.receive  # receive might be interrupted by Thread.kill
             break if @stop_requested or @channel.closed?
             @command, @args = @channel.parse
             @ip, @port = @io.ip, @io.port

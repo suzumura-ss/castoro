@@ -204,7 +204,7 @@ module Castoro
       class UdpCommandReceiver < Worker
         def initialize pipeline, port
           @pipeline = pipeline
-          @socket = ExtendedUDPSocket.new
+          @socket = ExtendedUDPSocket.new # @socket cannot be closed in this class because @socket will be used in other classes
           c = Configurations.instance
           @socket.join_multicast_group c.peer_comm_ipaddr_multicast, c.peer_comm_ipaddr_nic
           @socket.bind '0.0.0.0', port
@@ -214,16 +214,11 @@ module Castoro
         def serve
           channel = UdpServerChannel.new @socket
           ticket = CommandReceiverTicketPool.instance.create_ticket
-          channel.receive ticket
+          channel.receive ticket  # receive might be interrupted by Thread.kill
           ticket.channel = channel
           ticket.socket = nil
           ticket.mark
           @pipeline.enq ticket
-        end
-
-        def graceful_stop
-          finished
-          super
         end
       end
 
@@ -263,33 +258,34 @@ module Castoro
           @socket.listen 10
 
           loop do
+            break if @stop_requested
             client_socket = nil
             begin
-              client_socket, client_sockaddr = @socket.accept
+              client_socket, client_sockaddr = @socket.accept  # accept might be interrupted by Thread.kill
               s = SocketDelegator.new client_socket
               s.client_sockaddr = client_sockaddr
-            rescue IOError, Errno::EBADF => e
-              # IOError "closed stream"
-              # Errno::EBADF "Bad file number"
-              if @stop_requested
-                @finished = true
-                return
-              else
-                raise e
-              end
+
+            rescue IOError => e
+              return if @stop_requested and e.message.match( /closed stream/ )
+              raise e
+
+            rescue Errno::EBADF => e
+              return if @stop_requested and e.message.match( /Bad file number/ )
+              Log.warning e
+              raise e
             end
-            if @stop_requested
-              @socket.close if @socket and not @socket.closed?
-              @finished = true
-              return
-            end
+
             @pipeline.enq s
           end
+
+        ensure
+          @socket.close if @socket and not @socket.closed?
+          finished
         end
 
         def graceful_stop
           @stop_requested = true
-          @socket.close if @socket
+          @socket.close if @socket and not @socket.closed?  # this lets accept abort
           super
         end
       end
@@ -303,15 +299,13 @@ module Castoro
         end
 
         def serve
-          client = @pipeline1.deq
-          if client.nil?
-            @finished = true
-            return
-          end
+          # TcpCommandAcceptor will stop first when graceful_stop is called.
+          # Then all tickets will go through the pipeline processes.
+          client = @pipeline1.deq  # deq will be interrupted by Thread.kill later.
           loop do
             ticket = CommandReceiverTicketPool.instance.create_ticket
             channel = TcpServerChannel.new client
-            channel.receive ticket
+            channel.receive ticket  # receive might be interrupted by Thread.kill
             if channel.closed?
               CommandReceiverTicketPool.instance.delete ticket
               return
@@ -321,12 +315,6 @@ module Castoro
             ticket.mark
             @pipeline2.enq ticket
           end
-        end
-
-        def graceful_stop
-          # Todo: who will receive this 'nil'?
-          @pipeline1.enq nil
-          super
         end
       end
 
@@ -677,13 +665,6 @@ module Castoro
         end
 
         def do_shutdown
-          # Todo:
-          Thread.new do
-            sleep 2
-            Log.stop
-            Process.exit 0
-          end
-          # Todo:
           CpeerdMain.instance.stop
         end
 

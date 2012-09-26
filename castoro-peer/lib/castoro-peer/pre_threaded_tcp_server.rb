@@ -75,21 +75,21 @@ module Castoro
 
       def acceptor
         loop do
+          break if @stop_requested
           Thread.current.priority = 3
           begin
-            # accept will be interrupted by Thread.kill
-            client_socket, client_sockaddr = @server_socket.accept
+            client_socket, client_sockaddr = @server_socket.accept  # accept might be interrupted by Thread.kill
             s = SocketDelegator.new client_socket
             s.client_sockaddr = client_sockaddr
             @queue.enq s
 
           rescue IOError => e
-            return if e.message.match( /closed stream/ )
+            return if @stop_requested and e.message.match( /closed stream/ )
             Log.warning e
             sleep 0.1  # To avoid out of control
 
           rescue Errno::EBADF => e
-            return if e.message.match( /Bad file number/ )
+            return if @stop_requested and e.message.match( /Bad file number/ )
             Log.warning e
             sleep 0.1
 
@@ -102,7 +102,6 @@ module Castoro
 
       ensure
         @server_socket.close unless @server_socket.closed?
-
       end
 
       def worker
@@ -130,14 +129,17 @@ module Castoro
       end
 
       def stop
-        Thread.kill @thread_acceptor
-        @thread_workers.each do |t|
-          Thread.kill t
-        end
+        Thread.kill @thread_acceptor if @thread_acceptor.alive?
+        @thread_workers.each { |t| Thread.kill t }
+        sleep 0.1
+        @thread_acceptor.join
+        @thread_workers.each { |t| t.join }
       end
 
       def graceful_stop
-        Thread.kill @thread_acceptor
+        stop_requested = true
+        @server_socket.close unless @server_socket.closed?  # this lets accept abort
+        @thread_acceptor.join
         @thread_workers.each do |t|
           t.stop_requested = true
           @queue.enq nil

@@ -99,7 +99,7 @@ module Castoro
         #  Errno::EAGAIN: Resource temporarily unavailable ; meanings timed out
         #  EOFError "end of file reached"
         #  IOError: closed stream
-        @buffer = sysread( BUFSIZE )
+        @buffer = sysread( BUFSIZE )  # sysread might be interrupted by Thread.kill
         Log.debug "TCP I : #{@addr}:#{@port} #{@buffer}" if $DEBUG
 
         return (@buffer and 0 < @buffer.length)

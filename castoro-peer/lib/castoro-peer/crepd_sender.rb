@@ -164,7 +164,7 @@ module Castoro
           end
         end
 
-        @connection.receive
+        @connection.receive  # receive might be interrupted by Thread.kill
       end
 
       def delete( args )
@@ -237,13 +237,13 @@ module Castoro
       end
 
       def receive
-        unless ( IO.select( [@socket], nil, nil, TIMED_OUT_FOR_RECEIVING ) )
+        unless ( IO.select( [@socket], nil, nil, TIMED_OUT_FOR_RECEIVING ) )  # select might be interrupted by Thread.kill
           m = "Response from a remote host timed out #{TIMED_OUT_FOR_RECEIVING}s: #{@basket} to #{@host}:#{@port}"
           Log.warning m
           raise RetryableError, m
         end
 
-        @channel.receive
+        @channel.receive  # receive might be interrupted by Thread.kill
         if ( @channel.closed? )
           raise RetryableError, "Connection is unexpectedly closed, waiting response of #{@command}: #{@basket} to #{@host}:#{@port}"
         end

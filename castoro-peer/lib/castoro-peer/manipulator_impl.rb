@@ -74,7 +74,7 @@ module Castoro
           end
           s.syswrite command
           if ( IO.select( [s], nil, nil, @@timed_out ) )
-            return s.gets
+            return s.gets  # gets might be interrupted by Thread.kill
           else
             raise CommandExecutionError, "CSM daemon error: response timed out: #{@@timed_out}s #{@command}"
           end

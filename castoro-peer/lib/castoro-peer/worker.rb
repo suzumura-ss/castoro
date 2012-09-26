@@ -50,7 +50,7 @@ module Castoro
             calmness = false
 #            @mutex.synchronize { @finished = false }
             begin
-              self.serve *args
+              serve *args
               if $DEBUG and Log.output
                 STDERR.flush 
                 STDOUT.flush
@@ -71,15 +71,18 @@ module Castoro
               # calmness = true if exception_count % 10 == 0
               calmness = true
             end
-#            @mutex.synchronize { @finished = true }
-            @cv.signal
             # Thread.pass
             if calmness
               sleep 1.5  # To avoid an out-of-control infinite loop
               calmness = false
             end
             if @finished
-              Thread.current.exit
+              @cv.broadcast
+              break
+            end
+            if @stop_requested
+              finished
+              break
             end
           end
         end
@@ -90,9 +93,9 @@ module Castoro
       end
 
       def restart
-        self.graceful_stop
+        graceful_stop
         sleep 0.01
-        self.start
+        start
       end
 
       def refresh
@@ -103,16 +106,13 @@ module Castoro
         sleep 0.01
         if @thread and @thread.alive?
           # p [ @thread, @thread.alive? ]
-          self.wait_until_finish
+          wait_until_finish
+          sleep 0.1
           if @thread and @thread.alive?
-            Thread::kill @thread
+            Thread.kill @thread
           end
           @thread.join
         end
-      end
-
-      def stop_requested?
-        @stop_requested
       end
 
       protected
@@ -120,10 +120,10 @@ module Castoro
       def wait_until_finish
         begin
           @mutex.lock
-          until self.finish? do
+          until finish? do
             break if @terminated
-            @cv.wait @mutex
-            sleep 1  # cv.wait does not wait: Bug of Ruby: http://redmine.ruby-lang.org/issues/show/3212
+            @cv.timedwait @mutex, 0.5
+            sleep 0.1  # cv.wait does not wait in a certain condition: Bug of Ruby: http://redmine.ruby-lang.org/issues/show/3212
           end
         ensure
           @mutex.unlock
@@ -133,15 +133,15 @@ module Castoro
       def finish?
         # this could be implemented in a subclass
         # or use @finished to indicate the stauts
-        # @cv.signal in needed to notice change of condition
+        # @cv.signal is needed to notice change of condition
         @finished
       end
 
       def finished
-        Thread.new {
+        @mutex.synchronize do
           @finished = true
-          @cv.broadcast
-        }
+        end
+        @cv.broadcast
       end
     end
 

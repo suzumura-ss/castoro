@@ -41,7 +41,7 @@ module Castoro
         c = Configurations.instance
         Basket.setup c.type_id_rangesHash, c.basket_basedir
         @w = []
-        @w << ReplicationInternalCommandReceiver.new c.crepd_registration_udpport
+        @w << ReplicationInternalCommandReceiver.new( c.crepd_registration_udpport )
         @w << ReplicationQueueDirectoriesMonitor.new
         @w << ReplicationReceiveServer.new
         c.crepd_number_of_replication_sender.times { @w << ReplicationSenderManager.new }
@@ -190,8 +190,17 @@ module Castoro
       end
 
       def serve
+        loop do
+          break if @stop_requested
+          work
+        end
+      ensure
+        @socket.close unless @socket.closed?
+      end
+
+      def work
         channel = UdpServerChannel.new @socket
-        channel.receive
+        channel.receive  # receive might be interrupted by Thread.kill
         command, args = channel.parse
         basket_text = args[ 'basket' ]
         if basket_text
@@ -203,11 +212,7 @@ module Castoro
         end
       rescue => e
         Log.warning e, "#{command} #{args}"
-      end
-
-      def graceful_stop
-        finished
-        super
+        sleep 0.01
       end
     end
 
@@ -229,12 +234,6 @@ module Castoro
       end
 
       def do_shutdown
-        # Todo:
-        Thread.new do
-          sleep 2
-          Log.stop
-          Process.exit 0
-        end
         CrepdMain.instance.stop
       end
     end
