@@ -99,7 +99,7 @@ module Castoro
         # Ensure to shutdown whatever happens
         Thread.new do
           sleep 1.5  # time bomb
-          Log.notice "Something went wrong. This daemon process failed to quit. Shutdowned by force."
+          Log.notice "Something went wrong. This daemon process failed to quit. Being shutdowned by force."
           Log.stop
           sleep 0.1
           Process.exit 0
