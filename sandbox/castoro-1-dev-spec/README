@@ -1,0 +1,69 @@
+Rubyアプリケーション向け分散ストレージシステム
+
+Copyright 2010 Ricoh Company, Ltd.
+
+Castoro is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Castoro is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with Castoro.  If not, see < http://www.gnu.org/licenses/ >.
+
+
+== サーバー構成 ==
+以下の3種類のサーバーが必須になります。
+- Client
+  Rails等のRubyアプリケーションを実行するサーバーです。
+
+- Gateway
+  Peerを検索するサーバーです。
+  Client, Peerと同じサーバーにできません。
+  キャッシュ用に数100MB〜数GBのメモリが必要になります。
+
+- Peer
+  実際のファイルを格納するサーバーです。
+  Client, Gatewayと同じサーバーにできません。
+
+
+== INSTALL ==
+- Client
+  gem castoro-common, castoro-client をインストールします。
+  gem json-1.2.3 以降が必要です。
+  gem castoro_client_lo は開発環境向けに提供されているもので、
+  Gatewayなし・Peer1台で環境を構築する為に利用します。
+
+- Gateway
+  gem castoro-common, castoro-gateway をインストールします。
+  gem json-1.2.3 以降が必要です。
+  Ruby-1.9系でのみ動作します。Ruby1.8系では動作しません。
+
+- Peer
+  gem castoro-common, castoro-manipulator, castoro-peer をインストールします。
+  gem json-1.2.3 以降が必要です。
+  Ruby-1.9系でのみ動作します。Ruby1.8系では動作しません。
+  ClientからHTTP Putでファイルを書き込む為には別途Apache moduleが必要です。
+  例えば以下が利用できます。
+  http://github.com/suzumura-ss/mod_upload
+
+
+== SERVER CONFIGURATION ==
+以下のポートでlisten可能にしてください。(デフォルト値の場合)
+- Client
+  UDP: 30003:30099
+
+- Gateway
+  UDP: 30100:30159
+
+- Peer
+  UDP: 30100:30159
+  TCP 30111
+
+
+== CASTORO CONFIGURATION ==
+詳細は各gemを参照してください。

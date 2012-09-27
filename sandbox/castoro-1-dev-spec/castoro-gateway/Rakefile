@@ -1,0 +1,83 @@
+#
+#   Copyright 2010 Ricoh Company, Ltd.
+#
+#   This file is part of Castoro.
+#
+#   Castoro is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU Lesser General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   Castoro is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU Lesser General Public License for more details.
+#
+#   You should have received a copy of the GNU Lesser General Public License
+#   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+require 'rubygems'
+require 'rake'
+require 'rake/clean'
+require 'rake/gempackagetask'
+require 'rake/rdoctask'
+
+$LOAD_PATH.unshift File.expand_path('../lib', __FILE__)
+require 'castoro-gateway/version'
+
+spec = Gem::Specification.new do |s|
+  s.name = 'castoro-gateway'
+  s.version = Castoro::Gateway::Version::STRING
+  s.has_rdoc = true
+  s.extra_rdoc_files = ['README.textile']
+  s.summary = "This(it) is gateway for Castoro which is distributed abstraction filesystem."
+  s.description = s.summary
+  s.executables = Dir.glob("bin/**/*").map { |f| File.basename(f) }
+  s.files = %w(History.txt LICENSE README.textile COPYING.LESSER Rakefile) + Dir.glob("{bin,ext,lib,spec}/**/*")
+  s.require_path = "lib"
+  s.bindir = "bin"
+
+  s.extensions = ["ext/extconf.rb"]
+
+  s.add_dependency('castoro-common', '>=0.1.0')
+end
+
+Rake::GemPackageTask.new(spec) do |p|
+  p.gem_spec = spec
+  p.need_tar = true
+  p.need_zip = true
+end
+
+Rake::RDocTask.new do |rdoc|
+  files =['README.textile', 'LICENSE', 'lib/**/*.rb']
+  rdoc.rdoc_files.add(files)
+  rdoc.main = "README.textile" # page to start on
+  rdoc.title = "castoro-gateway Docs"
+  rdoc.rdoc_dir = 'doc/rdoc' # rdoc output folder
+  rdoc.options << '--line-numbers'
+end
+
+desc "Run specs"
+task :spec do
+# ruby_opts  = "-d"  # Give -d option to ruby if debug messages is demanded
+  ruby_opts  = ""
+  spec_files = FileList['spec/**/*_spec.rb']
+  spec_opts  = "--format documentation --backtrace"
+  sh "ruby #{ruby_opts} -S rspec #{spec_opts} #{spec_files.join(' ')}"
+end
+
+# Prerequisites
+task :spec => :ext  # :ext will be done before :spec starts
+
+# Do the rake in the ext directory
+task :ext do
+  sh "cd ext ; rake"
+end
+
+task :default => [:usage]
+
+# Print tasks
+task :usage do
+  sh "rake -T"
+end

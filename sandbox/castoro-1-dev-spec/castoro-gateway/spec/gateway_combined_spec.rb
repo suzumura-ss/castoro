@@ -1,0 +1,448 @@
+#
+#   Copyright 2010 Ricoh Company, Ltd.
+#
+#   This file is part of Castoro.
+#
+#   Castoro is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU Lesser General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   Castoro is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU Lesser General Public License for more details.
+#
+#   You should have received a copy of the GNU Lesser General Public License
+#   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+require File.dirname(__FILE__) + '/spec_helper.rb'
+
+# mock for client
+class ClientMock
+  def initialize my_port, destination, dest_port
+    @destination = destination
+    @dest_port   = dest_port
+    @my_port     = my_port
+  end
+
+  def send header, data
+    receiver = UDPSocket.open
+    receiver.bind "0.0.0.0", @my_port
+
+    sender = UDPSocket.new
+    sender.send "#{header}#{data}", 0, @destination, @dest_port
+
+    if(res = IO::select([receiver], nil, nil, 1))
+      sock  = res[0][0]
+      res   = sock.recv(1256)
+      lines = res.split "\r\n"
+      res   = Castoro::Protocol.parse lines[1]
+    end
+
+    receiver.close
+    receiver = nil
+
+    res
+  end
+end
+
+
+describe Castoro::Gateway do
+  before do
+    # loop-back interface "127.0.0.1" seems not to work with multicast.
+    @localhost     = IPSocket.getaddress( Socket.gethostname )  # Use a real network interface as @localhost.
+    @client_port   = 30003
+    @key1          = "1.1.1"
+    @key2          = "2.1.1"
+    @peer100       = "peer100"
+    @peer200       = "peer200"
+    @peer300       = "peer300"
+    @peer400       = "peer400"
+    @content1_path = "/expdsk/1/baskets/a/0/000/000/1.1.1"
+    @content2_path = "/expdsk/1/baskets/a/0/000/000/2.1.1"
+    @udp_header    = Castoro::Protocol::UDPHeader.new(@localhost, @client_port)
+
+    @conf = {
+      "workers" => 5,
+      "multicast_addr" => "239.192.1.2",
+      "multicast_device_addr" => @localhost,
+      "cache" => {
+        "cache_size" => 1000000
+      },
+      "gateway" => {
+        "console_port" => 30150,
+        "unicast_port" => 30151,
+        "multicast_port" => 30149,
+        "watchdog_port" => 30153,
+      },
+      "peer" => {
+        "multicast_port" => 30152,
+        "multicast_addr" => "239.192.1.2",      # The peer mock will join this multicast address
+        "multicast_device_addr" => @localhost,  # The peer mock will listen on this network interface
+      }
+    }
+
+    # mock for console server forker.
+    forker = Proc.new { |server_socket, client_socket, &block|
+      block.call(client_socket)
+    }
+    Castoro::Gateway::ConsoleServer.class_variable_set(:@@forker, forker)
+
+    # initialize dependency classes.
+    Castoro::Gateway.dependency_classes_init
+
+    @g = Castoro::Gateway.new(@conf, Logger.new(nil))
+    @g.start
+    
+    # mock for client.
+    @client = ClientMock.new(@client_port, @localhost, @conf["gateway"]["unicast_port"])
+
+    # mock for console.
+    @console = Castoro::Sender::TCP.new(Logger.new(nil), @localhost, @conf["gateway"]["console_port"])
+    @console.start 2.0
+
+    # mock for peer sender.
+    @peer = Castoro::Sender::UDP.new nil
+    @peer.start
+  end
+
+  it "should be response an instance of Castoro::Protocol::Response::Nop." do
+    res = @client.send @udp_header, Castoro::Protocol::Command::Nop.new
+    res.should be_kind_of(Castoro::Protocol::Response::Nop)
+  end
+  
+  it "should be response an instance of Castoro::Protocol::Response::Status." do
+    status = Castoro::Protocol::Command::Status.new
+    res = @console.send status, 2.0
+    res.should be_kind_of(Castoro::Protocol::Response::Status)
+    res.status["CACHE_EXPIRE"].should            == Castoro::Gateway::DEFAULT_SETTINGS["cache"]["watchdog_limit"]
+    res.status["CACHE_REQUESTS"].should          == 0
+    res.status["CACHE_HITS"].should              == 0
+    res.status["CACHE_COUNT_CLEAR"].should       == 0
+    res.status["CACHE_ALLOCATE_PAGES"].should    == @conf["cache"]["cache_size"] / Castoro::Cache::PAGE_SIZE
+    res.status["CACHE_FREE_PAGES"].should        == @conf["cache"]["cache_size"] / Castoro::Cache::PAGE_SIZE
+    res.status["CACHE_ACTIVE_PAGES"].should      == 0
+    res.status["CACHE_HAVE_STATUS_PEERS"].should == 0
+    res.status["CACHE_ACTIVE_PEERS"].should      == 0
+    res.status["CACHE_READABLE_PEERS"].should    == 0
+  end
+  
+  it 'should be cache is empty.' do
+    dump = Castoro::Protocol::Command::Dump.new
+    @console.send_and_recv_stream(dump, 2.0).should_not satisfy { }
+  end
+  
+  it "should not respond to an empty packet." do
+    res = @client.send @udp_header, ""
+    res.should be_nil
+  end
+  
+  it "should not respond to an unexpeced command." do
+    mkdir = Castoro::Protocol::Command::Mkdir.new 1, 2, 3, 4
+    res = @client.send @udp_header, mkdir
+    res.should be_nil
+  end
+
+  context "when not received watchdog packets" do
+    before do
+      insert = Castoro::Protocol::Command::Insert.new(@key1, @peer100, @content1_path)
+      @peer.send @udp_header, insert, @localhost, @conf["gateway"]["multicast_port"]
+    end
+  
+    it "should not respond to the query cache, because not received watchdog packet." do
+      get = Castoro::Protocol::Command::Get.new(@key1)
+      res = @client.send @udp_header, get
+      res.should be_nil
+    end
+  
+    it "should be request sent to peers." do
+      # mock for peer of multicast receiver.
+      # Use Castoro::Receiver::UDP::Multicast in place of Castoro::Receiver::UDP
+      port = @conf["peer"]["multicast_port"]
+      addr = @conf["peer"]["multicast_addr"]
+      dev  = @conf["peer"]["multicast_device_addr"]
+      multicast_receiver = Castoro::Receiver::UDP::Multicast.new(Logger.new(nil), port, addr, dev) { |h, d, p, i|
+        multicast_sender = Castoro::Sender::UDP.new nil
+        multicast_sender.start
+    
+        get_res = Castoro::Protocol::Response::Get.new(false, d.basket, { @peer100 => "response from multicast receiver" })
+        multicast_sender.send @udp_header, get_res, h.ip, h.port
+      }
+      multicast_receiver.start
+    
+      get = Castoro::Protocol::Command::Get.new(@key1)
+      res = @client.send @udp_header, get
+
+      multicast_receiver.stop  # close sockets before the following confirmation so that sockets get surely closed
+
+      res.should be_kind_of(Castoro::Protocol::Response::Get)
+      res.basket.to_s.should == @key1
+      res.paths.should       == { @peer100 => "response from multicast receiver" }
+    end
+  end
+  
+  context "when received watchdog packets" do
+    before do
+      @mutex = Mutex.new
+      @cv = ConditionVariable.new
+      @ready = false
+      @watchdog = Thread.fork {
+        begin
+          alive = Castoro::Protocol::Command::Alive.new(@peer100, Castoro::Cache::Peer::ACTIVE, 100*1000)
+          @peer.send @udp_header, alive, @localhost, @conf["gateway"]["watchdog_port"]
+          sleep 0.1  # be calm
+  
+          alive = Castoro::Protocol::Command::Alive.new(@peer200, Castoro::Cache::Peer::ACTIVE, 1000*1000)
+          @peer.send @udp_header, alive, @localhost, @conf["gateway"]["watchdog_port"]
+          sleep 0.1  # be calm
+  
+          alive = Castoro::Protocol::Command::Alive.new(@peer300, Castoro::Cache::Peer::READONLY, 0)
+          @peer.send @udp_header, alive, @localhost, @conf["gateway"]["watchdog_port"]
+          sleep 0.1  # be calm
+  
+          alive = Castoro::Protocol::Command::Alive.new(@peer400, Castoro::Cache::Peer::MAINTENANCE, 1000)
+          @peer.send @udp_header, alive, @localhost, @conf["gateway"]["watchdog_port"]
+          sleep 0.1  # be calm
+  
+          sleep 0.5  # make it sure that the every sent packet has been processed by the Castoro::Gateway thread
+
+          @mutex.synchronize do
+            @ready = true
+          end
+          @cv.signal
+
+        end until Thread.current[:dying]
+      }
+
+      @mutex.synchronize do
+        until @ready do
+          @cv.wait @mutex
+          sleep 0.1  # avoid out-of-control
+        end
+      end
+    end
+      
+    it "should be change the status." do
+      status = Castoro::Protocol::Command::Status.new
+      res = @console.send status, 2.0
+      res.should be_kind_of(Castoro::Protocol::Response::Status)
+      res.status["CACHE_HAVE_STATUS_PEERS"].should == 4
+      res.status["CACHE_ACTIVE_PEERS"].should      == 2
+      res.status["CACHE_READABLE_PEERS"].should    == 3
+    end
+  
+    context "when 2 peers be ACTIVE" do
+      it "should be response 2 available peers." do
+        create = Castoro::Protocol::Command::Create.new(@key1, {"class" => "hints", "length" => 100*1000 })
+        res = @client.send @udp_header, create
+        res.should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
+        res.basket.to_s.should == @key1
+        res.hosts.sort.should  == [ @peer100, @peer200 ]
+      end
+      
+      context "when available peer finding" do
+        it "should be response available peer." do
+          create = Castoro::Protocol::Command::Create.new(@key1, {"class" => "hints", "length" => 1000*1000 })
+          res = @client.send @udp_header, create
+          res.should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
+          res.basket.to_s.should == @key1
+          res.hosts.should       == [ @peer200 ]
+        end
+      end
+      
+      context "when available peers not finding" do
+        it "should return error response." do
+          create = Castoro::Protocol::Command::Create.new(@key1, {"class" => "hints", "length" => 10*1000*1000 })
+          res = @client.send @udp_header, create
+          res.should be_kind_of(Castoro::Protocol::Response::Create::Gateway)
+          res.error?.should be_true
+        end
+      end
+      
+      context "when the basket is inserted" do
+        before do
+          insert = Castoro::Protocol::Command::Insert.new(@key1, @peer100, @content1_path)
+          @peer.send @udp_header, insert, @localhost, @conf["gateway"]["multicast_port"]
+      
+          sleep 1.0
+        end
+      
+        it "should be change status." do
+          status = Castoro::Protocol::Command::Status.new
+          res = @console.send status, 2.0 
+          res.should be_kind_of(Castoro::Protocol::Response::Status)
+          res.status["CACHE_ALLOCATE_PAGES"].should == @conf["cache"]["cache_size"] / Castoro::Cache::PAGE_SIZE
+          res.status["CACHE_FREE_PAGES"].should     == @conf["cache"]["cache_size"] / Castoro::Cache::PAGE_SIZE - 1
+          res.status["CACHE_ACTIVE_PAGES"].should   == 1
+        end
+  
+        it 'should be the basket is inserted into the cache.' do
+          dump = Castoro::Protocol::Command::Dump.new
+          dump_res = nil
+          @console.send_and_recv_stream(dump, 2.0) { |res|
+            dump_res = res
+          }
+          dump_res.should == "  peer100: /expdsk/1/baskets/a/1.1.1\n"
+        end
+  
+        context "when the basket was added" do
+          before do
+            insert = Castoro::Protocol::Command::Insert.new(@key1, @peer200, @content1_path)
+            @peer.send @udp_header, insert, @localhost, @conf["gateway"]["multicast_port"]
+  
+            sleep 1.0
+          end
+  
+          it 'should be the basket is added into the cache.' do
+            dump = Castoro::Protocol::Command::Dump.new
+            dump_res = nil
+            @console.send_and_recv_stream(dump, 2.0) { |res|
+              dump_res = res
+            }
+            dump_res.should == "  peer100: /expdsk/1/baskets/a/1.1.1\n  peer200: /expdsk/1/baskets/a/1.1.1\n"
+          end
+  
+          context "when the query cache" do 
+            it "should be response 2 paths." do
+              sleep 0.01
+              get = Castoro::Protocol::Command::Get.new(@key1)
+              res = @client.send @udp_header, get
+              res.should be_kind_of(Castoro::Protocol::Response::Get)
+              res.basket.to_s.should == @key1
+              res.paths.should       == { @peer100 => @content1_path, @peer200 => @content1_path }
+            end
+          
+            it "should be change status." do
+              sleep 0.01
+              get = Castoro::Protocol::Command::Get.new(@key1)
+              @client.send @udp_header, get
+  
+              status = Castoro::Protocol::Command::Status.new
+              res = @console.send status, 2.0 
+              res.should be_kind_of(Castoro::Protocol::Response::Status)
+              res.status["CACHE_REQUESTS"].should    == 1
+              res.status["CACHE_HITS"].should        == 1
+              res.status["CACHE_COUNT_CLEAR"].should == 1000
+            end
+  
+            context "when the query cache misses" do 
+              before do
+                sleep 0.01
+                get = Castoro::Protocol::Command::Get.new(@key1)
+                @client.send @udp_header, get
+              end
+  
+              it "should be no response." do
+                sleep 0.01
+                get = Castoro::Protocol::Command::Get.new(@key2)
+                res = @client.send @udp_header, get
+                res.should be_nil
+              end
+              
+              it "should be request sent to peers." do
+                # mock for peer of multicast receiver.
+                # Use Castoro::Receiver::UDP::Multicast in place of Castoro::Receiver::UDP
+                port = @conf["peer"]["multicast_port"]
+                addr = @conf["peer"]["multicast_addr"]
+                dev  = @conf["peer"]["multicast_device_addr"]
+                multicast_receiver = Castoro::Receiver::UDP::Multicast.new(Logger.new(nil), port, addr, dev) { |h, d, p, i|
+                  multicast_sender = Castoro::Sender::UDP.new nil
+                  multicast_sender.start
+              
+                  get_res = Castoro::Protocol::Response::Get.new(false, d.basket, { @peer100 => "response from multicast receiver" })
+                  multicast_sender.send @udp_header, get_res, h.ip, h.port
+                }
+                multicast_receiver.start
+              
+                get = Castoro::Protocol::Command::Get.new(@key2)
+                res = @client.send @udp_header, get
+                
+                multicast_receiver.stop  # close sockets before the following confirmation so that sockets get surely closed
+
+                res.should be_kind_of(Castoro::Protocol::Response::Get)
+                res.basket.to_s.should == @key2
+                res.paths.should       == { @peer100 => "response from multicast receiver" }
+              end
+  
+              it "should be change status." do
+                sleep 0.01
+                get = Castoro::Protocol::Command::Get.new(@key2)
+                @client.send @udp_header, get
+  
+                sleep 2.0
+                status = Castoro::Protocol::Command::Status.new
+                res = @console.send status, 2.0 
+                res.should be_kind_of(Castoro::Protocol::Response::Status)
+                res.status["CACHE_REQUESTS"].should    == 2
+                res.status["CACHE_HITS"].should        == 1
+                res.status["CACHE_COUNT_CLEAR"].should == 500
+              end
+  
+              context "when drop the basket" do
+                before do
+                  drop = Castoro::Protocol::Command::Drop.new(@key1, @peer200, @content1_path)
+                  @peer.send @udp_header, drop, @localhost, @conf["gateway"]["multicast_port"]
+                  sleep 2.0
+                end
+                
+                it "should be response 1 path." do
+                  sleep 0.01
+                  get = Castoro::Protocol::Command::Get.new(@key1)
+                  res = @client.send @udp_header, get
+                  res.should be_kind_of(Castoro::Protocol::Response::Get)
+                  res.basket.to_s.should == @key1
+                  res.paths.should       == { @peer100 => @content1_path }
+                end
+  
+                it "should be only 1 basket in the cache." do
+                  dump = Castoro::Protocol::Command::Dump.new
+                  dump_res = nil
+                  @console.send_and_recv_stream(dump, 2.0) { |res|
+                    dump_res = res
+                  }
+                  dump_res.should == "  peer100: /expdsk/1/baskets/a/1.1.1\n"
+                end
+               
+                context "when the cache is emptied" do
+                  before do 
+                    drop = Castoro::Protocol::Command::Drop.new(@key1, @peer100, @content1_path)
+                    @peer.send @udp_header, drop, @localhost, @conf["gateway"]["multicast_port"]
+                    sleep 1.0
+                  end
+  
+                  it "should be dump result is empty." do
+                    dump = Castoro::Protocol::Command::Dump.new
+                    @console.send_and_recv_stream(dump, 2.0).should_not satisfy { |res|
+                      res
+                    }
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  
+    after do
+      if @watchdog
+        @watchdog[:dying] = true
+        @watchdog.join
+        @watchdog = nil
+      end
+    end
+  end
+
+  after do
+    @peer.stop if @peer.alive? rescue nil
+    @peer = nil
+  
+    @console.stop if @console.alive? rescue nil
+    @console = nil
+  
+    @g.stop if @g.alive? rescue nil 
+    @g = nil
+  end
+end

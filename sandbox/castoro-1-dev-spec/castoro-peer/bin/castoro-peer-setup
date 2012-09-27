@@ -1,0 +1,85 @@
+#!/usr/bin/env ruby
+
+#
+#   Copyright 2010 Ricoh Company, Ltd.
+#
+#   This file is part of Castoro.
+#
+#   Castoro is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU Lesser General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   Castoro is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU Lesser General Public License for more details.
+#
+#   You should have received a copy of the GNU Lesser General Public License
+#   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+require "fileutils"
+require "optparse"
+require "pathname"
+
+force    = false
+conf_dir = "/etc/castoro/"
+
+source_files = Dir[File.join(File.dirname(__FILE__), '..', 'config', 'etc', '*')].map { |f|
+  Pathname.new(f).realpath.to_s 
+}
+
+OptionParser.new do |parser|
+  parser.on("-f", "--force", "Override config file") do
+    force = true
+  end
+  parser.on("-c CNF", "--conf <config dir>", "Configuration stored dir [/etc/castoro/]") do |v|
+    conf_dir = v
+  end
+
+  # parse.
+  begin
+    parser.parse! ARGV
+  rescue
+    puts parser.help
+    exit 1
+  end
+
+end
+
+puts "*** Setup Configuration files..."
+
+unless File.directory? conf_dir
+  puts "--- Mkdir #{conf_dir}"
+  FileUtils.mkdir_p conf_dir
+end
+
+unless force
+  exist_files = source_files.map { |f|
+    File.join(conf_dir, File.basename(f))
+  }.select { |f|
+    File.exist?(f)
+  }
+
+  unless exist_files.empty?
+    puts "--- Config file already exists - #{exist_files.first}"
+    exit 1
+  end
+end
+
+puts "--- Copy files to #{conf_dir}"
+source_files.each { |f|
+  begin
+    puts "----- #{File.basename(f)}"
+    FileUtils.cp_r f, File.join(conf_dir, File.basename(f))
+  rescue => e
+    puts "----- #{e.message}"
+    exit 1
+  end
+}
+
+puts "*** Done."
+exit 0
+
+

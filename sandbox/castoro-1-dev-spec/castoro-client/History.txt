@@ -1,0 +1,85 @@
+
+=== 0.1.2 2011-06-30
+
+* fixed issue #21
+** The failing test case existed.
+* fixed issue #22
+** the testcase duplicated.
+* fixed issue #20
+** TimeslideSender is refactored.
+
+=== 0.1.1 2011-06-03
+
+* Implemented segment settings for gateway.
+
+
+=== 0.1.0 2011-03-28
+
+* version renumbering.
+
+=== 0.0.13 2010-12-15
+
+* Implemented function to check existance of the contents after finalize timeout.
+** It is executed when cancel command failed by Castoro::Peer::PreconditionFailedError.
+
+=== 0.0.12 2010-10-21
+
+* Modified retry function of Castoro::Client#create.
+** Client retry to create to onther peer,
+   even in case of error raised while yielding or FINALIZE.
+* Added and modified specs for castoro-client.
+
+=== 0.0.11 2010-10-18
+
+* Changed exclusive control (ConditionVariable to MonitorMixin::ConditionVariable)
+* self-yield constructor was added to Client.
+* "rake spec" task supported for 1.9.2.
+** In "Rspec on 1.9.2", the spec file cannot be specified by the relative path.
+
+=== 0.0.10 2010-10-15
+
+* bugfix: CPU utilization rises very much in case of the UDP reception waiting state.
+
+=== 0.0.9 2010-09-30
+* Define thread-group for TimeslideSender.
+
+=== 0.0.8 2010-09-08
+
+* Suppress warning message (parenthesize argument(s)) for ruby1.8.x
+* Adjusted spec code for ruby1.8.x
+
+=== 0.0.7 2010-08-31
+
+* Refactored method of connecting TCP
+** Mounting by the MultiThreading is excluded as much as possible.
+* Changed lock object (Mutex to Monitor)
+
+=== 0.0.6 2010-08-25
+
+* Correction of license sentence
+
+=== 0.0.5 2010-08-23
+
+* Bugfix: Changet rescue => ensure in Castoro::Client::TimeslideSender.
+* Added log messages in Castoro::Client.
+* Added license.
+
+=== 0.0.4 2010-08-06
+
+* Added Castoro::ClientAlreadyExistsError.
+** Raise when Castoro::Peer::AlreadyExistsError returned from peer.
+* Added Castoro::Client::TimeslideSender.
+* Attached Castoro::Client and Castoro::Client::TimeslideSender.
+* Added Client specs.
+* refactoring #to_basket is used.
+
+=== 0.0.3 2010-06-23
+
+* Raketask spec is defined.
+* The default of "tcp_request_expire" is changed to 5.0(sec)
+* The gateway port number default specified by "gateways" is defined (30101>30111)
+* Loading by "require 'castor-client'" is prohibited.
+* When the DELETE command fails, it retries to another Peer.
+
+=== 0.0.2 2010-06-21
+

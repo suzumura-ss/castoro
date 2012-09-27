@@ -1,0 +1,82 @@
+
+=== 0.1.1 2011-06-20
+
+* fixed issue #23
+** Performance improvement concerning start stop of Receiver::UDP
+
+=== 0.1.0 2011-03-28
+
+* version renumbering.
+
+=== 0.0.15 2011-03-23
+
+* Bugfix: Added value-setter for the flag to stop thread, in Castoro::Server::UNIX, TCP #stop.
+* Corrected error messages.
+* Devided spec files for protocol.rb.
+* changed to BasicSocket.do_not_reverse_lookup = true
+** when 1.9.2 or newer, default is true. otherwise default is false.
+
+=== 0.0.14
+
+* Changed dependency json (1.2.3 --> >=1.2.3)
+* Added Dump command.
+* Added Sender accessors #target, #host and #port.
+
+=== 0.0.13 2010-10-01
+* Bugfix: Typo changed.
+* castoro-common-0.0.12.gem is removed.
+
+=== 0.0.12 2010-09-30
+* Set Receiver/Worker threas into ThreadGroup::Default.
+
+=== 0.0.11 2010-09-08
+
+* Suppress warning message (parenthesize argument(s)) for ruby1.8.x
+* Adjusted spec code for ruby1.8.x
+
+=== 0.0.10 2010-08-31
+
+* Refactored Sender::UNIX, Sender::TCP
+** The method of judging the time-out is changed. (Timeout->IO#select)
+
+=== 0.0.9 2010-08-25
+
+* Added dependency json 1.2.3
+* Correction of license sentence
+
+=== 0.0.8 2010-08-23
+
+* Added license.
+
+=== 0.0.7 2010-08-19
+
+* bugfix: When keep_alive mode, possible to stop.
+* bugfix: failed error response.
+* Added Castoro::WorkersHelper specs.
+
+=== 0.0.6 2010-08-06
+
+* Added accessor to Castoro::Protocol::Response @error.
+* bugfix: parse failed Protocol::Response.
+* refactored Castoro::Sender::TCP#start .
+* Added BasketKey helper String#to_basket, BasketKey#to_basket.
+* refactored Protocl. #to_basket is used.
+
+=== 0.0.5 2010-08-02
+
+* Added Castoro::Server, and Castoro::Workers.
+
+=== 0.0.4 2010-07-29
+
+* Remove dependency json 1.2.3
+
+=== 0.0.3 2010-07-28
+
+* Raketask spec is defined.
+** Added spec for BasketKey.
+* Test task changed from test to spec.
+* Added Castoro::Receiver::TCP and testcase.
+* Added Castoro::Monitor and testcase.
+* Added Castoro::{Command|Response::Mkdir, Mv.
+
+=== 0.0.2 2010-06-21

@@ -1,0 +1,55 @@
+
+=== 0.1.1 2011-05-17
+
+* fixed: issue #17
+** when mkdir, the mode argument does not work.
+
+=== 0.1.0 2011-03-28
+
+* version renumbering.
+
+=== 0.0.8 2010-12-02
+
+* fixed: issue #4
+* refactor: a large amount of object generation was avoided.
+* added script samples (resources/*
+* changed: README.textile
+** a configuration was made detailed.
+* added required_ruby_version (>= 1.9)
+* added functional spec code.
+
+=== 0.0.7 2010-10-27
+
+* bugfix: Permission masking to the file was invalid.
+* "rake spec" task supported for 1.9.2.
+** In "Rspec on 1.9.2", the spec file cannot be specified by the relative path.
+
+=== 0.0.6 2010-08-25
+
+* Correction of license sentence
+
+=== 0.0.5 2010-08-23
+
+* Supported multi environment.
+** Added command line option (-e, --environment)
+** Changed configurations file structure.
+* Implemented specify effective user function.
+* Changed README.textile
+* The help message is made appropriate.
+* Added license.
+
+=== 0.0.4 2010-08-10
+
+* changed UNIX Socket permission 0777->0666.
+
+=== 0.0.3 2010-08-06
+
+* bugfix: Response::Mkdir was returned to Command::Mv.
+
+=== 0.0.2 2010-08-02
+
+* refactoring.
+
+=== 0.0.1 2010-07-26
+
+* first release.
