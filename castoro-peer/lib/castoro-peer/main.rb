@@ -95,13 +95,22 @@ module Castoro
       def stop
         # super should be called in the beggining of subclass method
         Log.notice "Stopping..."
+
+        # Ensure to shutdown whatever happens
+        Thread.new do
+          sleep 1.5  # time bomb
+          Log.notice "Something went wrong. This daemon process failed to quit. Shutdowned by force."
+          Log.stop
+          sleep 0.1
+          Process.exit 0
+        end
       end
 
       def quit
         Log.notice "Shutdowned."
         Log.stop
         sleep 0.1
-        exit 0
+        Process.exit 0
       end
 
       def process_request
