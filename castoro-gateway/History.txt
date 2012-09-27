@@ -1,8 +1,8 @@
 === 2.1.0 2012-09-27
  * When config type is Master, status command can use.
  * Add peers_status command to island and origin gateway.
- * Option "-i <IP Address>" is added in "status","peers_status","dump","purge" commands.
-   You can execute from remote machines in there commands.
+ * Option "-i <IP Address>" is added to "status","peers_status","dump","purge" commands.
+   You can execute these commands from remote machines.
 
 === 2.0.1 2012-07-07
 * Castoro-gateway config parameter changed, Because rspec execution needs -
