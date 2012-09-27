@@ -80,7 +80,10 @@ module Castoro
         loop do
           begin
             @channel.receive  # receive might be interrupted by Thread.kill
-            break if @stop_requested or @channel.closed?
+            break if @channel.closed?
+            if @stop_requested
+              raise StopRequestedError, "Crepd has gotton a stop request during comminucation with: #{@ip}:#{@port} #{@basket}"
+            end
             @command, @args = @channel.parse
             @ip, @port = @io.ip, @io.port
             if ServerStatus.instance.replication_activated?
@@ -96,6 +99,8 @@ module Castoro
             # An attempt of sending an error status to the sender may fail
             # if the TCP connection has been already closed or shutdown.
             @channel.send e
+
+            return if @stop_requested
           end
         end
       ensure
@@ -221,7 +226,7 @@ module Castoro
 
           if @stop_requested
             @io.shutdown Socket::SHUT_RDWR
-            raise StopRequestedError, "Stop requested during receiving replication data: #{@ip}:#{@port} #{@basket}"
+            raise StopRequestedError, "Stop has been requested during receiving replication data: #{@ip}:#{@port} #{@basket}"
           end
 
           n = ( unit_size < rest ) ? unit_size : rest
