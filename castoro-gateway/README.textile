@@ -251,7 +251,7 @@ h4. type
 h4. gateway_console_tcpport
 
 TCP Port number for console.
-for original and island.
+for original and island and master.
 
 h4. gateway_comm_udpport
 
@@ -297,6 +297,8 @@ h4. peer_comm_device_addr
 
 IP Address of interface for peer_comm_ipaddr_multicast.
 for original and island.
+And IP Adress of interface for castoro-gatyeway commands 'status, peers_status, dump, purge' receive.
+for original.
 
 h4. master_comm_ipaddr_multicast
 
@@ -317,6 +319,8 @@ h4. island_comm_device_addr
 
 IP Address of interface for island_comm_ipaddr_multicast.
 for master and island.
+And IP Adress of interface for castoro-gatyeway commands 'status, peers_status, dump, purge' receive.
+for island and origin.
 
 h4. cache => class
 
