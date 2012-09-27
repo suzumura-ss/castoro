@@ -1,3 +1,11 @@
+=== 2.2.0 2012-09-26
+* Fixed issue #83 - Gently stop all worker threads upon shutdown request
+* Fixed issue #84 - Close file descriptors upon thread termination
+* Fixed issue #93 - NOTICE Loading configration file: ... was not printed out upon start of cmond
+* Enhanced validation to confirm if own hostname is included in storage_groups.json
+* Changed the frequency of SupervisorWorker in cmond from every three seconds to every second
+* Removed parentheses from cpeerd_workers.rb crepd_workers.rb cmond_workers.rb worker.rb main.rb maintenace_server.rb crepd_receiver.rb pre_threaded_tcp_server.rb to follow Ruby's convention
+
 === 2.1.0 2012-09-18
 * Fixed issue #79 - crepd should stop replication when the status drops from rep to readonly
 * Fixed issue #81 - gets_with_timed_out mulfunctioned with a received text not ending with \n
