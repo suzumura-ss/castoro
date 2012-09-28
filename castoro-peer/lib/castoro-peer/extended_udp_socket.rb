@@ -75,7 +75,7 @@ module Castoro
 
       def receiving ticket = nil
         begin
-          data, array = recvfrom( BUFFER_SIZE )
+          data, array = recvfrom( BUFFER_SIZE )  # recvfrom might be interrupted by Thread.kill
           ticket.mark unless ticket.nil?
         rescue Errno::EINTR
           retry

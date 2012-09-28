@@ -61,7 +61,7 @@ module Castoro
       def nickname; 'ctp' ; end
 
       def create_ticket
-        super( CommandReceiverTicket )
+        super CommandReceiverTicket
       end
     end
 
@@ -70,7 +70,7 @@ module Castoro
       def nickname; 'mtp' ; end
 
       def create_ticket
-        super( CommandSenderTicket )
+        super CommandSenderTicket
       end
     end
 
@@ -112,8 +112,8 @@ module Castoro
     class ResponseSenderPL  # This class is a delegator class
       include Singleton
 
-      def enq( ticket )
-        if ( ticket.channel.tcp? )
+      def enq ticket
+        if ticket.channel.tcp?
           TcpResponseSenderPL.instance.enq ticket
         else
           UdpResponseSenderPL.instance.enq ticket
@@ -165,15 +165,15 @@ module Castoro
         5.times { @w << TcpCommandReceiver.new( TcpAcceptorPL.instance, TCPCommandReceiverPL.instance ) }
         c.cpeerd_number_of_udp_command_processor.times    { @w << CommandProcessor.new( UDPCommandReceiverPL.instance ) }
         c.cpeerd_number_of_tcp_command_processor.times    { @w << CommandProcessor.new( TCPCommandReceiverPL.instance ) }
-        c.cpeerd_number_of_basket_status_query_db.times   { @w << BasketStatusQueryDB.new() }
-        c.cpeerd_number_of_csm_controller.times           { @w << CsmController.new() }
+        c.cpeerd_number_of_basket_status_query_db.times   { @w << BasketStatusQueryDB.new }
+        c.cpeerd_number_of_csm_controller.times           { @w << CsmController.new }
         c.cpeerd_number_of_udp_response_sender.times      { @w << UdpResponseSender.new( UdpResponseSenderPL.instance ) }
         c.cpeerd_number_of_tcp_response_sender.times      { @w << TcpResponseSender.new( TcpResponseSenderPL.instance ) }
         c.cpeerd_number_of_multicast_command_sender.times { @w << MulticastCommandSender.new( c.gateway_comm_ipaddr_multicast, c.gateway_learning_udpport_multicast ) }
-        c.cpeerd_number_of_replication_db_client.times    { @w << ReplicationDBClient.new() }
-        @w << StatisticsLogger.new()
-        @m = CpeerdTcpMaintenaceServer.new( c.cpeerd_maintenance_tcpport )
-        @h = TCPHealthCheckPatientServer.new( c.cpeerd_healthcheck_tcpport )
+        c.cpeerd_number_of_replication_db_client.times    { @w << ReplicationDBClient.new }
+        @w << StatisticsLogger.new
+        @m = CpeerdTcpMaintenaceServer.new c.cpeerd_maintenance_tcpport
+        @h = TCPHealthCheckPatientServer.new c.cpeerd_healthcheck_tcpport
       end
 
       def start_workers
@@ -181,10 +181,12 @@ module Castoro
       end
 
       def stop_workers
-        @w.each { |w|
-#          p [ 'stop_workers', w ]
-          w.graceful_stop
-        }
+        a = []
+        @w.each do |w|
+          # p [ 'stop_workers', w ]
+          a << Thread.new { w.graceful_stop }
+        end
+        a.each { |t| t.join }
       end
 
       def start_maintenance_server
@@ -193,8 +195,10 @@ module Castoro
       end
 
       def stop_maintenance_server
-        @m.graceful_stop
-        @h.graceful_stop
+        a = []
+        a << Thread.new { @m.graceful_stop }
+        a << Thread.new { @h.graceful_stop }
+        a.each { |t| t.join }
       end
 
    ########################################################################
@@ -202,9 +206,9 @@ module Castoro
    ########################################################################
 
       class UdpCommandReceiver < Worker
-        def initialize( pipeline, port )
+        def initialize pipeline, port
           @pipeline = pipeline
-          @socket = ExtendedUDPSocket.new
+          @socket = ExtendedUDPSocket.new # @socket cannot be closed in this class because @socket will be used in other classes
           c = Configurations.instance
           @socket.join_multicast_group c.peer_comm_ipaddr_multicast, c.peer_comm_ipaddr_nic
           @socket.bind '0.0.0.0', port
@@ -214,16 +218,11 @@ module Castoro
         def serve
           channel = UdpServerChannel.new @socket
           ticket = CommandReceiverTicketPool.instance.create_ticket
-          channel.receive ticket
+          channel.receive ticket  # receive might be interrupted by Thread.kill
           ticket.channel = channel
           ticket.socket = nil
           ticket.mark
           @pipeline.enq ticket
-        end
-
-        def graceful_stop
-          finished
-          super
         end
       end
 
@@ -237,83 +236,82 @@ module Castoro
             @socket = socket
           end
 
-          def method_missing(m, *args, &block)
-            @socket.__send__(m, *args, &block)
+          def method_missing m, *args, &block
+            @socket.__send__ m, *args, &block
           end
 
           def client_sockaddr= client_sockaddr
-            @port, @ip = Socket.unpack_sockaddr_in( client_sockaddr )
+            @port, @ip = Socket.unpack_sockaddr_in client_sockaddr
           end
         end
 
-        def initialize( pipeline, port )
+        def initialize pipeline, port
           @pipeline, @port = pipeline, port
           super
           @socket = nil
         end
 
         def serve
-          sockaddr = Socket.pack_sockaddr_in( @port, '0.0.0.0' )
+          sockaddr = Socket.pack_sockaddr_in @port, '0.0.0.0'
           @socket.close if @socket and not @socket.closed?
-          @socket = Socket.new( Socket::AF_INET, Socket::SOCK_STREAM, 0 )
-          @socket.setsockopt( Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true )
-          @socket.setsockopt( Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true )
+          @socket = Socket.new Socket::AF_INET, Socket::SOCK_STREAM, 0
+          @socket.setsockopt Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true
+          @socket.setsockopt Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true
           @socket.do_not_reverse_lookup = true
-          @socket.bind( sockaddr )
-          @socket.listen( 10 )
+          @socket.bind sockaddr
+          @socket.listen 10
 
           loop do
+            break if @stop_requested
             client_socket = nil
             begin
-              client_socket, client_sockaddr = @socket.accept
+              client_socket, client_sockaddr = @socket.accept  # accept might be interrupted by Thread.kill
               s = SocketDelegator.new client_socket
               s.client_sockaddr = client_sockaddr
-            rescue IOError, Errno::EBADF => e
-              # IOError "closed stream"
-              # Errno::EBADF "Bad file number"
-              if ( @stop_requested )
-                @finished = true
-                return
-              else
-                raise e
-              end
+
+            rescue IOError => e
+              return if @stop_requested and e.message.match( /closed stream/ )
+              raise e
+
+            rescue Errno::EBADF => e
+              return if @stop_requested and e.message.match( /Bad file number/ )
+              Log.warning e
+              raise e
             end
-            if ( @stop_requested )
-              @socket.close if @socket and not @socket.closed?
-              @finished = true
-              return
-            end
+
             @pipeline.enq s
           end
+
+        ensure
+          @socket.close if @socket and not @socket.closed?
+          finished
         end
 
         def graceful_stop
           @stop_requested = true
-          @socket.close if @socket
+          @socket.close if @socket and not @socket.closed?  # this lets accept abort
           super
         end
       end
 
 
       class TcpCommandReceiver < Worker
-        def initialize( pipeline1, pipeline2 )
+        def initialize pipeline1, pipeline2
           @pipeline1 = pipeline1
           @pipeline2 = pipeline2
           super
         end
 
         def serve
-          client = @pipeline1.deq
-          if ( client.nil? )
-            @finished = true
-            return
-          end
+          # TcpCommandAcceptor will stop first when graceful_stop is called.
+          # Then all tickets will go through the pipeline processes.
+          client = @pipeline1.deq  # deq will be interrupted by Thread.kill later.
           loop do
             ticket = CommandReceiverTicketPool.instance.create_ticket
             channel = TcpServerChannel.new client
-            channel.receive ticket
-            if ( channel.closed? )
-              CommandReceiverTicketPool.instance.delete( ticket )
+            channel.receive ticket  # receive might be interrupted by Thread.kill
+            if channel.closed?
+              CommandReceiverTicketPool.instance.delete ticket
               return
             end
             ticket.channel = channel
@@ -321,12 +319,6 @@ module Castoro
             ticket.mark
             @pipeline2.enq ticket
           end
-        end
-
-        def graceful_stop
-          # Todo: who will receive this 'nil'?
-          @pipeline1.enq nil
-          super
         end
       end
 
@@ -343,7 +335,7 @@ module Castoro
           'FINALIZE' => :FINALIZE,
         }
 
-        def initialize( pipeline )
+        def initialize pipeline
           @pipeline = pipeline
           super
           @hostname = Configurations.instance.peer_hostname
@@ -370,7 +362,7 @@ module Castoro
                       end
 
           unless ServerStatus.instance.equal_or_greater_than? threshold
-            Log.warning( "#{command_sym}: ServerStatusError server status: #{ServerStatus.instance.status_name}: #{basket}" )
+            Log.warning "#{command_sym}: ServerStatusError server status: #{ServerStatus.instance.status_name}: #{basket}"
             if command_sym == :GET and not ticket.channel.tcp? 
               raise Ignore
             else
@@ -390,7 +382,7 @@ module Castoro
           end
 
         rescue Ignore
-          CommandReceiverTicketPool.instance.delete( ticket )
+          CommandReceiverTicketPool.instance.delete ticket
         rescue => e
           ticket.push e
           ResponseSenderPL.instance.enq ticket
@@ -398,25 +390,25 @@ module Castoro
 
         def do_get ticket, basket, island
           path_a = basket.path_a
-          if ( File.exist? path_a )
+          if File.exist? path_a
             basket_text = basket.to_s
             h = { 'basket' => basket_text, 'paths' => { ticket.host => path_a } }
             h['island'] = island if island
             ticket.push h
             ResponseSenderPL.instance.enq ticket
             t = MulticastCommandSenderTicketPool.instance.create_ticket
-            t.push( 'INSERT', Hash[ 'basket', basket_text, 'host', ticket.host, 'path', path_a ] )
+            t.push 'INSERT', Hash[ 'basket', basket_text, 'host', ticket.host, 'path', path_a ]
             MulticastCommandSenderPL.instance.enq t
           else
             ticket.mark
-            if ( ticket.channel.tcp? )
+            if ticket.channel.tcp?
               raise NotFoundError, path_a 
             else
               ticket.finish
-              Log.debug( "Get received, but not found: #{basket_text}" ) if $DEBUG
+              Log.debug "Get received, but not found: #{basket_text}" if $DEBUG
               Log.debug( sprintf( "%s %.1fms [%s] %s is not found", ticket.command.slice(0,3), ticket.duration * 1000, 
                                   ( ticket.durations.map { |x| "%.1f" % (x * 1000) } ).join(', '), basket_text ) ) if $DEBUG
-              CommandReceiverTicketPool.instance.delete( ticket )
+              CommandReceiverTicketPool.instance.delete ticket
             end
           end
         end
@@ -430,9 +422,9 @@ module Castoro
           b = ticket.basket
           path_x = ticket.args[ 'path' ]
           status = S_ABCENSE
-          if ( File.exist?( b.path_a ) )
+          if File.exist? b.path_a
             status = S_ARCHIVED
-          elsif ( path_x and File.exist?( path_x ) )
+          elsif path_x and File.exist?( path_x )
             status = S_WORKING
           end
           a = case ticket.command_sym
@@ -441,7 +433,7 @@ module Castoro
                 when S_ABCENSE
                   # Has to confirm if its parent directory exists
                   # If not, should create it before proceeding
-                  Csm::Request::Create.new( b.path_w )
+                  Csm::Request::Create.new b.path_w
                 else
                   reason = case status
                            when S_ABCENSE;  'Internal server error: Something goes wrongly.'
@@ -456,12 +448,12 @@ module Castoro
                 end
               when :DELETE
                 status == S_ARCHIVED or raise NotFoundError, b.path_a
-                Csm::Request::Delete.new( b.path_a, b.path_d )
+                Csm::Request::Delete.new b.path_a, b.path_d
               when :CANCEL
                 case status
                 when S_WORKING, :S_ABCENSE
                   File.exist? path_x or raise NotFoundError, path_x
-                  Csm::Request::Cancel.new( path_x, b.path_c_with_hint( path_x ) )
+                  Csm::Request::Cancel.new path_x, b.path_c_with_hint( path_x )
                 else
                   reason = case status
                            when S_ABCENSE;  'The basket does not exist.'
@@ -480,7 +472,7 @@ module Castoro
                   raise AlreadyExistsError, b.path_a
                 end
                 File.exist? path_x or raise NotFoundError, path_x
-                Csm::Request::Finalize.new( path_x, b.path_a )
+                Csm::Request::Finalize.new path_x, b.path_a
               else
                 raise InternalServerError, "Unknown command symbol' #{ticket.command_sym.inspect}"
               end
@@ -489,7 +481,7 @@ module Castoro
 
         rescue NotFoundError => e
           t = MulticastCommandSenderTicketPool.instance.create_ticket
-          t.push( 'DROP', Hash[ 'basket', b.to_s, 'host', ticket.host, 'path', b.path_a ] )
+          t.push 'DROP', Hash[ 'basket', b.to_s, 'host', ticket.host, 'path', b.path_a ]
           MulticastCommandSenderPL.instance.enq t
           ticket.push e
           ResponseSenderPL.instance.enq ticket
@@ -514,11 +506,11 @@ module Castoro
 
           case ticket.command_sym
           when :DELETE
-            ReplicationQueueDirectories.instance.delete( basket, :replicate )
+            ReplicationQueueDirectories.instance.delete basket, :replicate
           end
 
           csm_request = ticket.pop
-          @csm_executor.execute( csm_request )
+          @csm_executor.execute csm_request
           ticket.mark
           h = { 'basket' => basket.to_s }
           case ticket.command_sym
@@ -528,7 +520,7 @@ module Castoro
           when :DELETE
             m = "DELETE: #{basket} #{basket.path_d}"
             t = MulticastCommandSenderTicketPool.instance.create_ticket
-            t.push( 'DROP', Hash[ 'basket', basket.to_s, 'host', ticket.host, 'path', basket.path_d ] )
+            t.push 'DROP', Hash[ 'basket', basket.to_s, 'host', ticket.host, 'path', basket.path_d ]
             MulticastCommandSenderPL.instance.enq t
             ReplicationPL.instance.enq [ :delete, basket ]  # Todo: should not use DB's enum here
           when :CANCEL
@@ -536,7 +528,7 @@ module Castoro
           when :FINALIZE
             m = "FINALIZE: #{basket} #{basket.path_a}"
             t = MulticastCommandSenderTicketPool.instance.create_ticket
-            t.push( 'INSERT', Hash[ 'basket', basket.to_s, 'host', ticket.host, 'path', basket.path_a ] )
+            t.push 'INSERT', Hash[ 'basket', basket.to_s, 'host', ticket.host, 'path', basket.path_a ]
             MulticastCommandSenderPL.instance.enq t
             ReplicationPL.instance.enq [ :replicate, basket ]  # Todo: should not use DB's enum here
           else
@@ -554,7 +546,7 @@ module Castoro
 
 
       class ResponseSender < Worker
-        def initialize( pipeline )
+        def initialize pipeline
           @pipeline = pipeline
           super
         end
@@ -577,7 +569,7 @@ module Castoro
 # Todo: socket.close was written here. why does this worked?
 #          socket.close if ticket.channel.tcp?
           ip, port = nil, nil
-          if ( ticket.channel.tcp? )
+          if ticket.channel.tcp?
             ip, port = socket.ip, socket.port
           else
             # Todo: should be implemented for UDP
@@ -593,7 +585,7 @@ module Castoro
       end
 
       class UdpResponseSender < ResponseSender
-        def initialize( pipeline )
+        def initialize pipeline
           @socket = ExtendedUDPSocket.new
           super
         end
@@ -601,7 +593,7 @@ module Castoro
 
 
       class TcpResponseSender < ResponseSender
-        def initialize( pipeline )
+        def initialize pipeline
           @socket = nil
           super
         end
@@ -609,7 +601,7 @@ module Castoro
 
 
       class MulticastCommandSender < Worker
-        def initialize( ip, port )
+        def initialize ip, port
           socket = ExtendedUDPSocket.new
           socket.set_multicast_if Configurations.instance.gateway_comm_ipaddr_nic
           @channel = UdpClientChannel.new socket
@@ -621,7 +613,7 @@ module Castoro
           ticket = MulticastCommandSenderPL.instance.deq
           command, args = ticket.pop2
           @channel.send command, args, @ip, @port
-          MulticastCommandSenderTicketPool.instance.delete( ticket )
+          MulticastCommandSenderTicketPool.instance.delete ticket
         end
       end
 
@@ -638,7 +630,7 @@ module Castoro
         def serve
           action, basket = ReplicationPL.instance.deq
           entry = ReplicationEntry.new( :basket => basket, :action => action )
-          ReplicationQueueDirectories.instance.insert_without_attribute( entry )
+          ReplicationQueueDirectories.instance.insert_without_attribute entry
 
           begin
             args = Hash[ 'basket', basket.to_s ]
@@ -654,7 +646,7 @@ module Castoro
 
 
       class CpeerdTcpMaintenaceServer < TcpMaintenaceServer
-        def initialize( port )
+        def initialize port
           super
           @hostname = Configurations.instance.peer_hostname
         end
@@ -677,13 +669,7 @@ module Castoro
         end
 
         def do_shutdown
-          # Todo:
-          Thread.new {
-            sleep 2
-            Process.exit 0
-          }
-          # Todo:
-          CpeerdMain.instance.stop
+          Thread.new { CpeerdMain.instance.stop }
         end
 
         def do_dump
@@ -701,9 +687,9 @@ module Castoro
             opt_period = opt.to_i if opt_period.nil? and opt.match(/[0-9]/)
             opt_count  = opt.to_i if ! opt_period.nil? and opt.match(/[0-9]/)
           end
-          while ( 0 < opt_count )
+          while 0 < opt_count
             t = Time.new
-            if ( opt_short )
+            if opt_short
               a = STATISTICS_TARGETS.map { |s| x = s.instance; "#{x.nickname}=#{x.size}" }
               @io.syswrite "#{t.iso8601}.#{t.usec} #{@hostname} #{@program} #{a.join(' ')}\n"
             else
@@ -726,13 +712,13 @@ module Castoro
         def serve
           begin
             total = 0
-            a = STATISTICS_TARGETS.map { |t|
+            a = STATISTICS_TARGETS.map do |t|
               x = t.instance
               total = total + x.size
               "#{x.nickname}=#{x.size}"
-            }
-            if ( 0 < total )
-              Log.notice( "STAT: #{a.join(' ')}" )
+            end
+            if 0 < total
+              Log.notice "STAT: #{a.join(' ')}"
             end
           rescue => e
             Log.warning e

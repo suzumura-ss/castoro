@@ -34,62 +34,78 @@ module Castoro
           @socket = socket
         end
 
-        def method_missing(m, *args, &block)
-          @socket.__send__(m, *args, &block)
+        def method_missing m, *args, &block
+          @socket.__send__ m, *args, &block
         end
 
         def client_sockaddr= client_sockaddr
-          @port, @ip = Socket.unpack_sockaddr_in( client_sockaddr )
+          @port, @ip = Socket.unpack_sockaddr_in client_sockaddr
         end
       end
 
-      def initialize( port, host, number_of_threads )
+      def initialize port, host, number_of_threads
         @number_of_threads = number_of_threads
         factor = 1
         backlog = number_of_threads * factor
         backlog = 5 if backlog < 5
-        sockaddr = Socket.pack_sockaddr_in( port, host )
-        @server_socket = Socket.new( Socket::AF_INET, Socket::SOCK_STREAM, 0 )
-        @server_socket.setsockopt( Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true )
-        @server_socket.setsockopt( Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true )
-        @server_socket.setsockopt( Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true )
+        sockaddr = Socket.pack_sockaddr_in port, host
+        @server_socket = Socket.new Socket::AF_INET, Socket::SOCK_STREAM, 0
+        @server_socket.setsockopt Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true
+        @server_socket.setsockopt Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true
+        @server_socket.setsockopt Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true
         @server_socket.do_not_reverse_lookup = true
-        @server_socket.bind( sockaddr )
-        @server_socket.listen( backlog )
-        @queue = SizedPipeline.new( 1 )
+        @server_socket.bind sockaddr
+        @server_socket.listen backlog
+        @queue = SizedPipeline.new 1
         @thread_acceptor = nil
         @thread_workers = []
+        @stop_requested = false
       end
 
       def start
-        @thread_acceptor = Thread.new {
-          acceptor()
-        }
-        @number_of_threads.times {
-          @thread_workers << Thread.new {
-            worker()
-          }
-        }
+        @thread_acceptor = Thread.new do
+          #RubyTracer.enable
+          acceptor
+        end
+        @number_of_threads.times do
+          @thread_workers << Thread.new do
+            #RubyTracer.enable
+            worker
+          end
+        end
       end
 
       def acceptor
         loop do
+          break if @stop_requested
           Thread.current.priority = 3
           begin
-            client_socket, client_sockaddr = @server_socket.accept
+            client_socket, client_sockaddr = @server_socket.accept  # accept might be interrupted by Thread.kill
             s = SocketDelegator.new client_socket
             s.client_sockaddr = client_sockaddr
             @queue.enq s
+
           rescue IOError => e
-            return if e.message.match( /closed stream/ )
+            #p "@stop_requested = #{@stop_requested} in PreThreadedTcpServer"
+            return if @stop_requested and e.message.match( /closed stream/ )
             Log.warning e
+            sleep 1  # To avoid out of control
+
           rescue Errno::EBADF => e
-            return if e.message.match( /Bad file number/ )
+            #p "@stop_requested = #{@stop_requested} in PreThreadedTcpServer"
+            return if @stop_requested and e.message.match( /Bad file number/ )
             Log.warning e
+            sleep 1
+
           rescue => e
             Log.warning e
+            sleep 1
+
           end
         end
+
+      ensure
+        @server_socket.close unless @server_socket.closed?
       end
 
       def worker
@@ -98,30 +114,45 @@ module Castoro
           begin
             socket = @queue.deq
             return if socket.nil?
-            serve( socket )
-            socket.close unless socket.closed?
+            serve socket
           rescue => e
             Log.warning e
+          ensure
+            # socket might be nil or not-yet-defined
+            socket.close if socket and not socket.closed?
           end
         end
       end
 
-      def serve( socket )
+      def serve socket
         # should be implemented in a subclass
       end
 
+      # it would be better if this method is overridden in a subclass
+      def stop_requested= f
+        #p "def stop_requested= #{f} in PreThreadedTcpServer"
+        @stop_requested = f
+      end
+
       def stop
-        Thread.kill @thread_acceptor
-        @server_socket.close unless @server_socket.closed?
+        #p "def stop in PreThreadedTcpServer"
+        Thread.kill @thread_acceptor if @thread_acceptor.alive?
         @thread_workers.each { |t| Thread.kill t }
+        sleep 0.1
       end
 
       def graceful_stop
-        Thread.kill @thread_acceptor
-        @server_socket.close unless @server_socket.closed?
-        @thread_workers.each { @queue.enq nil }
+        #p "def graceful_stop starts in PreThreadedTcpServer"
+        self.stop_requested = true
+        @server_socket.close unless @server_socket.closed?  # this lets accept abort
+        @thread_acceptor.join
+        #p "def stop acceptor joined in PreThreadedTcpServer"
+        @thread_workers.each { |t| @queue.enq nil }
+        # @thread_workers.each { |t| t.join }  some thread cannot stop by themselves due to being blocked in a system call
+        #p "def stop workers joined in PreThreadedTcpServer"
         sleep 0.5
         stop
+        #p "def graceful_stop ends in PreThreadedTcpServer"
       end
     end
 

@@ -33,6 +33,10 @@ module Castoro
         @command = nil
       end
 
+      def close
+        @socket.close unless @socket.closed?
+      end
+
       def parse body, direction_code, exception
         a = JSON.parse body
         version, direction, command, args = a
@@ -58,7 +62,7 @@ module Castoro
 
         def receive ticket = nil
           ticket.mark unless ticket.nil?
-          @data = @socket.gets
+          @data = @socket.gets  # gets might be interrupted by Thread.kill
           ticket.mark unless ticket.nil?
           if closed?
             @socket.close unless @socket.closed?
@@ -114,7 +118,7 @@ module Castoro
       include Channel::UdpModule
 
       def receive ticket = nil
-        @data = @socket.receiving( ticket )
+        @data = @socket.receiving( ticket )  # receiving might be interrupted by Thread.kill
         ticket.mark unless ticket.nil?
       end
 

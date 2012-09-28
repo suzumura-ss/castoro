@@ -17,8 +17,15 @@
 #   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+if $0 == __FILE__
+  $LOAD_PATH.dup.each { |x| $LOAD_PATH.delete x if x.match '\/gems\/' }
+  $LOAD_PATH.unshift ".."
+  $LOAD_PATH.unshift "../../../castoro-common/lib"
+end
+
 require 'castoro-peer/main'
 require 'castoro-peer/cmond_workers'
+#require './ruby_tracer' ; RubyTracer.open "trace-#{$$}.log"
 
 module Castoro
   module Peer
@@ -39,6 +46,7 @@ module Castoro
         super
         @w.stop_workers
         @w.stop_maintenance_server
+        quit
       end
     end
 
@@ -51,10 +59,6 @@ end
 ################################################################################
 
 if $0 == __FILE__
-  $LOAD_PATH.dup.each { |x|
-    $LOAD_PATH.delete x if x.match '\/gems\/'
-  }
-
   m = Castoro::Peer::CmondMain.instance
   Castoro::Peer::ServerStatus.instance.status_name = 'offline'
   Castoro::Peer::RemoteControl.set_mode_of_every_local_target

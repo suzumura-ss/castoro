@@ -115,6 +115,7 @@ module Castoro
         @data = @global.data.dup
         load_storage_hosts_file
         load_storage_groups_file
+        validate
         @data[ :type_id_rangesHash ] = Hash.new.tap do |h|
           @services.each do |s|
             s.validate
@@ -127,6 +128,16 @@ module Castoro
       end
 
       private
+
+      def validate
+        hostname = @data[ :peer_hostname ]
+        groups = @data[ :StorageGroupsData ]
+        g = groups.select { |a| a.include? hostname }
+        g.flatten!
+        unless g.index( hostname )
+          raise ConfigurationError, "Hostname #{hostname} is not included in #{@global[ :config_group_file ]}"
+        end
+      end
 
       def load_configuration_file file
         section = nil

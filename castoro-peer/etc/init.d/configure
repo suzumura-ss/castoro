@@ -1,0 +1,11 @@
+#! /bin/bash
+
+# This is a dummy file to let `gem install` execute make and make install.
+#
+# For details, see
+#   /usr/local/lib/ruby/1.9.1/rubygems/ext/builder.rb
+#   /usr/local/lib/ruby/1.9.1/rubygems/ext/configure_builder.rb
+#
+# or
+#   /usr/local/lib/ruby/gems/1.9.1/gems/rubygems-update-*/lib/rubygems/ext/builder.rb
+#   /usr/local/lib/ruby/gems/1.9.1/gems/rubygems-update-*/lib/rubygems/ext/configure_builder.rb

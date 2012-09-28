@@ -26,11 +26,10 @@ require 'castoro-peer/log'
 require 'castoro-peer/daemon'
 require 'castoro-peer/signal_handlers'
 require 'castoro-peer/custom_condition_variable'
+require 'castoro-peer/version'
 
 module Castoro
   module Peer
-
-    PROGRAM_VERSION = 'peer-2.0 - 2012-06-11'
 
     $RUN_AS_DAEMON = true
 
@@ -53,15 +52,17 @@ module Castoro
         @stop_requested     = false
         @reload_requested   = false
 
+        Configurations.instance
+        sleep 0.01  # make sure that "NOTICE Loading configration file: ..." is printed out on the terminal emulator
+
         CommandLineOptions.new
         if $RUN_AS_DAEMON
           Log.output = nil
         end
-        Configurations.instance
 
-        if ( Process.euid == 0 )
+        if Process.euid == 0
           # Todo: notifies with an understandable error message if effective_user is not set
-          pwnam = Etc.getpwnam( Configurations.instance.effective_user )
+          pwnam = Etc.getpwnam Configurations.instance.effective_user
           Process.egid = pwnam.gid
           Process.euid = pwnam.uid
         end
@@ -81,7 +82,7 @@ module Castoro
         if $RUN_AS_DAEMON
           Daemon.close_stdio
         end
-        Log.notice( "Started." )
+        Log.notice "Started."
 
         # Activate set_trace_func() being traced with 
         # pid$target::call_trace_proc:entry of DTrace
@@ -93,44 +94,56 @@ module Castoro
 
       def stop
         # super should be called in the beggining of subclass method
-        Log.notice( "Stopping..." )
+        Log.notice "Stopping..."
+
+        # Ensure to shutdown whatever happens
+        Thread.new do
+          sleep 1.5  # time bomb
+          Log.notice "Something went wrong. This daemon process failed to quit. Being shutdowned by force."
+          Log.stop
+          sleep 0.1
+          Process.exit 0
+        end
+      end
+
+      def quit
+        Log.notice "Shutdowned."
+        Log.stop
+        sleep 0.1
+        Process.exit 0
       end
 
       def process_request
-        if ( @shutdown_requested )
+        if @shutdown_requested
           @shutdown_requested = false
           stop
-# Todo: XXX
-#          thread_join_all
-          Log.notice( "Shutdowned." )
-          sleep 0.01
-          exit 0
+          quit
         end
 
-        if ( @stop_requested )
+        if @stop_requested
           @stop_requested = false
-          if ( @started )
+          if @started
             stop
             @started = false
           else
-            Log.notice( "Already stopped." )
+            Log.notice "Already stopped."
           end
         end
 
-        if ( @start_requested )
+        if @start_requested
           @start_requested = false
-          if ( @started )
-            Log.notice( "Already started." )
+          if @started
+            Log.notice "Already started."
           else
             start
             @started = true
           end
         end
 
-        if ( @reload_requested )
+        if @reload_requested
           @reload_requested = false
-          Log.notice( "Reloading..." )
-          if ( @started )
+          Log.notice "Reloading..."
+          if @started
             stop
             sleep 0.1
             Configurations.instance.reload
@@ -145,32 +158,16 @@ module Castoro
       def main_loop
         start
         @started = true
-        while ( true )
+        loop do
           @mutex.lock
           until ( @shutdown_requested || @start_requested || @stop_requested || @reload_requested ) do
-            @cv.wait( @mutex )
-            sleep 1
+            @cv.wait @mutex
+            sleep 0.1
           end
           process_request
           @mutex.unlock
-          # sleep 0.01
-          sleep 3
+          sleep 0.1
         end
-      end
-
-      def thread_join_all
-        begin
-          main = Thread.main
-          current = Thread.current
-          STDOUT.flush
-          sleep 0.01
-          a = Thread.list.select { |t| t != main and t != current }
-          a.each { |t|
-            t.join
-          }
-          # sleep 0.01
-          sleep 3
-        end until a.size == 0
       end
     end
 

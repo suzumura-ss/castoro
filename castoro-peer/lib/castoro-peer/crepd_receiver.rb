@@ -40,21 +40,28 @@ module Castoro
         port = Configurations.instance.crepd_transmission_tcpport
         host = '0.0.0.0'
         maxConnections = 20
-        super( port, host, maxConnections )
+        super port, host, maxConnections
       end
 
-      def serve( io )
-        receiver = ReplicationReceiver.new( io )
+      def serve io
+        @receiver = ReplicationReceiver.new io
         begin
-          receiver.initiate
+          @receiver.initiate
         rescue => e
           Log.warning e
         end
+      ensure
+        # Do nothing special here upon stopping
+      end
+
+      def stop_requested= f
+        super
+        @receiver.stop_requested = f if @receiver
       end
     end
 
     class ReplicationReceiver
-      def initialize( io )
+      def initialize io
         @io = io
         @channel = TcpServerChannel.new io
         @config = Configurations.instance
@@ -62,13 +69,21 @@ module Castoro
         @csm_executor = Csm.create_executor
         @command = nil
         @basket = nil
+        @stop_requested = false
+      end
+
+      def stop_requested= f
+        @stop_requested = f
       end
 
       def initiate
         loop do
           begin
-            @channel.receive
+            @channel.receive  # receive might be interrupted by Thread.kill
             break if @channel.closed?
+            if @stop_requested
+              raise StopRequestedError, "Crepd has gotton a stop request during comminucation with: #{@ip}:#{@port} #{@basket}"
+            end
             @command, @args = @channel.parse
             @ip, @port = @io.ip, @io.port
             if ServerStatus.instance.replication_activated?
@@ -80,7 +95,12 @@ module Castoro
             end
           rescue => e
             Log.warning e, "#{@command} #{@args} from #{@ip}:#{@port}"
+
+            # An attempt of sending an error status to the sender may fail
+            # if the TCP connection has been already closed or shutdown.
             @channel.send e
+
+            return if @stop_requested
           end
         end
       ensure
@@ -109,7 +129,7 @@ module Castoro
 
       def parse_basket
         basket_text = @args[ 'basket' ] or raise PermanentError
-        @basket = Basket.new_from_text( basket_text )
+        @basket = Basket.new_from_text basket_text
         @path_a = @basket.path_a
       rescue => e
         raise InvalidArgumentPermanentError, "#{e.class} #{e.message}: Invalid basket: #{basket_text}"
@@ -124,14 +144,14 @@ module Castoro
         @entry = ReplicationEntry.new( :basket => @basket, :action => :replicate, :args => @args )
         Log.debug "CATCH: #{@entry.inspect} from #{@ip}:#{@port}" if $DEBUG
 
-        if ( File.exist? @path_a )
+        if File.exist? @path_a
           register_entry
           @response = { :exists => @path_a }
         else
           begin
             @path_r = @basket.path_r
-            csm_request = Csm::Request::Catch.new( @path_r )
-            @csm_executor.execute( csm_request )
+            csm_request = Csm::Request::Catch.new @path_r
+            @csm_executor.execute csm_request
           rescue => e
             raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_r}"
           end
@@ -144,26 +164,26 @@ module Castoro
         Log.debug "DELETE: #{@entry.inspect} from #{@ip}:#{@port}" if $DEBUG
 
         register_entry
-        ReplicationQueueDirectories.instance.delete( @basket, :replicate )
+        ReplicationQueueDirectories.instance.delete @basket, :replicate
 
         @path_d = @basket.path_d
-        if ( File.exist? @path_a )
+        if File.exist? @path_a
           begin
-            csm_request = Csm::Request::Delete.new( @path_a, @path_d )
-            @csm_executor.execute( csm_request )
+            csm_request = Csm::Request::Delete.new @path_a, @path_d
+            @csm_executor.execute csm_request
           rescue => e
             raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_a} #{@path_d}"
           end
           Log.notice "DELETED: #{@basket} #{@path_a} from #{@ip}:#{@port}; moved to #{@path_d} #{@entry.ttl_and_hosts}"
-          send_multicast_packet( 'DROP', @path_d )
+          send_multicast_packet 'DROP', @path_d
         else
           @response = { :doesnot_exist => @path_a }
         end
       end
 
-      def parse_attributes( args )
+      def parse_attributes args
         path = args[ 'path' ] or raise InvalidArgumentPermanentError, "path is not given: #{@basket}"
-        if ( path == '.'  or path == '..' )
+        if path == '.'  or path == '..'
           raise InvalidArgumentPermanentError, "#{path} is not allowed: #{@basket}"
         end
         @path = "#{@path_r}/#{path}"
@@ -173,16 +193,16 @@ module Castoro
       end
 
       def apply_attributes
-        File.chmod( @mode, @path )
-        File.utime( @atime, @mtime, @path )
+        File.chmod @mode, @path
+        File.utime @atime, @mtime, @path
       end
 
       def do_directory
-        parse_attributes( @args )
+        parse_attributes @args
         Log.debug "DIRECTORY: #{@basket} #{@path} from #{@ip}:#{@port}" if $DEBUG
 
         begin
-          Dir.mkdir( @path, 0755 )
+          Dir.mkdir @path, 0755
         rescue => e
           raise PermanentError, "#{e.class} #{e.message}: mkdir #{@path} for #{@basket}"
         end
@@ -192,9 +212,9 @@ module Castoro
       end
 
       def do_file
-        parse_attributes( @args )
+        parse_attributes @args
         Log.debug "FILE: #{@basket} #{@path} from #{@ip}:#{@port}" if $DEBUG
-        @fd = File.new( @path, "w" )  # @fd will be closed in the method do_data
+        @fd = File.new @path, "w"  # @fd will be closed in the method do_data
       end
 
       def do_data
@@ -202,33 +222,60 @@ module Castoro
         unit_size = @config.crepd_transmission_data_unit_size
 
         rest = sent
-        while ( 0 < rest )
+        while 0 < rest
+
+          if @stop_requested
+            @io.shutdown Socket::SHUT_RDWR
+            raise StopRequestedError, "Stop has been requested during receiving replication data: #{@ip}:#{@port} #{@basket}"
+          end
+
           n = ( unit_size < rest ) ? unit_size : rest
-          rest -= IO.copy_stream( @io, @fd, n )  # @fd has been opened in the method do_file
+
+          # copy_stream may raise an exception when its sender shutdowns or closes the TCP connection.
+          # this also may raise it when the file system becomes full.
+          rest -= IO.copy_stream @io, @fd, n  # @fd has been opened in the method do_file
+
+          unless ServerStatus.instance.replication_activated?
+            # No more data will be read from the connection.
+            # SHUT_RD will not send any packet to the end.
+            # SHUT_RDWR is used for this shutdown to send a FIN packet to the end
+            # in order to notice this receiver is closing the connection.
+            @io.shutdown Socket::SHUT_RDWR
+
+            # This error ServerStatusDroppedError is not able to be sent to the sender
+            # because the TCP connection has been already shutdown.
+            raise ServerStatusDroppedError, "server status has dropped during receiving replication data: #{ServerStatus.instance.status} #{ServerStatus.instance.status_name} #{@ip}:#{@port} #{@basket}"
+          end
+
           MaintenaceServerSingletonScheduler.instance.check_point
         end
         @fd.close
 
         apply_attributes
-        received = File.size( @path )
+        received = File.size @path
         ( sent == received ) or raise RetryableError, "File size does not match: sent=#{sent} received=#{received} #{@path} #{@basket}"
         @files += 1
         @bytes += received
+
+      ensure
+        # IO.copy_stream may be also interrupted by Thread.kill 
+        # in addition to StopRequestedError, ServerStatusDroppedError
+        @fd.close unless @fd.closed?
       end
 
       def do_end
         @directory_entries.reverse.each do |args|
-          parse_attributes( args )
+          parse_attributes args
           Log.debug "END: #{@basket} #{@path} mode: #{@mode} atime: #{@atime} mtime: #{@mtime} from #{@ip}:#{@port}" if $DEBUG
           apply_attributes
         end
       end
 
       def do_cancel
-        if ( File.exist? @path_r )
+        if File.exist? @path_r
           csm_request = Csm::Request::Cancel.new( @path_r, @basket.path_c_with_hint( @path_r ) )
           begin
-            @csm_executor.execute( csm_request )
+            @csm_executor.execute csm_request
           rescue => e
             raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_r} #{@path_a}"
           end
@@ -237,24 +284,24 @@ module Castoro
       end
 
       def do_finalize
-        if ( File.exist? @path_a )
+        if File.exist? @path_a
           raise AlreadyExistsPermanentError, "Basket already exists: #{@basket} #{@path_a}"
         end
 
-        csm_request = Csm::Request::Finalize.new( @path_r, @path_a )
+        csm_request = Csm::Request::Finalize.new @path_r, @path_a
         begin
-          @csm_executor.execute( csm_request )
+          @csm_executor.execute csm_request
         rescue => e
           raise RetryableError, "#{e.class} #{e.message} for #{@basket} #{@path_r} #{@path_a}"
         end
         @elapsed = Time.new - @started
         Log.notice "REPLICATED: #{@basket} #{@basket.path_a} from #{@ip}:#{@port} dirs=#{@dirs} files=#{@files} bytes=#{@bytes} time=#{"%0.3fs" % @elapsed} #{@entry.ttl_and_hosts}"
 
-        send_multicast_packet( 'INSERT', @path_a )
+        send_multicast_packet 'INSERT', @path_a
         register_entry
       end
 
-      def send_multicast_packet( command, path )
+      def send_multicast_packet command, path
         socket = ExtendedUDPSocket.new
         socket.set_multicast_if Configurations.instance.gateway_comm_ipaddr_nic
         channel = UdpClientChannel.new socket
@@ -266,12 +313,12 @@ module Castoro
       end
 
       def register_entry
-        if ( satisfied? )
+        if satisfied?
           Log.debug "register_entry satisfied. #{@basket} #{@entry.action} #{@entry.ttl_and_hosts}" if $DEBUG
         else
           @entry.decrease_ttl
-          if ( 0 < @entry.ttl )
-            ReplicationQueueDirectories.instance.insert( @entry )
+          if 0 < @entry.ttl
+            ReplicationQueueDirectories.instance.insert @entry
             ReplicationQueue.instance.enq @entry
           else
             Log.warning "TTL exceeded. #{@basket} #{@entry.action} #{@entry.ttl_and_hosts}"

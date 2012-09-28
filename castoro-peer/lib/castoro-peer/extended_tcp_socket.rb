@@ -20,16 +20,21 @@
 require 'socket'
 require 'fcntl'
 require 'castoro-peer/errors'
+require 'castoro-peer/log'
 
 module Castoro
   module Peer
 
     class ExtendedTCPSocket < Socket
+      MAX_LINE_LENGTH = 4096
+      BUFSIZE = 4096
+
       attr_reader :port, :ip
 
       def initialize
         super(Socket::AF_INET, Socket::SOCK_STREAM, 0)
-        @buffer = []
+        @buffer = nil  # the buffer
+        @pos = 0       # current position
       end
         
       def connect( host, port, timedout )
@@ -52,7 +57,7 @@ module Castoro
 
         begin
           # confirm if the connection is established and find its port and ip address
-          @port, @ip = Socket.unpack_sockaddr_in( getpeername )
+          @port, @addr = Socket.unpack_sockaddr_in( getpeername )
         rescue Errno::ENOTCONN => e
           raise StandardError, "Connection timed out #{timedout}s: #{host}:#{port}"
         end
@@ -72,44 +77,56 @@ module Castoro
         fcntl(Fcntl::F_SETFL, flags)
       end
 
-      def gets_with_timed_out( timedout )
-#        t = Time.new
-#        p [ Thread.current, "A", "#{"%.3fs" % (Time.new - t)}", @buffer ]
-
-        if ( 2 <= @buffer.size and @buffer[1] == "\n" )
-          line, lf = @buffer.slice!( 0, 2 )
-          return "#{line}#{lf}"
+      def fill_buffer timedout
+        if closed?
+          Log.debug "TCP Closed : #{@addr}:#{@port}" if $DEBUG
+          return false
         end
 
-        # sysread() with Socket::SO_RCVTIMEO work when a single Ruby thread runs.
-        # It, however, does not work when two or more Ruby threads run.
-        # Thus, select() is used here, instead.
-        unless ( IO.select([self], nil, nil, timedout) )
-          raise Errno::EAGAIN
+        # If the only single Ruby thread is running and Socket::SO_RCVTIMEO 
+        # is activated, socket.sysread() works expectedly.
+        # sysread(), however, does not expectedly work and it blocks forever
+        # if two or more Ruby threads are running under Ruby 1.9.1.
+        # Thus, select() must be used here, instead of sysread().
+        if timedout
+          unless IO.select( [self], nil, nil, timedout )
+            # timed out
+            raise Errno::EAGAIN, "gets timed out: #{timedout}s"
+          end
         end
 
-        x = sysread( 1024 )
-        # sysread( 1024 ) might raise
+        # sysread() might raise:
         #  Errno::EAGAIN: Resource temporarily unavailable ; meanings timed out
         #  EOFError "end of file reached"
         #  IOError: closed stream
+        @buffer = sysread( BUFSIZE )  # sysread might be interrupted by Thread.kill
+        Log.debug "TCP I : #{@addr}:#{@port} #{@buffer}" if $DEBUG
 
-#        p [ Thread.current, "B", "#{"%.3fs" % (Time.new - t)}", x ]
+        return (@buffer and 0 < @buffer.length)
+      end
 
-        a = x.split(/\r?(\n)/)
+      def gets_with_timed_out timedout
+        data = nil
 
-        if ( 0 < @buffer.size and @buffer[-1] != "\n" and not a[0].nil? )
-          @buffer[-1] = "#{@buffer[-1]}#{a.shift}"
+        loop do
+          unless @buffer
+            fill_buffer( timedout ) or return data
+            @pos = 0
+          end
+
+          n = @buffer.index( "\n", @pos )
+          if n
+            data = data ? (data + @buffer.slice( @pos..n )) : @buffer.slice( @pos..n )
+            MAX_LINE_LENGTH < data.length and raise IOError, "Too long line has been received: #{@addr}:#{@port} #{data}"
+            @pos = n + 1
+            @buffer = nil if @buffer.length <= @pos
+            return data
+          else
+            data = data ? (data + @buffer) : @buffer
+            MAX_LINE_LENGTH < data.length and raise IOError, "Too long line has been received: #{@addr}:#{@port} #{data}"
+            @buffer = nil
+          end
         end
-        @buffer.concat( a )
-
-#        p [ Thread.current, "C", "#{"%.3fs" % (Time.new - t)}", @buffer ]
-
-        if ( 2 <= @buffer.size and @buffer[1] == "\n" )
-          line, lf = @buffer.slice!( 0, 2 )
-          return "#{line}#{lf}"
-        end
-        return nil
       end
     end
   end
@@ -119,10 +136,14 @@ if $0 == __FILE__
   module Castoro
     module Peer
 
-      #HOST = 'google.com'
+      # ruby -d -I.. extended_tcp_socket.rb 
+
+      HOST = 'google.com'
+      PORT = 80
+
       # socat tcp-listen:8888,fork - &
-      HOST = 'localhost'
-      PORT = 8888
+      #HOST = 'localhost'
+      #PORT = 8888
 
       begin
         socket = ExtendedTCPSocket.new
@@ -130,14 +151,23 @@ if $0 == __FILE__
         # socket.connect( "127.0.0.1", 22, 3 )
         # socket.connect( '192.168.254.254', 22,3 )
         socket.connect( HOST, PORT, 3 )
-        socket.puts("GET / HTTP/1.0")
-        socket.puts("")
-        p socket.gets_with_timed_out( 2 )
-        p socket.sysread( 100 )
+        socket.syswrite("GET / HTTP/1.0\r\n")
+        socket.syswrite("\r\n")
+        i = 0
+        loop do
+          x = socket.gets_with_timed_out( 2 )
+          if x
+            p [i, x]
+            i = i + 1
+          else
+            break
+          end
+        end
+        #p socket.sysread( 100 )
       rescue => e
-        p e.backtrace
+        p [e, e.message, e.backtrace]
       end
-      sleep 10
+      sleep 3
     end
   end
 end

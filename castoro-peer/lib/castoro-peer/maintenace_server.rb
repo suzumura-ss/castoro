@@ -30,11 +30,11 @@ module Castoro
     class TCPHealthCheckPatientServer < PreThreadedTcpServer
       THRESHOLD = 5.5
 
-      def initialize( port, concurrence = 5 )
-        super( port, '0.0.0.0', concurrence )
+      def initialize port, concurrence = 5
+        super port, '0.0.0.0', concurrence
       end
 
-      def serve( io )
+      def serve io
         peer_port, peer_host = io.port, io.ip
         Log.notice "Health check: connection established from #{peer_host}:#{peer_port}"
 
@@ -47,6 +47,7 @@ module Castoro
         last_time = nil
 
         loop do 
+          break if @stop_requested
           Thread.current.priority = 3
           x = nil
           begin
@@ -55,22 +56,21 @@ module Castoro
             MaintenaceServerSingletonScheduler.instance.wait
             # print "#{"%.3f" % (t2 - @start_time)} #{"%8.3f" % (t2 - t1)} #{Thread.current}  #{"%8.3f" % (t3)}\n"
             # t2 = Time.new
-            x = io.read_nonblock( 256 )
+            x = io.read_nonblock 256
             # print "#{"%.3f" % (t2 - @start_time)} #{"%8.3f" % (t2 - t1)} #{Thread.current}  #{"%8.3f" % (t3)}  #{x.inspect}\n"
           rescue Errno::EAGAIN  # Errno::EAGAIN: Resource temporarily unavailable
             # print "#{"%.3f" % (t2 - @start_time)} #{"%8.3f" % (t2 - t1)} #{Thread.current}  #{"%8.3f" % (t3)}  EAGAIN\n"
             # p "retry"
             retry
           rescue EOFError => e  # EOFError "end of file reached"
-            if ( @stop_requested )
-              @finished = true
+            if @stop_requested
               return
             else
-              Log.notice e, "Health check: had been connected from #{peer_host}:#{peer_port}"
+              Log.notice e, "Health check: was connected from #{peer_host}:#{peer_port}"
               return
             end
           rescue IOError => e   # IOError: closed stream
-            Log.warning e, "Health check: had been connected from #{peer_host}:#{peer_port}"
+            Log.warning e, "Health check: was connected from #{peer_host}:#{peer_port}"
             return
           end
 
@@ -78,11 +78,11 @@ module Castoro
             # Use syswrite() here and don't use write() or puts().
             # write() in Ruby 1.9.1 does a lot of things causing waste of time, 
             # especially releasing the global_vm_lock and obtaining it
-            io.syswrite( "#{ServerStatus.instance.status_name} #{($AUTO_PILOT) ? "auto" : "off"} #{($DEBUG) ? "on" : "off"}\n" )
+            io.syswrite "#{ServerStatus.instance.status_name} #{($AUTO_PILOT) ? "auto" : "off"} #{($DEBUG) ? "on" : "off"}\n"
           }
 
           current = Time.new
-          if ( last_time )
+          if last_time
             elapsed = current - last_time
             Log.notice "Health check: the last command came from #{peer_host}:#{peer_port} #{"%.3fs" % (elapsed)} ago" if THRESHOLD < elapsed 
           end
@@ -90,44 +90,47 @@ module Castoro
         end
       rescue => e
         Log.warning e
+      ensure  # this clause is also called by Thread.kill
+        # do nothing special here
       end
     end
 
 
     class TcpMaintenaceServer < PreThreadedTcpServer
-      def initialize( port )
-        super( port, '0.0.0.0', 10 )
+      def initialize port
+        super port, '0.0.0.0', 10
         @hostname = Configurations.instance.peer_hostname
         @program = $0.sub(/.*\//, '')
       end
 
-      def serve( io )
+      def serve io
         begin
-          serve_impl( io )
+          serve_impl io
         rescue => e
           Log.err e
           sleep 0.5
         end
       end
 
-      def serve_impl( io )
+      def serve_impl io
         @io = io
-        while ( line = @io.gets )
+        while ( line = @io.gets )  # IO.gets will stop until readable data becomes available and might be interrupted by Thread.kill
+          break if @stop_requested  # most commands will be done at no time, but inspect, profiler, and gc could take long time.
           line.chomp!
           next if line =~ /\A\s*\Z/
           begin
-            @a = line.split(' ')
+            @a = line.split ' '
             command = @a.shift.downcase
             case command
             when 'quit'    ; break
             when 'version' ; do_version
             when 'help'    ; do_help
             when 'shutdown'
-              @io.syswrite( "#{@hostname} #{@program} is going to shutdown ...\n" )
-              Log.notice( "Shutdown is requested." )
+              @io.syswrite "#{@hostname} #{@program} is going to shutdown ...\n"
+              Log.notice "Shutdown is requested."
               do_shutdown
             when 'health'
-              @io.syswrite( "#{ServerStatus.instance.status_name} #{($AUTO_PILOT) ? "auto" : "off"} #{($DEBUG) ? "on" : "off"}\n" )
+              @io.syswrite "#{ServerStatus.instance.status_name} #{($AUTO_PILOT) ? "auto" : "off"} #{($DEBUG) ? "on" : "off"}\n"
             when 'mode'   ; do_mode
             when '_mode'  ; do_backdoor_mode
             when 'auto'   ; do_auto
@@ -143,52 +146,54 @@ module Castoro
               raise StandardError, "400 Unknown command: #{command} ; try help command"
             end
           rescue StandardError => e
-            @io.syswrite( "#{e.message}\n" )
+            @io.syswrite "#{e.message}\n"
           rescue => e
-            @io.syswrite( "500 Internal Server Error: #{e.class} #{e.message}\n" )
+            @io.syswrite "500 Internal Server Error: #{e.class} #{e.message}\n"
           end
         end
+      ensure  # this clause is also called by Thread.kill
+        # do nothing special here
       end
 
       def do_version
         t = Time.new
-        @io.syswrite( "#{t.iso8601}.#{"%06d" % t.usec} #{@hostname} #{@program} Version: #{PROGRAM_VERSION}\n" )
+        @io.syswrite "#{t.iso8601}.#{"%06d" % t.usec} #{@hostname} #{@program} Version: #{PROGRAM_VERSION}\n"
       end
 
       def do_mode
         x = @a.shift
-        if (x)
+        if x
           x.downcase!
           ServerStatus.instance.status_name = x
         end
         x = ServerStatus.instance.status_name
-        @io.syswrite( "run mode: #{x}\n" )
+        @io.syswrite "run mode: #{x}\n"
       end
 
       def do_backdoor_mode
         x = @a.shift
-        if ( $AUTO_PILOT )
-          if (x)
+        if $AUTO_PILOT
+          if x
             x.downcase!
             ServerStatus.instance.status_name = x
           end
           x = ServerStatus.instance.status_name
-          @io.syswrite( "run mode: #{x}\n" )
+          @io.syswrite "run mode: #{x}\n"
         else
-          if (x)
-            @io.syswrite( "run mode cannot be automatically altered when auto is disable.\n" )
+          if x
+            @io.syswrite "run mode cannot be automatically altered when auto is disable.\n"
           else
             x = ServerStatus.instance.status_name
-            @io.syswrite( "run mode: #{x}\n" )
+            @io.syswrite "run mode: #{x}\n"
           end
         end
       end
 
       def do_auto
         x = @a.shift
-        if (x)
+        if x
           x.downcase!
-          case (x) 
+          case x
           when 'auto' ; $AUTO_PILOT = true
           when 'off'  ; $AUTO_PILOT = false
           when nil  ; 
@@ -196,37 +201,37 @@ module Castoro
           else raise StandardError, "400 Unknown parameter: #{x} ; auto [off|auto]"
           end
         end
-        @io.syswrite( "auto: " + ( ($AUTO_PILOT) ? "auto" : "off")  + "\n" )
+        @io.syswrite "auto: " + ( ($AUTO_PILOT) ? "auto" : "off")  + "\n"
       end
 
       def do_debug
         x = @a.shift
-        if (x)
+        if x
           x.downcase!
-          case (x) 
+          case x
           when 'on' ; $DEBUG = true
           when 'off'; $DEBUG = false
           when nil  ; 
           else raise StandardError, "400 Unknown parameter: #{x} ; debug [on|off]"
           end
         end
-        @io.syswrite( "debug mode: " + ( ($DEBUG) ? "on" : "off")  + "\n" )
+        @io.syswrite "debug mode: " + ( ($DEBUG) ? "on" : "off")  + "\n"
       end
 
       def do_reload
-        @io.syswrite( "400 reload is not implemented in #{@program}.\n" )
+        @io.syswrite "400 reload is not implemented in #{@program}.\n"
       end
 
       def do_dump
-        @io.syswrite( "400 dump is not implemented in #{@program}.\n" )
+        @io.syswrite "400 dump is not implemented in #{@program}.\n"
       end
 
       def do_status
-        @io.syswrite( "400 status is not implemented in #{@program}.\n" )
+        @io.syswrite "400 status is not implemented in #{@program}.\n"
       end
 
       def do_stat
-        @io.syswrite( "400 stat is not implemented in #{@program}.\n" )
+        @io.syswrite "400 stat is not implemented in #{@program}.\n"
       end
 
       def do_inspect
@@ -247,24 +252,24 @@ module Castoro
       def do_gc_profiler
         t = Time.new
         x = @a.shift
-        if (x)
+        if x
           x.downcase!
-          case (x) 
+          case x
           when 'off'    ; GC::Profiler.disable
           when 'on'     ; GC::Profiler.enable
           when 'report'
-            if ( GC::Profiler.enabled? )
-              @io.syswrite( "#{t.iso8601}.#{"%06d" % t.usec} #{@hostname} #{@program} GC::Profiler.report:\n" )
-              GC::Profiler.report( @io )
-              @io.syswrite( "\n" )
+            if GC::Profiler.enabled?
+              @io.syswrite "#{t.iso8601}.#{"%06d" % t.usec} #{@hostname} #{@program} GC::Profiler.report:\n"
+              GC::Profiler.report @io
+              @io.syswrite "\n"
             else
-              @io.syswrite( "#{t.iso8601}.#{"%06d" % t.usec} #{@hostname} #{@program} GC::Profiler is disabled. Try gc_profiler on\n" )
+              @io.syswrite "#{t.iso8601}.#{"%06d" % t.usec} #{@hostname} #{@program} GC::Profiler is disabled. Try gc_profiler on\n"
             end
           when nil  ; 
           else raise StandardError, "400 Unknown parameter: #{x} ; gc_profiler [off|on|report]"
           end
         end
-        unless ( x == 'report' )
+        unless x == 'report'
           @io.syswrite( "#{t.iso8601}.#{"%06d" % t.usec} #{@hostname} #{@program} gc_profiler: " + ( (GC::Profiler.enabled?) ? "on" : "off")  + "\n" )
         end
       end
@@ -272,21 +277,21 @@ module Castoro
       def do_gc
         t = Time.new
         x = @a.shift
-        if (x)
+        if x
           x.downcase!
-          case (x) 
+          case x
           when 'start'
             t1 = Time.new
             GC.start
             t2 = Time.new
-            @io.syswrite( "#{t.iso8601}.#{"%06d" % t.usec} #{@hostname} #{@program} GC finished: #{"%.1fms" % ((t2 - t1) * 1000)}\n" ) 
+            @io.syswrite "#{t.iso8601}.#{"%06d" % t.usec} #{@hostname} #{@program} GC finished: #{"%.1fms" % ((t2 - t1) * 1000)}\n" 
           when 'count'
-            @io.syswrite( "#{t.iso8601}.#{"%06d" % t.usec} #{@hostname} #{@program} GC.count: #{GC.count}\n" )
+            @io.syswrite "#{t.iso8601}.#{"%06d" % t.usec} #{@hostname} #{@program} GC.count: #{GC.count}\n"
           else
             raise StandardError, "400 Unknown parameter: #{x} ; gc [start|count]"
           end
         else
-          @io.syswrite( "Usage: gc [start|count]\n" )
+          @io.syswrite "Usage: gc [start|count]\n"
         end
       end
     end

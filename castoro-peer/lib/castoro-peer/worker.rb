@@ -27,7 +27,7 @@ module Castoro
   module Peer
 
     class Worker
-      def initialize( *argv )
+      def initialize *argv
         # Please, please do not put any unrelated class in this file 
         # such as @config = Configurations.instance
         # This class is a general class for not only Castoro but also 
@@ -40,7 +40,7 @@ module Castoro
         @stop_requested = false
       end
 
-      def start( *args )
+      def start *args
         exception_count = 0
         @terminated = false
         @finished = false
@@ -50,8 +50,8 @@ module Castoro
             calmness = false
 #            @mutex.synchronize { @finished = false }
             begin
-              self.serve( *args )
-              if ( $DEBUG and Log.output )
+              serve *args
+              if $DEBUG and Log.output
                 STDERR.flush 
                 STDOUT.flush
                 Log.output.flush
@@ -59,40 +59,43 @@ module Castoro
             rescue => e
               exception_count = exception_count + 1
               s = "in #{self.class}; count: #{exception_count}"
-              #              if ( @limitation_of_exception_count <= exception_count )
-              #                Log.crit( "#{s}: reaching the limitation: #{@limitation_of_exception_count}" )
+              #              if @limitation_of_exception_count <= exception_count
+              #                Log.crit "#{s}: reaching the limitation: #{@limitation_of_exception_count}"
               #                # Todo: this situation should be reported to the manager
               #                @terminated = true
               #                @cv.signal
               #                Thread.exit
               #              else
-              Log.err( e, s )
+              Log.err e, s
               #              end
-              # calmness = true if ( exception_count % 10 == 0 )
+              # calmness = true if exception_count % 10 == 0
               calmness = true
             end
-#            @mutex.synchronize { @finished = true }
-            @cv.signal
             # Thread.pass
-            if ( calmness )
+            if calmness
               sleep 1.5  # To avoid an out-of-control infinite loop
               calmness = false
             end
-            if ( @finished )
-              Thread.current.exit
+            if @finished
+              @cv.broadcast
+              break
+            end
+            if @stop_requested
+              finished
+              break
             end
           end
         end
       end
 
-      def serve( *args )
+      def serve *args
         # actual task should be implemented in a subclass
       end
 
       def restart
-        self.graceful_stop
+        graceful_stop
         sleep 0.01
-        self.start
+        start
       end
 
       def refresh
@@ -101,30 +104,37 @@ module Castoro
       def graceful_stop
         @stop_requested = true
         sleep 0.01
-        if ( @thread and @thread.alive? )
+        if @thread and @thread.alive?
           # p [ @thread, @thread.alive? ]
-          self.wait_until_finish
-          if ( @thread and @thread.alive? )
-            Thread::kill( @thread )
+          #wait_until_finish
+          wait_for_a_while
+          sleep 0.1
+          if @thread and @thread.alive?
+            Thread.kill @thread
           end
           @thread.join
         end
       end
 
-      def stop_requested?
-        @stop_requested
-      end
-
       protected
 
-      def wait_until_finish
+      def wait_until_finish  # this cannot be used because threads for pipeline process in cpeerd will never stop by themselves
         begin
           @mutex.lock
-          until ( self.finish? ) do
+          until finish? do
             break if @terminated
-            @cv.wait( @mutex )
-            sleep 1  # cv.wait does not wait: Bug of Ruby: http://redmine.ruby-lang.org/issues/show/3212
+            @cv.timedwait @mutex, 0.5
+            sleep 0.1  # cv.wait does not wait in a certain condition: Bug of Ruby: http://redmine.ruby-lang.org/issues/show/3212
           end
+        ensure
+          @mutex.unlock
+        end
+      end
+
+      def wait_for_a_while
+        begin
+          @mutex.lock
+          @cv.timedwait @mutex, 0.5
         ensure
           @mutex.unlock
         end
@@ -133,15 +143,15 @@ module Castoro
       def finish?
         # this could be implemented in a subclass
         # or use @finished to indicate the stauts
-        # @cv.signal in needed to notice change of condition
+        # @cv.signal is needed to notice change of condition
         @finished
       end
 
       def finished
-        Thread.new {
+        @mutex.synchronize do
           @finished = true
-          @cv.broadcast
-        }
+        end
+        @cv.broadcast
       end
     end
 

@@ -29,7 +29,9 @@ module Castoro
     class CommandExecutionError < StandardError ; end
     class AlreadyExistsError < StandardError ; end
     class NotFoundError < StandardError ; end
+    class StillExistsError < StandardError ; end
     class PreconditionFailedError < StandardError ; end
+    class StopRequestedError < StandardError ; end
 
     class InternalServerError < StandardError ; end
     class BasketConflictInternalServerError < InternalServerError ; end
@@ -39,6 +41,8 @@ module Castoro
     # For replication
     class RetryableError < StandardError ; end
     class PermanentError < StandardError ; end
+    class DataTransmissionError < RetryableError ; end
+    class ServerStatusDroppedError < RetryableError ; end
     class AlreadyExistsPermanentError < PermanentError ; end
     class InvalidArgumentPermanentError < PermanentError ; end
 

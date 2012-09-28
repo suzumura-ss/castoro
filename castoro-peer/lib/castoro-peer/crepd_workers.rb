@@ -45,8 +45,8 @@ module Castoro
         @w << ReplicationQueueDirectoriesMonitor.new
         @w << ReplicationReceiveServer.new
         c.crepd_number_of_replication_sender.times { @w << ReplicationSenderManager.new }
-        @m = CrepdTcpMaintenaceServer.new( c.crepd_maintenance_tcpport )
-        @h = TCPHealthCheckPatientServer.new( c.crepd_healthcheck_tcpport )
+        @m = CrepdTcpMaintenaceServer.new c.crepd_maintenance_tcpport
+        @h = TCPHealthCheckPatientServer.new c.crepd_healthcheck_tcpport
       end
 
       def start_workers
@@ -56,20 +56,25 @@ module Castoro
       end
 
       def stop_workers
+        #p "def stop_workers starts in ReplicationWorkers"
+        a = []
         @w.each do |w|
-          Thread.new { w.graceful_stop }  # Todo: this code is somewhat unusual
+          #p "stop_workers #{w.class}"
+          a << Thread.new { w.graceful_stop }
         end
-        @m.graceful_stop
-        @h.graceful_stop
+        a << Thread.new { @m.graceful_stop }
+        a << Thread.new { @h.graceful_stop }
+        a.each { |t| t.join }
+        #p "def stop_workers ends in ReplicationWorkers"
       end
     end
 
 
     class ReplicationQueueDirectoriesMonitor < Worker
       def serve
-        if ( ServerStatus.instance.replication_activated? )
+        if ServerStatus.instance.replication_activated?
           sleep 3 unless ReplicationQueueDirectories.instance.changed?
-          ReplicationQueueDirectories.instance.fillup( ReplicationQueue.instance )
+          ReplicationQueueDirectories.instance.fillup ReplicationQueue.instance
         else
           sleep 3
         end
@@ -82,7 +87,7 @@ module Castoro
 
     class ReplicationSenderManager < Worker
       def serve
-        if ( ServerStatus.instance.replication_activated? )
+        if ServerStatus.instance.replication_activated?
           work
         else
           sleep 3
@@ -100,13 +105,13 @@ module Castoro
         ReplicationQueueDirectories.instance.acquire( entry ) or return
         entry.read
         entry.append_myself
-        sender = FailoverableReplicationSender.new( entry )
+        sender = FailoverableReplicationSender.new entry
         sender.initiate
         x = ReplicationQueueDirectories.instance
         case sender.status
-        when :success  ; x.release( entry )
-        when :failover ; x.move_to_sleep( entry, sender.alternative )
-        when :failure  ; x.move_to_sleep( entry, nil )
+        when :success  ; x.release entry
+        when :failover ; x.move_to_sleep entry, sender.alternative
+        when :failure  ; x.move_to_sleep entry, nil
         else           ; raise PermanentError, "Unknown status: #{sender.status} #{entry.basket}"
         end
       end
@@ -116,14 +121,14 @@ module Castoro
     class FailoverableReplicationSender
       attr_reader :alternative
 
-      def initialize( entry )
+      def initialize entry
         @entry = entry
         @done = nil
       end
 
       def status
-        if ( @done )
-          if ( @alternative )
+        if @done
+          if @alternative
             # an attempt of replicating/deleting the basket to the next host has failed, 
             # however, replicating/deleting the basket to an alternative host has succeeded
             :failover 
@@ -140,14 +145,14 @@ module Castoro
 
       def initiate
         host = StorageServers.instance.target
-        candidates = ( @entry.alternative ) ? [] : StorageServers.instance.alternative_hosts.dup
+        candidates = @entry.alternative ? [] : StorageServers.instance.alternative_hosts.dup
 
         begin
-          sender = ReplicationSender.new( @entry, host )
+          sender = ReplicationSender.new @entry, host
           sender.initiate
           @done = true
 
-        rescue NotFoundError => e
+        rescue NotFoundError, StillExistsError => e
           Log.warning e
           @done = true
 
@@ -161,6 +166,10 @@ module Castoro
           Log.warning e
           @done = true
 
+        rescue ServerStatusDroppedError => e
+          Log.warning e
+          @done = false
+
         rescue InvalidArgumentPermanentError => e
           Log.err e
           @done = true
@@ -169,7 +178,7 @@ module Castoro
           Log.err e
           @done = true
 
-        rescue => e
+        rescue => e  # including I/O errors
           Log.warning e
           @done = false
         end
@@ -178,20 +187,29 @@ module Castoro
 
 
     class ReplicationInternalCommandReceiver < Worker
-      def initialize( port )
+      def initialize port
         @socket = ExtendedUDPSocket.new
-        @socket.bind( '127.0.0.1', port )
+        @socket.bind '127.0.0.1', port
         super
         @queue = ReplicationQueue.instance
       end
 
       def serve
+        loop do
+          break if @stop_requested
+          work
+        end
+      ensure
+        @socket.close unless @socket.closed?
+      end
+
+      def work
         channel = UdpServerChannel.new @socket
-        channel.receive
+        channel.receive  # receive might be interrupted by Thread.kill
         command, args = channel.parse
         basket_text = args[ 'basket' ]
-        if ( basket_text )
-          basket = Basket.new_from_text( basket_text )
+        if basket_text
+          basket = Basket.new_from_text basket_text
           case command
           when 'REPLICATE' ; @queue.enq ReplicationEntry.new( :basket => basket, :action => :replication )
           when 'DELETE'    ; @queue.enq ReplicationEntry.new( :basket => basket, :action => :delete )
@@ -199,11 +217,7 @@ module Castoro
         end
       rescue => e
         Log.warning e, "#{command} #{args}"
-      end
-
-      def graceful_stop
-        finished
-        super
+        sleep 0.01
       end
     end
 
@@ -225,12 +239,7 @@ module Castoro
       end
 
       def do_shutdown
-        # Todo:
-        Thread.new {
-          sleep 2
-          Process.exit 0
-        }
-        CrepdMain.instance.stop
+        Thread.new { CrepdMain.instance.stop }
       end
     end
 

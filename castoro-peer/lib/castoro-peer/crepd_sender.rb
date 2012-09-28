@@ -49,9 +49,6 @@ module Castoro
             else ; raise PermanentError, "Unknown action: #{@entry.action} #{@basket}"
             end
 
-        @connection = Connection.new( @basket )
-        @connection.connect( @host, @port )
-
         args = { :basket => @basket.to_s, :ttl => @entry.ttl, :hosts => @entry.hosts }
         send( m, args )  # this invokes either replicate or delete.
 
@@ -59,9 +56,16 @@ module Castoro
         @connection.close if @connection
       end
 
+      def connect
+        @connection = Connection.new( @basket )
+        @connection.connect( @host, @port )
+      end
+
       def replicate( args )
         File.exist? @basket.path_a or
           raise NotFoundError, "No such basket exists: #{@basket} #{@basket.path_a}"
+
+        connect
 
         started = Time.new
         Log.notice "Replicating #{@basket} to #{@host}:#{@port} started. #{@entry.ttl_and_hosts}"
@@ -91,6 +95,11 @@ module Castoro
           raise PermanentError, "a queue file has been deleted during replication. #{@basket}"
 
         @connection.communicate( 'FINALIZE' )
+
+      rescue DataTransmissionError
+        # In case of this exception, the TCP connection to the receiver may be lost.
+        # No 'CANCEL' can be sent to the receiver.
+        raise  # raise the original exception
 
       rescue => e
         begin
@@ -135,15 +144,35 @@ module Castoro
           rest = size
           while ( 0 < rest )
             n = ( unit_size < rest ) ? unit_size : rest
-            rest -= IO.copy_stream( src, @connection.socket, n )
+
+            begin
+              # copy_stream may raise an exception when its receiver shutdowns or closes the TCP connection.
+              rest -= IO.copy_stream( src, @connection.socket, n )
+            rescue IOError, Errno::EBADF => e
+              raise DataTransmissionError, "IO error occurred during sending replication data: #{@basket} #{@host}:#{@port}"
+            end
+
+            unless ServerStatus.instance.replication_activated?
+              # No more data will be written to the connection.
+              # This shutdown sends a FIN packet to the end so that the receiver 
+              # will notice the current replication has been interrupted.
+              @connection.socket.shutdown Socket::SHUT_WR
+              raise ServerStatusDroppedError, "server status has dropped during sending replication data: #{ServerStatus.instance.status} #{ServerStatus.instance.status_name} #{@basket} #{@host}:#{@port}"
+            end
+
             MaintenaceServerSingletonScheduler.instance.check_point
           end
         end
 
-        @connection.receive
+        @connection.receive  # receive might be interrupted by Thread.kill
       end
 
       def delete( args )
+        File.exist? @basket.path_a and
+          raise StillExistsError, "Basket still exists: #{@basket} #{@basket.path_a}"
+
+        connect
+
         # File.exist? @basket.path_a is not performed here intentionally.
         Log.notice "Deleting #{@basket} to #{@host}:#{@port} started. #{@entry.ttl_and_hosts}"
 
@@ -208,13 +237,13 @@ module Castoro
       end
 
       def receive
-        unless ( IO.select( [@socket], nil, nil, TIMED_OUT_FOR_RECEIVING ) )
+        unless ( IO.select( [@socket], nil, nil, TIMED_OUT_FOR_RECEIVING ) )  # select might be interrupted by Thread.kill
           m = "Response from a remote host timed out #{TIMED_OUT_FOR_RECEIVING}s: #{@basket} to #{@host}:#{@port}"
           Log.warning m
           raise RetryableError, m
         end
 
-        @channel.receive
+        @channel.receive  # receive might be interrupted by Thread.kill
         if ( @channel.closed? )
           raise RetryableError, "Connection is unexpectedly closed, waiting response of #{@command}: #{@basket} to #{@host}:#{@port}"
         end
