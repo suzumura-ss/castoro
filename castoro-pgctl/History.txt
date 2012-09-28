@@ -1,0 +1,41 @@
+=== 0.4.0 2012-09-18
+* Fixed issue #82 - response messages for pgctl passwd was same for setting, changing, and deleting a password
+* Fixed issue #88 (pgctl) - log messages might not be exported to syslog upon shutdown
+* Incorporated issue #91 (pgctl) - Replaced a directory path of both working and replication from %Y%m%dT%H to %Y/%Y%m%dT%H
+* Incorporated issue #92 - /etc/init.d/cstartd and cagentd work with chkconfig on CentOS and svccfg on OpenSolaris
+* Regarding the issue #92, let gem install execute make install
+* Changed an exit status code from 1 to 0 upon AlreadyStoppedError in /etc/init.d/cstartd, cagentd in order to work with SVC in OpenSolaris, so that SVC will automatically restart deamon processes right after they are crashed.
+* Reverted to the traditional one Rake::RDocTask.new from a recent one RDoc::Task.new in Rakefile
+
+=== 0.3.1 2012-08-24
+* New features to examine temporary basket directories and replication items
+* Added corresponding configuration items to pgctl.conf
+* Added date, reamins, and help subcommands to pgctl
+* Added GETDATE and REMAINS remote commands
+* Enhanced exception handing and some in configurations_base.rb
+* Accepts both BasketBaseDir in peer.conf for castoro-1 and basket_basedir for castoro-2 
+* Fixed issue #80 - cagentd does not stop using /etc/init.d/cagentd stop
+* Removed #include <stropts.h> from password_reader.c to compile it on CentOS 6.2
+
+=== 0.0.3 2012-07-23
+* Renamed castoro-groupctl with castoro-pgctl; groupctl with pgctl
+* Added a feature to interprete /etc/castoro/peer.conf of both castoro-1 and 2
+* Renamed sub-commands: startall with gstart; stopall with gstop
+* Renamed sub-commands: start with enable; stop with disable
+* Added sub-commands: list, passwd, start, and stop
+* Developed an extension password_reader.so
+* Added a password authentication functionality
+* Added password protection and confirmation for critical subcommands
+* Made it secure by erasing data which stores a typed password
+* Dealing with the remains of PID file produced by the castoro-manipulator
+* Wordaround for a problem that Singleton seems not multithread-safe
+* Moved a version number from Rakefile to lib/castoro-pgctl/version.rb
+* Added a dummy spec
+
+=== 0.0.2 2012-05-31
+* Implemented error check
+* Handling a Ctrl-C
+* Refactored class relationship
+
+=== 0.0.1.pre1 2012-04-26
+* The initial, preliminary release

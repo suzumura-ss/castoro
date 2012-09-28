@@ -1,0 +1,45 @@
+#  -*- mode: Makefile; -*-
+
+#
+#   Copyright 2010 Ricoh Company, Ltd.
+#
+#   This file is part of Castoro.
+#
+#   Castoro is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU Lesser General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   Castoro is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU Lesser General Public License for more details.
+#
+#   You should have received a copy of the GNU Lesser General Public License
+#   along with Castoro.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+dest = /etc/init.d
+targets = $(dest)/cstartd $(dest)/cagentd
+
+.PHONY: default install uninstall
+
+default:
+	@echo To install files into /etc/init.d, make install
+	@echo To uninstall them, make uninstall
+
+install : $(targets)
+
+$(dest)/% : %
+	-(/usr/bin/svcs svc:/application/castoro/$< > /dev/null 2>&1) && /usr/sbin/svccfg delete svc:/application/castoro/$<
+	/usr/sbin/svccfg validate $<.svccfg.xml 
+	/bin/cp $< $@
+	/usr/sbin/svccfg import -V $<.svccfg.xml 
+
+uninstall:
+	-/usr/sbin/svcadm disable svc:/application/castoro/cstartd
+	-/usr/sbin/svcadm disable svc:/application/castoro/cagentd
+	/usr/bin/sleep 5
+	-/usr/sbin/svccfg delete -f svc:/application/castoro/cstartd
+	-/usr/sbin/svccfg delete -f svc:/application/castoro/cagentd
+	-/bin/rm $(targets)

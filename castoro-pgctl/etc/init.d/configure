@@ -1,0 +1,5 @@
+#! /bin/bash -e
+
+echo /bin/cp Makefile.`/bin/uname -s` Makefile
+/bin/cp Makefile.`/bin/uname -s` Makefile
+
